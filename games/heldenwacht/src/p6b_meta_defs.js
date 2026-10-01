@@ -243,7 +243,6 @@ const ACHIEVEMENTS = [
   { id: 'geheim', name: 'Geheime Gang', text: 'Speel een geheime map vrij', check: (s, D) => Object.keys(D.secret || {}).length >= 1, reward: { tokens: 3, coins: 1000 }, color: '#7c3aed' },
   { id: 'custom5', name: 'Masochist', text: 'Win met 5 of meer modifiers', check: s => s.maxModWin >= 5, reward: { tickets: { legendary: 2 } }, color: '#71717a' },
   { id: 'onverwoestbaar', name: 'Onverwoestbaar', text: 'Win een potje op Moeilijk of hoger zonder HP te verliezen', check: s => !!s.flawlessHard, reward: { coins: 1500, tokens: 3 }, color: '#10b981', unlockMap: 'lab' },
-  { id: 'coop', name: 'Teamspeler', text: 'Doe mee aan een co-op wereldbaas', check: s => s.coopRuns >= 1, reward: { title: 'teamspeler', raidTokens: 15 }, color: '#14b8a6' },
 ];
 function ownsRarity(D, r) { return Object.keys(D.heroes).some(id => HERO[id] && HERO[id].rarity === r); }
 

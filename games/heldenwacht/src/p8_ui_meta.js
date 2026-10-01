@@ -72,7 +72,7 @@ function renderModes() {
         <button class="btn btn-pow btn-xl" data-act="start-endless">Start Endless</button></div>
       <div class="panel card"><span class="kicker">Jouw record</span><h3 class="num" style="font-size:40px;font-family:var(--f-display)">Golf ${D.stats.endlessBest}</h3>
         <p class="muted" style="margin:0">Elke 15 golven levert een Trait Reroll Token op. Je record telt mee voor de Endless-ranglijst.</p>
-        <button class="btn btn-sm" data-act="lb-open" data-cat="endless">Bekijk ranglijst</button></div></div>`;
+        <button class="btn btn-sm" data-act="lb-open" data-cat="endless">Bekijk scores</button></div></div>`;
   } else if (tab === 'bossrush') {
     const best = D.stats.bossrushBest;
     body = `<div class="panel card"><span class="kicker">Boss Rush · Het Kolosseum</span><h3>${BOSSRUSH.length} bazen achter elkaar</h3>
@@ -132,7 +132,7 @@ function renderModes() {
       <p class="muted" style="margin-top:12px">Eventmaps zijn ook geheim: ze zijn alleen te spelen zolang hun event loopt. Kijk bij <button class="btn btn-sm" data-act="nav" data-to="event">Event</button></p>`;
   }
   $('#scr-modes').innerHTML = `<div class="screen-head"><div><span class="kicker">Speciale spelmodi</span><h2>Modi</h2></div></div>
-    ${tabsHtml('mode-tab', tab, [['endless', 'Endless'], ['bossrush', 'Boss Rush'], ['raids', 'Raids'], ['coop', 'Co-op'], ['dungeon', 'Dungeon', false, Meta.dungeonUnlocked() && !D.dungeon.best ? 'nieuw' : 0], ['custom', 'Custom'], ['secret', 'Geheime maps']])}${body}`;
+    ${tabsHtml('mode-tab', tab, [['endless', 'Endless'], ['bossrush', 'Boss Rush'], ['raids', 'Raids'], ['dungeon', 'Dungeon', false, Meta.dungeonUnlocked() && !D.dungeon.best ? 'nieuw' : 0], ['custom', 'Custom'], ['secret', 'Geheime maps']])}${body}`;
   $$('#scr-modes canvas[data-map]').forEach(cv => drawMapThumb(cv, mapById(cv.dataset.map)));
   hydratePortraits($('#scr-modes'));
 }

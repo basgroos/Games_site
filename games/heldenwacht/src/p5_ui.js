@@ -671,7 +671,7 @@ function showResults() {
   MAPS.forEach((m, i) => { if (after.maps[i] && !before.maps[i]) unlocks.push(`Nieuwe map: ${m.name}`); DIFFS.forEach((d, j) => { if (j > 1 && after.diffs[i][j] && !before.diffs[i][j]) unlocks.push(`${m.name}: ${d.name} vrijgespeeld`); }); });
   GACHAS.forEach((x, i) => { if (after.gachas[i] && !before.gachas[i]) unlocks.push(`Nieuwe gacha: ${x.event ? 'Event Gacha' : x.name}`); });
   RAIDS.forEach((r, i) => RAID_DIFFS.forEach((d, j) => { if (after.raids[i][j] && !before.raids[i][j]) unlocks.push(j ? `Raid ${r.name}: ${d.name} vrijgespeeld` : `Nieuwe raid: ${r.name}`); }));
-  if (after.br && !before.br) unlocks.push('Boss Rush vrijgespeeld'); if (after.coop && !before.coop) unlocks.push('Co-op wereldbaas vrijgespeeld');
+  if (after.br && !before.br) unlocks.push('Boss Rush vrijgespeeld');
   const title = g.mode === 'coop' ? 'Run voltooid' : win ? 'Overwinning!' : g.result.quit ? 'Opgegeven' : 'Verslagen';
   const sub = g.mode === 'coop' ? `${fmt(g.coopDmg)} schade aan de wereldbaas.` : g.mode === 'endless' ? `Je overleefde ${g.cleared} golven.` : g.mode === 'bossrush' ? `${BOSSRUSH.filter(b => g.ms.bossKillsList.includes(b)).length} van ${BOSSRUSH.length} bazen verslagen.` : win ? `Alle ${g.totalWaves} golven overleefd met ${Math.ceil(g.hp)} ♥ over.` : `Je haalde ${g.cleared} van ${g.totalWaves} golven.`;
   $('#overlay-root').innerHTML = `<div class="overlay" role="dialog" aria-modal="true" aria-label="Resultaat"><div class="panel results-card">
@@ -819,7 +819,6 @@ function boot() {
   if (!AUTO_ORDER.includes(Store.data.settings.autoMode)) Store.data.settings.autoMode = Store.data.settings.autoWave ? 'clear' : 'off';
   Meta.ensureAll(); Meta.ensureChallenges(); Meta.season(); for (const m of SPECIAL_MAPS) if (m.kind === 'secret') Meta.secretUnlocked(m); Meta.checkAchievements(); Store.save();
   Online.on(() => { if (!App.game && !$('#overlay-root').children.length && (App.screen === 'leaderboard' || (App.screen === 'modes' && App.modeTab === 'coop'))) rerender(); });
-  Online.init();
   nav('home');
   requestAnimationFrame(frame);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (App.screen === 'home') renderHome(); });

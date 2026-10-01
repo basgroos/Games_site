@@ -71,7 +71,7 @@ function renderShop() {
       <div class="cur-card"><span class="coin-ico ci"></span><div><b>${fmt(D.coins)}</b><span>Munten: verdien je met elke match. Voor levels, gacha's en de Shop.</span></div></div>
       <div class="cur-card"><span class="gem-ico lg ci" style="width:26px;height:26px"></span><div><b>${fmt(D.gems)} Gems</b><span>Zeldzaam: missies, achievements, drops, dungeon, collectie. Voor gem-gacha's, skins en deals.</span></div></div>
       <div class="cur-card"><span class="tok-ico ci"></span><div><b>${D.tokens} Trait Tokens</b><span>Voor de Trait Gacha: rol een trait op een held.</span></div></div>
-      <div class="cur-card"><span class="cur-pill ci" style="--ec:#f59e0b;font-size:13px">R</span><div><b>${D.raidTokens} Raidtokens</b><span>Uit raids en co-op. Voor de Raid-winkel bij Modi.</span></div></div>
+      <div class="cur-card"><span class="cur-pill ci" style="--ec:#f59e0b;font-size:13px">R</span><div><b>${D.raidTokens} Raidtokens</b><span>Uit raids. Voor de Raid-winkel bij Modi.</span></div></div>
       <div class="cur-card"><span class="cur-pill ci" style="--ec:${Meta.activeEvent().def.color};font-size:13px">E</span><div><b>${Meta.evState(Meta.activeEvent()).cur} ${esc(Meta.activeEvent().def.currency)}</b><span>Eventvaluta: alleen tijdens het event, voor de Event-winkel.</span></div></div>
     </div>
     ${tabsHtml('shop-tab', tab, SHOP_TABS.map(([k, l]) => [k, l]))}
@@ -135,7 +135,7 @@ function dungeonBody() {
       <p class="muted" style="margin:0">Elke overwinning: munten, Gems en Trait Tokens (meer per diepte). De eerste keer dat je een diepte haalt krijg je extra:</p>
       <div class="row-list">${Object.keys(DUNGEON_FIRST).map(k => `<div class="row-card ${+k <= (D.dungeon.best || 0) ? 'claimed' : ''}"><div><b>Diepte ${k}</b></div>${chips(DUNGEON_FIRST[k])}${+k <= (D.dungeon.best || 0) ? '<span class="muted">✓</span>' : ''}</div>`).join('')}</div>
       <div class="section-title" style="margin:0">Relikwieën</div><div class="enemy-chips">${RELICS.map(r => `<span class="chip" title="${esc(r.desc)}">${esc(r.name)}</span>`).join('')}</div>
-      <button class="btn btn-sm" data-act="lb-open" data-cat="dungeon">Bekijk ranglijst</button></div></div>`;
+      <button class="btn btn-sm" data-act="lb-open" data-cat="dungeon">Bekijk scores</button></div></div>`;
 }
 function showRelicPick() {
   const g = App.game; if (!g || !g.relicOffer || g.over) return;

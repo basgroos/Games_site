@@ -12,6 +12,9 @@ if (!['live', 'staging'].includes(env)) { console.error(`Onbekende omgeving: ${e
 let commit = process.env.SITE_COMMIT || process.env.GITHUB_SHA || '';
 if (!commit) { try { commit = execSync('git rev-parse HEAD', { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch (e) { commit = ''; } }
 const date = new Date().toISOString();
+// Online instellingen (openbaar: de Supabase-URL en de 'anon'-sleutel mogen in de site staan)
+const onlineFile = path.join(root, 'config', 'online.json');
+const online = fs.existsSync(onlineFile) ? JSON.parse(fs.readFileSync(onlineFile, 'utf8')) : {};
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 const gamesDir = path.join(root, 'games');
@@ -26,7 +29,7 @@ fs.mkdirSync(out, { recursive: true });
 for (const g of games) {
   const src = path.join(gamesDir, g.dir, 'src');
   const order = fs.readFileSync(path.join(src, 'ORDER.txt'), 'utf8').split(/\s+/).filter(Boolean);
-  const info = { env, version: g.version, commit, date, home: '../../' };
+  const info = { env, version: g.version, commit, date, home: '../../', online: online.url && online.key ? { url: online.url, key: online.key } : null };
   const html = [
     '<!doctype html>', '<html lang="nl">', '<meta name="viewport" content="width=device-width, initial-scale=1">',
     fs.readFileSync(path.join(src, 'p1.html'), 'utf8'),

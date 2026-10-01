@@ -44,6 +44,7 @@ const $ = s => d.querySelector(s), $$ = s => [...d.querySelectorAll(s)];
 
 (async () => {
   await new Promise(r => setTimeout(r, 50));
+  E("setPlayerName('Tester')");
   if (WITH_DB) { await new Promise(r => setTimeout(r, 100)); if (dom.mock) { E(''); } }
   run('boot state', () => ({ v2: E('Store.data.traitsV2'), heroes: Object.keys(E('Store.data.heroes')), traits: Object.values(E('Store.data.heroes')).map(h => h.trait), online: E('Online.ready') }));
   run('all screens', () => { for (const s of ['maps', 'modes', 'gacha', 'collection', 'team', 'missions', 'event', 'leaderboard', 'profile', 'settings', 'home']) E(`nav('${s}')`); });
@@ -71,9 +72,9 @@ const $ = s => d.querySelector(s), $$ = s => [...d.querySelectorAll(s)];
   run('trait odds sample', () => { const c = {}; for (let i = 0; i < 20000; i++) { const t = E('TRAIT[Meta.rollTrait()].rarity'); c[t] = (c[t] || 0) + 1; } return c; });
   run('equip skin', () => { E(`Store.data.skins.push('neon'); openHeroModal('pijl', 0, 'skins')`); click($('[data-act="equip-skin"][data-skin="neon"]')); return E('Store.data.heroes.pijl.skin'); });
   run('gacha + tickets', () => { E(`closeOverlay(); Store.data.coins = 1e6; Store.data.tickets.cosmic = 2; Store.data.clears = {stad:['normal'],bos:['normal'],woestijn:['normal'],bergen:['normal'],neo:['normal']}; App.gachaSel='cosmic'; nav('gacha')`); click($('[data-act="pull-ticket"]')); E('revealDone(); closeOverlay()'); click($('[data-act="pull"][data-n="10"]')); E('revealDone(); closeOverlay()'); return { cosmic: E('Store.data.tickets.cosmic'), pulls: E('Store.data.stats.pulls') }; });
-  run('modes tabs', () => { E(`nav('modes')`); for (const t of ['endless', 'bossrush', 'raids', 'coop', 'custom', 'secret']) click($(`[data-act="mode-tab"][data-tab="${t}"]`)); });
+  run('modes tabs', () => { E(`nav('modes')`); for (const t of ['endless', 'bossrush', 'raids', 'dungeon', 'custom', 'secret']) click($(`[data-act="mode-tab"][data-tab="${t}"]`)); });
   run('missions tabs', () => { E(`nav('missions')`); for (const t of ['daily', 'perm', 'quests', 'ach', 'login']) click($(`[data-act="mission-tab"][data-tab="${t}"]`)); });
-  run('leaderboard cats', () => { E(`nav('leaderboard')`); for (const c of E('LB_CATS.map(c=>c.id)')) { click($(`[data-act="lb-cat"][data-tab="${c}"]`)); click($('[data-act="lb-season"][data-v="0"]')); } return $$('.lb tbody tr').length; });
+  run('scores tabs', () => { E(`nav('leaderboard')`); for (const c of E('SCORE_MODES.map(c=>c[0])')) click($(`[data-act="score-mode"][data-tab="${c}"]`)); if (E('!!document.querySelector("[data-act=\\"mode-tab\\"][data-tab=\\"coop\\"]")')) throw new Error('co-op tab nog zichtbaar'); return $$('.lb tbody tr').length; });
   run('profile + event', () => { E(`nav('profile'); nav('event')`); return E('Meta.activeEvent().def.name'); });
   run('event calendar dates', () => { const out = {}; for (const ds of ['2026-07-15', '2026-09-29', '2026-10-20', '2026-12-25', '2027-01-03', '2027-03-01', '2026-11-20']) { w.__d = new Date(ds + 'T12:00:00'); out[ds] = E('Meta.activeEvent(window.__d).def.id'); } return out; });
 
@@ -128,5 +129,5 @@ const $ = s => d.querySelector(s), $$ = s => [...d.querySelectorAll(s)];
   run('leaderboard after play', () => { E(`App.lbSeason=true; App.lbCat='kills'; nav('leaderboard')`); return $$('.lb tbody tr').map(r => r.textContent.replace(/\s+/g, ' ').trim()).slice(0, 4); });
   if (WITH_DB) { await new Promise(r => setTimeout(r, 50)); run('db contents', () => ({ keys: Object.keys(dom.mock.store), mine: dom.mock.store['scores/u_me'] && dom.mock.store['scores/u_me'].a, coop: dom.mock.store['coop/u_me'] })); }
   run('reset', () => { E(`nav('settings')`); click($('#reset-btn')); click($('#reset-confirm')); return { coins: E('Store.data.coins'), heroes: Object.keys(E('Store.data.heroes')), prestige: E('Store.data.prestige') }; });
-  console.log(errors.length ? 'ERRORS: ' + errors.join(', ') : 'ALL PASSED');
+  console.log(errors.length ? 'ERRORS: ' + errors.join(', ') : 'ALL PASSED'); process.exitCode = errors.length ? 1 : 0;
 })();
