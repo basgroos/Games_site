@@ -44,7 +44,7 @@ const $ = s => d.querySelector(s), $$ = s => [...d.querySelectorAll(s)];
 
 (async () => {
   await new Promise(r => setTimeout(r, 50));
-  E("setPlayerName('Tester')");
+  E("setPlayerName('Tester'); Store.data.settings.rareAnim = 'off'");
   if (WITH_DB) { await new Promise(r => setTimeout(r, 100)); if (dom.mock) { E(''); } }
   function sim(opts, team, level, maxMin = 25, bot = {}) {
     E(`Store.data.team = ${JSON.stringify(team)}; ${JSON.stringify(team)}.forEach(id => { Store.data.heroes[id] = Object.assign(Store.data.heroes[id] || {copies:1}, { level: ${level} }); Meta.ensureHero(id); });`);

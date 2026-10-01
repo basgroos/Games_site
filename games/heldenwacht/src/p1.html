@@ -547,6 +547,64 @@ kbd{font-family:var(--f-num);font-weight:700;background:var(--panel3);border:2px
 .sk-locked{opacity:.55;border-style:dashed}
 .sk-pop{animation:skpop .45s ease-out}
 @keyframes skpop{0%{transform:scale(1)}35%{transform:scale(1.07);box-shadow:0 0 22px var(--bc)}100%{transform:scale(1)}}
+.rare-anim{position:fixed;inset:0;z-index:200;display:grid;place-items:center;overflow:hidden;cursor:pointer;color:var(--text);-webkit-user-select:none;user-select:none}
+.rare-anim .ra-bg{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--c) 40%,#05040d) 0,#05040d 62%);opacity:0;transition:opacity .35s}
+.rare-anim.go .ra-bg{opacity:.96}
+.rare-anim .ra-rays{position:absolute;left:50%;top:45%;width:180vmax;height:180vmax;margin:-90vmax 0 0 -90vmax;background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--c) 55%,transparent) 0 6deg,transparent 6deg 18deg);mask:radial-gradient(circle,#000 0,transparent 55%);-webkit-mask:radial-gradient(circle,#000 0,transparent 55%);opacity:0;transform:scale(.4)}
+.rare-anim .ra-rays.r2{background:repeating-conic-gradient(from 9deg,rgba(255,255,255,.18) 0 2deg,transparent 2deg 24deg)}
+.rare-anim.go .ra-rays{animation:raIn .9s ease-out forwards,raSpin 14s linear infinite}
+.rare-anim.go .ra-rays.r2{animation:raIn .9s ease-out .15s forwards,raSpin 22s linear infinite reverse}
+.rare-anim .ra-ring{position:absolute;left:50%;top:45%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;border:4px solid var(--c);opacity:0;box-shadow:0 0 30px var(--c)}
+.rare-anim.go .ra-ring{animation:raRing calc(var(--rv) * .9) ease-in infinite}
+.rare-anim.go .ra-ring.r2{animation-delay:calc(var(--rv) * .3)}
+.rare-anim.go .ra-ring.r3{animation-delay:calc(var(--rv) * .6)}
+.rare-anim.revealed .ra-ring{animation:raBurst .7s ease-out forwards}
+.rare-anim.revealed .ra-ring.r2{animation:raBurst .9s ease-out .08s forwards}
+.rare-anim.revealed .ra-ring.r3{animation:raBurst 1.1s ease-out .16s forwards}
+.rare-anim .ra-sparks{position:absolute;left:50%;top:45%;width:0;height:0}
+.rare-anim .ra-sparks i{position:absolute;width:var(--s);height:var(--s);margin:calc(var(--s) / -2);border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c),0 0 2px #fff;opacity:0}
+.rare-anim.revealed .ra-sparks i{animation:raSpark var(--t) cubic-bezier(.15,.7,.3,1) forwards}
+.rare-anim .ra-stage{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;padding:16px;margin-top:-4vh}
+.rare-anim .ra-hero{position:relative;width:min(260px,62vw);aspect-ratio:1;transform:scale(.3) translateY(40px);opacity:0}
+.rare-anim.go .ra-hero{animation:raRise var(--rv) cubic-bezier(.2,.8,.2,1) forwards}
+.rare-anim .ra-hero>div{position:absolute;inset:0}
+.rare-anim .ra-pt{width:100%;height:100%;display:block}
+.rare-anim .ra-sil{filter:drop-shadow(0 0 18px var(--c)) brightness(0) drop-shadow(0 0 2px var(--c));animation:raPulse .5s ease-in-out infinite alternate}
+.rare-anim .ra-full{opacity:0;filter:drop-shadow(0 0 22px var(--c))}
+.rare-anim.revealed .ra-sil{animation:none;opacity:0;transition:opacity .15s}
+.rare-anim.revealed .ra-full{opacity:1;animation:raPop .55s cubic-bezier(.2,1.6,.4,1)}
+.rare-anim.revealed .ra-hero{animation:none;transform:none;opacity:1}
+.rare-anim .ra-text{opacity:0;transform:translateY(16px)}
+.rare-anim.revealed .ra-text{animation:raText .45s ease-out .15s forwards}
+.rare-anim .ra-text .chip{font-size:15px;padding:4px 14px}
+.rare-anim .ra-text h2{font-size:clamp(30px,6vw,56px);color:var(--c);text-shadow:4px 4px 0 var(--edge),0 0 24px var(--c);margin:8px 0 2px;transform:skew(-6deg)}
+.rare-anim .ra-sub{color:var(--muted);font-weight:600}
+.rare-anim .ra-tag{display:inline-block;margin-top:10px;font:800 15px/1 var(--f-num);letter-spacing:.1em;padding:6px 14px;border-radius:99px;background:var(--panel2);border:2px solid var(--c)}
+.rare-anim .ra-tag.new{background:var(--c);color:var(--edge)}
+.rare-anim .ra-flash{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,#fff 0,var(--c) 35%,transparent 75%);opacity:0;pointer-events:none}
+.rare-anim.revealed .ra-flash{animation:raFlash .7s ease-out}
+.rare-anim .ra-hint{position:absolute;bottom:6vh;left:0;right:0;text-align:center;color:var(--muted);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:13px;opacity:0;transition:opacity .4s}
+.rare-anim.revealed.hint-on .ra-hint,.rare-anim.skip.revealed .ra-hint{opacity:1}
+.rare-anim.out{animation:raOut .26s ease-in forwards}
+.rare-anim.ra-big .ra-hero{width:min(300px,70vw)}
+.rare-anim.ra-big.revealed{animation:raShake .5s ease-out}
+.rare-anim.ra-ultra .ra-text h2,.rare-anim.ra-secret .ra-text h2{background:linear-gradient(90deg,#fde68a,#fff,#c4b5fd,#fde68a);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:rainbow 2.4s linear infinite}
+.rare-anim.ra-secret .ra-bg{background:repeating-linear-gradient(0deg,rgba(255,255,255,.04) 0 2px,transparent 2px 4px),radial-gradient(circle at 50% 45%,#262626 0,#05040d 62%)}
+.rare-anim.ra-secret.revealed .ra-full{animation:raGlitch .5s steps(2) 3,raPop .55s cubic-bezier(.2,1.6,.4,1)}
+@keyframes raIn{to{opacity:.55;transform:scale(1)}}
+@keyframes raSpin{to{rotate:360deg}}
+@keyframes raRing{0%{opacity:0;transform:scale(9)}30%{opacity:.8}100%{opacity:0;transform:scale(1)}}
+@keyframes raBurst{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(28)}}
+@keyframes raSpark{0%{opacity:1;transform:rotate(var(--a)) translateX(0)}100%{opacity:0;transform:rotate(var(--a)) translateX(var(--d))}}
+@keyframes raRise{0%{opacity:0;transform:scale(.3) translateY(60px)}60%{opacity:1}100%{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes raPulse{to{filter:drop-shadow(0 0 32px var(--c)) brightness(0) drop-shadow(0 0 4px var(--c))}}
+@keyframes raPop{0%{transform:scale(.8)}100%{transform:scale(1)}}
+@keyframes raText{to{opacity:1;transform:none}}
+@keyframes raFlash{0%{opacity:1}100%{opacity:0}}
+@keyframes raOut{to{opacity:0;transform:scale(1.04)}}
+@keyframes raShake{0%,100%{transform:none}20%{transform:translate(-8px,4px)}40%{transform:translate(7px,-5px)}60%{transform:translate(-5px,3px)}80%{transform:translate(3px,-2px)}}
+@keyframes raGlitch{0%{transform:translate(4px,0);filter:drop-shadow(-4px 0 #22d3ee) drop-shadow(4px 0 #f43f5e)}100%{transform:translate(-4px,0);filter:drop-shadow(4px 0 #22d3ee) drop-shadow(-4px 0 #f43f5e)}}
+@media (prefers-reduced-motion:reduce){.rare-anim .ra-rays,.rare-anim .ra-ring,.rare-anim .ra-sparks{display:none}.rare-anim.ra-big.revealed{animation:none}}
 .rar-mystery{background:repeating-linear-gradient(135deg,#6d28d9 0 8px,#8b5cf6 8px 16px);color:#fff;text-shadow:0 1px 0 #1e1b4b;box-shadow:0 0 10px rgba(167,139,250,.6)}
 .rar-secret{background:repeating-linear-gradient(90deg,#fafafa 0 7px,#0a0a0a 7px 14px);color:#fafafa;text-shadow:1px 0 #f43f5e,-1px 0 #22d3ee,0 0 3px #000;animation:glitchbg .5s steps(3) infinite;box-shadow:0 0 12px rgba(250,250,250,.55)}
 @keyframes glitchbg{0%{background-position:0 0}50%{background-position:9px 0}100%{background-position:-6px 0}}

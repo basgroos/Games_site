@@ -44,7 +44,7 @@ const $ = s => d.querySelector(s), $$ = s => [...d.querySelectorAll(s)];
 
 (async () => {
   await new Promise(r => setTimeout(r, 50));
-  E("setPlayerName('Tester')");
+  E("setPlayerName('Tester'); Store.data.settings.rareAnim = 'off'");
   if (WITH_DB) { await new Promise(r => setTimeout(r, 100)); if (dom.mock) { E(''); } }
   run('boot state', () => ({ v2: E('Store.data.traitsV2'), heroes: Object.keys(E('Store.data.heroes')), traits: Object.values(E('Store.data.heroes')).map(h => h.trait), online: E('Online.ready') }));
   run('all screens', () => { for (const s of ['maps', 'modes', 'gacha', 'collection', 'team', 'missions', 'event', 'leaderboard', 'profile', 'settings', 'home']) E(`nav('${s}')`); });

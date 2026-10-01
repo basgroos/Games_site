@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## Heldenwacht 1.17.0 (2026-10-01)
+- **Animatie voor zeldzame helden**: silhouet, lichtstralen, ringen, flits en onthulling met naam, rarity en "Nieuwe held!". Hogere rarity's (Exotic, Ultra, Secret) krijgen een grotere, langere versie. Werkt bij gacha, shop, codes en beloningen; tikken slaat over.
+- **Instelling**: vanaf welke rarity de animatie speelt (of nooit), en "alleen bij nieuwe helden". Met voorbeeldknop.
+
 ## Heldenwacht 1.16.0 (2026-10-01, staging)
 - **Skill Tree** (menu *Skills*): permanente account-upgrades in 5 takken (Economie, Kracht, Techniek, Verdediging, Beloningen), 20 skills met 1 tot 5 levels en vereisten.
 - **Skillpunten** verdien je met accountlevels (ook over prestige heen), sterren, achievements, prestige en dungeon-diepte. Resetten kost 50 gems.

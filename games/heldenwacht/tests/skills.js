@@ -83,6 +83,17 @@ const $ = s => d.querySelector(s);
     E('Store.data.gems = 10'); click($('[data-act="sk-reset"]')); click($('[data-act="sk-reset-yes"]')); ok(E('skillLv("atk1")') === 1, 'reset zonder gems');
     E('Store.data.gems = 100; renderSkills()'); click($('[data-act="sk-reset"]')); click($('[data-act="sk-reset-yes"]')); ok(E('skillLv("atk1")') === 0 && E('Store.data.gems') === 50, 'reset mislukt');
   });
+  run('animatie zeldzame helden: drempel, alleen nieuw en gacha-volgorde', () => {
+    E('Store.data.settings.rareAnim = "legendary"; Store.data.settings.rareOnlyNew = false; delete Store.data.heroes.kosmos; delete Store.data.heroes.nova');
+    E('grantHero("vuist")'); ok(!E('RareQ.length'), 'common gaf animatie');
+    E('const r = grantHero("kosmos"); showReveal([r], GACHAS[0])');
+    ok(d.getElementById('rare-layer') && !d.getElementById('reveal'), 'animatie niet vóór de gacha-onthulling');
+    d.getElementById('rare-layer').click(); d.getElementById('rare-layer') && d.getElementById('rare-layer').click();
+    E('Store.data.settings.rareAnim = "off"; grantHero("nova")'); ok(!E('RareQ.length'), 'animatie terwijl hij uit staat');
+    E('Store.data.settings.rareAnim = "legendary"; Store.data.settings.rareOnlyNew = true; grantHero("kosmos")'); ok(!E('RareQ.length'), 'animatie bij dubbele held terwijl alleen-nieuw aan staat');
+    E('nav("settings")'); ok(d.getElementById('set-rareAnim') && d.getElementById('set-rareOnlyNew'), 'instellingen ontbreken');
+    return { opties: d.querySelectorAll('#set-rareAnim option').length };
+  });
   const saved = {}; E('buySkill("atk1"); Store.save()'); for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); saved[k] = w.localStorage.getItem(k); }
   dom = boot(saved); w = dom.window; E = s => w.eval(s); await new Promise(r => setTimeout(r, 60));
   run('opgeslagen en na herladen terug', () => { ok(E('skillLv("atk1")') === 1, 'skill na herladen weg'); ok(E('playerName()') === 'Tester', 'naam weg'); });
