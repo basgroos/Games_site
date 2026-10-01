@@ -1,0 +1,15 @@
+{
+  "name": "bas-games",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bas Games: een website met browsergames, met staging en live via GitHub Pages.",
+  "scripts": {
+    "build": "node scripts/build.js live site",
+    "build:staging": "node scripts/build.js staging site",
+    "test": "node scripts/test.js site",
+    "check": "npm run build && npm test"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.3"
+  }
+}

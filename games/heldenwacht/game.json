@@ -1,0 +1,19 @@
+{
+  "id": "heldenwacht",
+  "name": "Heldenwacht",
+  "tagline": "Superhelden tower defense",
+  "description": "Verzamel helden met gacha's, upgrade ze en verdedig de stad tegen golven schurken en bazen. Twee werelden, zeven moeilijkheden, dungeon, raids en meer.",
+  "version": "1.14.0",
+  "status": "live",
+  "color": "#ffd23f",
+  "tags": [
+    "Tower defense",
+    "Gacha",
+    "Strategie"
+  ],
+  "order": 1,
+  "tests": [
+    "tests/test2.js --quick",
+    "tests/test3.js --quick"
+  ]
+}

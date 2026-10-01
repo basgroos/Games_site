@@ -1,0 +1,85 @@
+name: Testen en online zetten
+
+# develop → staging  (https://basgroos.github.io/Games_site/staging/)
+# main    → live     (https://basgroos.github.io/Games_site/)
+# Bij elke push wordt de hele site opnieuw gebouwd: live uit main, staging uit develop.
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Testen (${{ github.ref_name }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: node scripts/build.js live site
+      - run: node scripts/test.js site
+
+  deploy:
+    name: Online zetten
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: main ophalen (live)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: live
+      - name: develop ophalen (staging)
+        id: staging
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          path: staging
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Live bouwen
+        run: SITE_COMMIT=$(git -C live rev-parse HEAD) node live/scripts/build.js live out
+      - name: Staging bouwen
+        run: |
+          if [ -d staging/scripts ]; then
+            SITE_COMMIT=$(git -C staging rev-parse HEAD) node staging/scripts/build.js staging out/staging
+          else
+            echo "Geen develop-branch: staging gebruikt main"
+            SITE_COMMIT=$(git -C live rev-parse HEAD) node live/scripts/build.js staging out/staging
+          fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+      - id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Samenvatting
+        run: |
+          {
+            echo "## Bas Games online gezet"
+            echo ""
+            echo "| Omgeving | Commit | Adres |"
+            echo "|---|---|---|"
+            echo "| Live | \`$(git -C live rev-parse --short HEAD)\` | ${{ steps.deployment.outputs.page_url }} |"
+            if [ -d staging/scripts ]; then echo "| Staging | \`$(git -C staging rev-parse --short HEAD)\` | ${{ steps.deployment.outputs.page_url }}staging/ |"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
