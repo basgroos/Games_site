@@ -18,3 +18,5 @@ p14_depth.js
 p15_build.js
 p16_scores.js
 p17_online.js
+p18_skilltree.js
+p19_fx.js
