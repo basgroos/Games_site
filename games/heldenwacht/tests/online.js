@@ -10,7 +10,7 @@ function makeCtx() {
   return new Proxy(base, { get(t, k) { if (k in t) return t[k]; return () => {}; }, set(t, k, v) { t[k] = v; return true; } });
 }
 // Nagebootste Supabase (PostgREST) voor de wereldranglijst
-html = html.replace('"online":null', '"online":{"url":"https://fake.supabase.co","key":"anon-test"}');
+html = html.replace(/"online":(null|\{[^}]*\})/, '"online":{"url":"https://fake.supabase.co","key":"anon-test"}');
 const DB = [];
 function views(total) {
   const best = {};
