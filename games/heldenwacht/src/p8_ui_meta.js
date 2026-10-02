@@ -20,7 +20,7 @@ function missionClaimables() {
 }
 function eventClaimables() { const ev = Meta.activeEvent(); return EVENT_QUESTS.filter(q => { const s = Meta.evQuest(ev, q); return s.done && !s.claimed; }).length; }
 function flushNotes() { while (Meta.pending.length) { const n = Meta.pending.shift(); toast(n.msg, n.kind); } updateTopbar(); }
-function rerender() { if (App.game) return; ({ home: renderHome, maps: renderMaps, gacha: renderGacha, collection: renderCollection, team: renderTeam, settings: renderSettings, modes: renderModes, missions: renderMissions, event: renderEvent, leaderboard: renderLeaderboard, skills: renderSkills, profile: renderProfile, shop: renderShop })[App.screen](); updateCoins(); flushNotes(); }
+function rerender() { if (App.game) return; ({ home: renderHome, maps: renderMaps, gacha: renderGacha, collection: renderCollection, team: renderTeam, settings: renderSettings, modes: renderModes, missions: renderMissions, event: renderEvent, leaderboard: renderLeaderboard, skills: renderSkills, friends: renderFriends, profile: renderProfile, shop: renderShop })[App.screen](); updateCoins(); flushNotes(); }
 const chips = r => `<div class="reward-chips">${Meta.rewardText(r).map(t => `<span>${esc(t)}</span>`).join('')}</div>`;
 const tabsHtml = (act, cur, list) => `<div class="tabs" role="group">${list.map(([k, l, dis, dot]) => `<button data-act="${act}" data-tab="${k}" aria-pressed="${cur === k}" ${dis ? 'disabled' : ''}>${l}${dot ? `<span class="ndot">${dot}</span>` : ''}</button>`).join('')}</div>`;
 function enemyIcon(t, size = 62) { return `<canvas data-enemy="${t}" style="width:${size}px;height:${size}px"></canvas>`; }

@@ -140,5 +140,5 @@ const $ = s => d.querySelector(s), $$ = s => [...d.querySelectorAll(s)];
   });
   run('world2 results + leaderboard dungeon', () => { E(`App.lbCat='dungeon'; nav('leaderboard')`); return { rows: $$('.lb tbody tr').length, stats: E('JSON.stringify({el: Store.data.stats.elites, drops: Store.data.stats.drops, gemsEarned: Store.data.stats.gemsEarned, db: Store.data.stats.dungeonBest})') }; });
   run('save reload', () => { E('Store.save(); Store.load(); Meta.ensureAll()'); return { gems: E('Store.data.gems'), shop: !!E('Store.data.shop.lim'), dungeon: E('Store.data.dungeon.best') }; });
-  console.log(errors.length ? 'ERRORS: ' + errors.join(', ') : 'ALL PASSED'); process.exitCode = errors.length ? 1 : 0;
+  console.log(errors.length ? 'ERRORS: ' + errors.join(', ') : 'ALL PASSED'); process.exitCode = errors.length ? 1 : 0; setTimeout(() => process.exit(process.exitCode), 50);
 })();

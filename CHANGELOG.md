@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## Heldenwacht 1.18.0 (2026-10-02, staging)
+- **Vrienden**: iedereen krijgt een vriendcode (bijv. K7Q-M2X) als hij zijn naam kiest. Vrienden toevoegen met een code, verzoeken accepteren of weigeren, online-status, verwijderen. Menu *Vrienden*.
+- **Uitnodigingen**: nodig een vriend uit voor een Race of Co-op op een map en moeilijkheid naar keuze. Melding overal in het spel; uitnodigingen blijven 15 minuten geldig.
+- **Race**: tegen elkaar op dezelfde map met precies dezelfde golven. Live stand van je tegenstander, vijanden naar hem sturen (sprinters, tanks, juggernaut). Eerste die alle golven haalt wint; valt je basis, dan verlies je.
+- **Co-op**: samen één basis verdedigen. Ieder eigen geld en eigen helden (gele ring = jij, blauwe = je maatje); vijanden 1,5× sterker. De uitnodiger rekent het spel uit, de gast krijgt ~6× per seconde de stand.
+- Database: `supabase/schema_social.sql` (spelers, vriendschappen, uitnodigingen; schrijven alleen via functies met een geheim spelers-token).
+- Test: `tests/browser/multiplayer.js` speelt met twee browsers een volledige race en co-op tegen een nagebootste Supabase.
+
 ## Heldenwacht 1.17.0 (2026-10-01)
 - **Animatie voor zeldzame helden**: silhouet, lichtstralen, ringen, flits en onthulling met naam, rarity en "Nieuwe held!". Hogere rarity's (Exotic, Ultra, Secret) krijgen een grotere, langere versie. Werkt bij gacha, shop, codes en beloningen; tikken slaat over.
 - **Instelling**: vanaf welke rarity de animatie speelt (of nooit), en "alleen bij nieuwe helden". Met voorbeeldknop.

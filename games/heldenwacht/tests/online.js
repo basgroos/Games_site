@@ -96,5 +96,5 @@ function playQuick(mapId, waves) {
     w.fetch = real; E('closeOverlay(); exitGame("home"); nav("leaderboard")'); await tick(120);
     return { verstuurd: DB.filter(r => r.player_id === E('playerId()')).length };
   });
-  console.log(errors.length ? 'ERRORS: ' + errors.join(', ') : 'ALL PASSED'); process.exitCode = errors.length ? 1 : 0;
+  console.log(errors.length ? 'ERRORS: ' + errors.join(', ') : 'ALL PASSED'); process.exitCode = errors.length ? 1 : 0; setTimeout(() => process.exit(process.exitCode), 50);
 })();

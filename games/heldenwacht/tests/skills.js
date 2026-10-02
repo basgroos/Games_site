@@ -98,5 +98,5 @@ const $ = s => d.querySelector(s);
   dom = boot(saved); w = dom.window; E = s => w.eval(s); await new Promise(r => setTimeout(r, 60));
   run('opgeslagen en na herladen terug', () => { ok(E('skillLv("atk1")') === 1, 'skill na herladen weg'); ok(E('playerName()') === 'Tester', 'naam weg'); });
   await new Promise(r => setTimeout(r, 200));
-  console.log(errors.length ? 'ERRORS: ' + errors.join(', ') : 'ALL PASSED'); process.exitCode = errors.length ? 1 : 0;
+  console.log(errors.length ? 'ERRORS: ' + errors.join(', ') : 'ALL PASSED'); process.exitCode = errors.length ? 1 : 0; setTimeout(() => process.exit(process.exitCode), 50);
 })();

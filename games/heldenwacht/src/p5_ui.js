@@ -15,7 +15,7 @@ function nav(to) {
   App.screen = to;
   $$('#main > section').forEach(s => { s.hidden = s.id !== 'scr-' + to; });
   $$('.nav button').forEach(b => b.setAttribute('aria-current', b.dataset.to === to ? 'page' : 'false'));
-  ({ home: renderHome, maps: renderMaps, gacha: renderGacha, collection: renderCollection, team: renderTeam, settings: renderSettings, modes: renderModes, missions: renderMissions, event: renderEvent, leaderboard: renderLeaderboard, skills: renderSkills, profile: renderProfile, shop: renderShop })[to]();
+  ({ home: renderHome, maps: renderMaps, gacha: renderGacha, collection: renderCollection, team: renderTeam, settings: renderSettings, modes: renderModes, missions: renderMissions, event: renderEvent, leaderboard: renderLeaderboard, skills: renderSkills, friends: renderFriends, profile: renderProfile, shop: renderShop })[to]();
   updateCoins(); flushNotes(); window.scrollTo(0, 0);
 }
 

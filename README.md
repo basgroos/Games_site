@@ -51,6 +51,12 @@ npm run build:staging    # bouwt de staging-versie naar site/
 3. Zet `"status": "staging"` om het spel eerst alleen op staging te tonen; zet het later op `"live"`.
 4. Haal het spel uit `portal/coming-soon.json` als het daar stond.
 
+## Online (Supabase)
+
+- `config/online.json`: de Supabase-URL en de openbare sleutel.
+- `supabase/schema.sql`: scores en ranglijst. `supabase/schema_social.sql`: spelers, vrienden en uitnodigingen. Plak ze in de SQL Editor van Supabase.
+- Samen spelen loopt via Supabase Realtime (kanalen `bg-lobby-<env>` en `bg-room-<uitnodiging>`).
+
 ## Bekende beperking
 
-De ranglijst en co-op van Heldenwacht werken alleen in de Claude-artifactversie. Op deze site speel je alles behalve die online onderdelen.
+De oude co-op-wereldbaas uit de Claude-artifactversie zit niet in de site-versie; daarvoor in de plaats zijn er Race en Co-op met vrienden.

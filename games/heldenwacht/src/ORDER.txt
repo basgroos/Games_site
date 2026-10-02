@@ -21,3 +21,5 @@ p17_online.js
 p18_skilltree.js
 p19_fx.js
 p20_rareanim.js
+p21_social.js
+p22_mp.js

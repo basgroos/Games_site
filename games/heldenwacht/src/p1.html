@@ -605,6 +605,31 @@ kbd{font-family:var(--f-num);font-weight:700;background:var(--panel3);border:2px
 @keyframes raShake{0%,100%{transform:none}20%{transform:translate(-8px,4px)}40%{transform:translate(7px,-5px)}60%{transform:translate(-5px,3px)}80%{transform:translate(3px,-2px)}}
 @keyframes raGlitch{0%{transform:translate(4px,0);filter:drop-shadow(-4px 0 #22d3ee) drop-shadow(4px 0 #f43f5e)}100%{transform:translate(-4px,0);filter:drop-shadow(4px 0 #22d3ee) drop-shadow(-4px 0 #f43f5e)}}
 @media (prefers-reduced-motion:reduce){.rare-anim .ra-rays,.rare-anim .ra-ring,.rare-anim .ra-sparks{display:none}.rare-anim.ra-big.revealed{animation:none}}
+.code-pill{display:flex;align-items:center;gap:10px;background:var(--panel2);border:3px solid var(--edge);border-radius:10px;padding:6px 8px 6px 14px;box-shadow:var(--shadow)}
+.code-pill small{color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:11px}
+.code-pill b{font-size:26px;letter-spacing:.08em;color:var(--pow)}
+.add-friend{display:flex;gap:8px}.add-friend .name-in{flex:1;text-transform:uppercase;letter-spacing:.08em}
+.fr-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.fr-row:last-child{border-bottom:0}
+.fr-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.fr-main .muted{font-size:12.5px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--dim);flex:none;border:2px solid var(--edge)}
+.dot.on{background:var(--good);box-shadow:0 0 8px var(--good)}
+.btn-ghost{background:transparent;border-color:var(--line);color:var(--muted)}
+.mi-kind{font:800 11px/1 var(--f-num);letter-spacing:.08em;text-transform:uppercase;padding:4px 8px;border-radius:99px;border:2px solid var(--edge);flex:none}
+.mi-kind.k-race{background:#f87171;color:#2a0505}.mi-kind.k-coop{background:#38bdf8;color:#03263a}
+#mp-invites{position:fixed;right:14px;bottom:14px;z-index:160;display:flex;flex-direction:column;gap:8px;width:min(340px,calc(100vw - 28px))}
+.mp-invite{background:var(--panel);border:3px solid var(--edge);border-left:6px solid var(--pow);border-radius:10px;padding:10px 12px;box-shadow:var(--shadow);animation:pop2 .25s ease-out}
+.mi-top{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.mp-spin{width:42px;height:42px;margin:10px auto 14px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--pow);animation:spin 1s linear infinite}
+.mp-dialog h2#mp-ov-title{font-size:48px!important;color:var(--pow)}
+.mp-opp{display:flex;flex-direction:column;gap:2px;background:var(--panel2);border:2px solid var(--edge);border-radius:8px;padding:4px 10px;min-width:150px}
+.mp-opp .mo-name{display:flex;align-items:center;gap:6px;font-size:13px}
+.mp-opp .mo-stats{display:flex;align-items:center;gap:6px;font-size:12px}
+.mo-hp{flex:1;height:6px;min-width:50px;background:#3a0a14;border-radius:3px;overflow:hidden}.mo-hp i{display:block;height:100%;background:var(--danger)}
+.mp-send{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px 12px;background:var(--panel);border-bottom:2px solid var(--edge)}
+.mp-send small{font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#f87171;font-size:11px}
+.mp-send .btn{position:relative;overflow:hidden}.mp-send .cdf{position:absolute;left:0;bottom:0;height:3px;background:#f87171}
 .rar-mystery{background:repeating-linear-gradient(135deg,#6d28d9 0 8px,#8b5cf6 8px 16px);color:#fff;text-shadow:0 1px 0 #1e1b4b;box-shadow:0 0 10px rgba(167,139,250,.6)}
 .rar-secret{background:repeating-linear-gradient(90deg,#fafafa 0 7px,#0a0a0a 7px 14px);color:#fafafa;text-shadow:1px 0 #f43f5e,-1px 0 #22d3ee,0 0 3px #000;animation:glitchbg .5s steps(3) infinite;box-shadow:0 0 12px rgba(250,250,250,.55)}
 @keyframes glitchbg{0%{background-position:0 0}50%{background-position:9px 0}100%{background-position:-6px 0}}
@@ -663,6 +688,7 @@ kbd{font-family:var(--f-num);font-weight:700;background:var(--panel3);border:2px
       <button data-act="nav" data-to="event">Event<span class="ndot" id="dot-event" hidden></span></button>
       <button data-act="nav" data-to="leaderboard">Scores</button>
       <button data-act="nav" data-to="skills">Skills</button>
+      <button data-act="nav" data-to="friends">Vrienden</button>
       <button data-act="nav" data-to="profile">Profiel<span class="ndot" id="dot-profile" hidden></span></button>
       <button data-act="nav" data-to="settings">Instellingen</button>
       <button data-act="open-code">Code</button>
@@ -688,6 +714,7 @@ kbd{font-family:var(--f-num);font-weight:700;background:var(--panel3);border:2px
     <section id="scr-leaderboard" class="screen" hidden></section>
     <section id="scr-profile" class="screen" hidden></section>
     <section id="scr-skills" class="screen" hidden></section>
+    <section id="scr-friends" class="screen" hidden></section>
     <section id="scr-shop" class="screen" hidden></section>
   </main>
   <section id="scr-game" hidden></section>

@@ -107,5 +107,5 @@ const $ = s => d.querySelector(s), $$ = s => [...d.querySelectorAll(s)];
   E(`redeemCode('8022')`); E('closeOverlay()');
   const idx = process.argv.slice(2).map(Number).filter(n => !isNaN(n));
   for (const i of idx) { const [label, o, t, lv] = cases[i]; run(label, () => { const t0 = Date.now(); const r = sim(o, T[t], lv, 45); return { win: r.win, wave: r.wave, cleared: r.cleared, bosses: r.bosses, mins: r.mins, sec: Math.round((Date.now() - t0) / 1000) }; }); }
-  console.log(errors.length ? 'ERRORS: ' + errors.join(', ') : 'DONE');
+  console.log(errors.length ? 'ERRORS: ' + errors.join(', ') : 'DONE'); setTimeout(() => process.exit(0), 50);
 })();

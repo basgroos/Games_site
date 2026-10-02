@@ -129,5 +129,5 @@ const $ = s => d.querySelector(s), $$ = s => [...d.querySelectorAll(s)];
   run('leaderboard after play', () => { E(`App.lbSeason=true; App.lbCat='kills'; nav('leaderboard')`); return $$('.lb tbody tr').map(r => r.textContent.replace(/\s+/g, ' ').trim()).slice(0, 4); });
   if (WITH_DB) { await new Promise(r => setTimeout(r, 50)); run('db contents', () => ({ keys: Object.keys(dom.mock.store), mine: dom.mock.store['scores/u_me'] && dom.mock.store['scores/u_me'].a, coop: dom.mock.store['coop/u_me'] })); }
   run('reset', () => { E(`nav('settings')`); click($('#reset-btn')); click($('#reset-confirm')); return { coins: E('Store.data.coins'), heroes: Object.keys(E('Store.data.heroes')), prestige: E('Store.data.prestige') }; });
-  console.log(errors.length ? 'ERRORS: ' + errors.join(', ') : 'ALL PASSED'); process.exitCode = errors.length ? 1 : 0;
+  console.log(errors.length ? 'ERRORS: ' + errors.join(', ') : 'ALL PASSED'); process.exitCode = errors.length ? 1 : 0; setTimeout(() => process.exit(process.exitCode), 50);
 })();
