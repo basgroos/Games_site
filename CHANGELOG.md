@@ -1,6 +1,6 @@
 # Wijzigingen
 
-## Heldenwacht 1.23.0 (2026-10-03, staging)
+## Heldenwacht 1.23.0 (2026-10-03)
 Negen nieuwe helden, met nieuwe soorten aanvallen:
 - **Premiejager** (Rare): markeert steeds één vijand met een premie. Wordt die verslagen, dan krijg je extra geld; gemarkeerde vijanden krijgen 20% meer schade. Ability *Premiejacht*: 3 premies ×3.
 - **Omkeerder** (Epic): klokschoten laten vijanden omdraaien; ze lopen een paar seconden terug naar het portaal. Ability *Tijdstroom*.
