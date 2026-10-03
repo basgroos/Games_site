@@ -1,5 +1,6 @@
 -- Bas Games: spelers, vrienden en uitnodigingen
--- Plak dit in Supabase: SQL Editor -> New query -> Run (na schema.sql).
+-- Staat al in het Supabase-project 'bas-games'. Alleen nodig voor een nieuw project:
+-- SQL Editor -> New query -> Run (na schema.sql).
 -- Alle schrijfacties lopen via functies die het geheime spelers-token controleren.
 -- Niemand kan dus andermans vriendschappen of uitnodigingen aanpassen.
 
@@ -16,16 +17,18 @@ create table if not exists public.players (
 alter table public.players enable row level security;
 revoke all on public.players from anon, authenticated;
 
-create table if not exists public.friendships (
+-- Vriendschappen: rijen worden nooit verwijderd, alleen van status gewisseld.
+create table if not exists public.friend_links (
   a          uuid not null references public.players(id) on delete cascade,  -- verzoeker
   b          uuid not null references public.players(id) on delete cascade,  -- ontvanger
-  status     text not null default 'pending' check (status in ('pending', 'accepted')),
+  status     text not null default 'pending' check (status in ('pending', 'accepted', 'declined', 'removed')),
   created_at timestamptz not null default now(),
   primary key (a, b),
   check (a <> b)
 );
-alter table public.friendships enable row level security;
-revoke all on public.friendships from anon, authenticated;
+create index if not exists friend_links_b_idx on public.friend_links (b);
+alter table public.friend_links enable row level security;
+revoke all on public.friend_links from anon, authenticated;
 
 create table if not exists public.invites (
   id         uuid primary key default gen_random_uuid(),
@@ -94,12 +97,12 @@ begin
   return json_build_object(
     'me', (select json_build_object('id', id, 'code', code, 'name', name) from public.players where id = p_id),
     'friends', coalesce((select json_agg(json_build_object('id', p.id, 'name', p.name, 'code', p.code, 'last_seen', p.last_seen) order by p.name)
-       from public.friendships f join public.players p on p.id = case when f.a = p_id then f.b else f.a end
-       where (f.a = p_id or f.b = p_id) and f.status = 'accepted'), '[]'::json),
+       from (select distinct case when f.a = p_id then f.b else f.a end as other from public.friend_links f
+             where (f.a = p_id or f.b = p_id) and f.status = 'accepted') x join public.players p on p.id = x.other), '[]'::json),
     'incoming', coalesce((select json_agg(json_build_object('id', p.id, 'name', p.name, 'code', p.code) order by f.created_at desc)
-       from public.friendships f join public.players p on p.id = f.a where f.b = p_id and f.status = 'pending'), '[]'::json),
+       from public.friend_links f join public.players p on p.id = f.a where f.b = p_id and f.status = 'pending'), '[]'::json),
     'outgoing', coalesce((select json_agg(json_build_object('id', p.id, 'name', p.name, 'code', p.code) order by f.created_at desc)
-       from public.friendships f join public.players p on p.id = f.b where f.a = p_id and f.status = 'pending'), '[]'::json),
+       from public.friend_links f join public.players p on p.id = f.b where f.a = p_id and f.status = 'pending'), '[]'::json),
     'invites', coalesce((select json_agg(json_build_object('id', i.id, 'from_id', i.from_id, 'from_name', p.name, 'kind', i.kind, 'game', i.game, 'env', i.env, 'map', i.map, 'diff', i.diff, 'seed', i.seed, 'created_at', i.created_at) order by i.created_at desc)
        from public.invites i join public.players p on p.id = i.from_id
        where i.to_id = p_id and i.status = 'open' and i.created_at > now() - interval '15 minutes'), '[]'::json),
@@ -118,12 +121,13 @@ begin
   select id into v_target from public.players where code = upper(regexp_replace(coalesce(p_code, ''), '[^A-Za-z0-9]', '', 'g'));
   if v_target is null then return 'notfound'; end if;
   if v_target = p_id then return 'self'; end if;
-  if exists (select 1 from public.friendships where ((a = p_id and b = v_target) or (a = v_target and b = p_id)) and status = 'accepted') then return 'already'; end if;
-  if exists (select 1 from public.friendships where a = v_target and b = p_id and status = 'pending') then
-    update public.friendships set status = 'accepted' where a = v_target and b = p_id; return 'accepted';
+  if exists (select 1 from public.friend_links where ((a = p_id and b = v_target) or (a = v_target and b = p_id)) and status = 'accepted') then return 'already'; end if;
+  if exists (select 1 from public.friend_links where a = v_target and b = p_id and status = 'pending') then
+    update public.friend_links set status = 'accepted' where a = v_target and b = p_id; return 'accepted';
   end if;
-  if (select count(*) from public.friendships where a = p_id and status = 'pending') >= 30 then return 'limit'; end if;
-  insert into public.friendships (a, b) values (p_id, v_target) on conflict do nothing;
+  if (select count(*) from public.friend_links where a = p_id and status = 'pending') >= 30 then return 'limit'; end if;
+  insert into public.friend_links (a, b) values (p_id, v_target)
+    on conflict (a, b) do update set status = 'pending', created_at = now() where public.friend_links.status in ('declined', 'removed');
   return 'sent';
 end $$;
 
@@ -131,15 +135,15 @@ create or replace function public.friend_respond(p_id uuid, p_secret text, p_oth
 language plpgsql security definer set search_path = public, extensions as $$
 begin
   perform public._hw_check(p_id, p_secret);
-  if p_accept then update public.friendships set status = 'accepted' where a = p_other and b = p_id and status = 'pending'; return 'accepted'; end if;
-  delete from public.friendships where a = p_other and b = p_id and status = 'pending'; return 'declined';
+  update public.friend_links set status = case when p_accept then 'accepted' else 'declined' end where a = p_other and b = p_id and status = 'pending';
+  return case when p_accept then 'accepted' else 'declined' end;
 end $$;
 
 create or replace function public.friend_remove(p_id uuid, p_secret text, p_other uuid) returns text
 language plpgsql security definer set search_path = public, extensions as $$
 begin
   perform public._hw_check(p_id, p_secret);
-  delete from public.friendships where (a = p_id and b = p_other) or (a = p_other and b = p_id);
+  update public.friend_links set status = 'removed' where ((a = p_id and b = p_other) or (a = p_other and b = p_id)) and status in ('pending', 'accepted');
   return 'removed';
 end $$;
 
@@ -149,7 +153,7 @@ language plpgsql security definer set search_path = public, extensions as $$
 declare v_inv public.invites;
 begin
   perform public._hw_check(p_id, p_secret);
-  if not exists (select 1 from public.friendships where ((a = p_id and b = p_to) or (a = p_to and b = p_id)) and status = 'accepted') then raise exception 'notfriends'; end if;
+  if not exists (select 1 from public.friend_links where ((a = p_id and b = p_to) or (a = p_to and b = p_id)) and status = 'accepted') then raise exception 'notfriends'; end if;
   update public.invites set status = 'cancelled' where from_id = p_id and to_id = p_to and status = 'open';
   insert into public.invites (from_id, to_id, kind, map, diff, env) values (p_id, p_to, p_kind, p_map, p_diff, coalesce(p_env, 'live')) returning * into v_inv;
   return json_build_object('id', v_inv.id, 'seed', v_inv.seed, 'kind', v_inv.kind, 'map', v_inv.map, 'diff', v_inv.diff);
