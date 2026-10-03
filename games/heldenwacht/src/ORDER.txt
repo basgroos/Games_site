@@ -25,3 +25,4 @@ p21_social.js
 p22_mp.js
 p23_split.js
 p24_megaboss.js
+p25_heroes4.js

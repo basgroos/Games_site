@@ -192,6 +192,12 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     await B.screenshot({ path: SHOTS + '/mp_coop_guest.png' }); await A.screenshot({ path: SHOTS + '/mp_coop_host.png' });
     return ge;
   });
+  await step('co-op: gast ziet soldaten, putten en wortels van nieuwe helden', async () => {
+    await A.evaluate(() => { const g = App.game; for (let i = 0; i < 3; i++) h4Ally(g, { d: g.leakD - 20 - i * 30, hp: 200, dmg: 10, kind: 'soldier', look: HERO.garnizoen.look }); const e = g.enemies[0]; if (e) h4Root(e, 3); });
+    await B.waitForTimeout(700);
+    const v = await B.evaluate(() => ({ allies: (App.game.h4view && App.game.h4view.a || []).length, rooted: App.game.enemies.filter(e => e.rootT > 0).length }));
+    ok(v.allies === 3, 'gast ziet geen soldaten: ' + JSON.stringify(v)); return v;
+  });
   await step('co-op: gast upgradet eigen held, niet die van de host', async () => {
     await B.evaluate(() => { const g = App.game, mine = g.heroes.find(h => h.owner === 1); g.upgrade(mine); });
     await A.waitForTimeout(500); await B.waitForTimeout(300);

@@ -1,5 +1,19 @@
 # Wijzigingen
 
+## Heldenwacht 1.23.0 (2026-10-03, staging)
+Negen nieuwe helden, met nieuwe soorten aanvallen:
+- **Premiejager** (Rare): markeert steeds één vijand met een premie. Wordt die verslagen, dan krijg je extra geld; gemarkeerde vijanden krijgen 20% meer schade. Ability *Premiejacht*: 3 premies ×3.
+- **Omkeerder** (Epic): klokschoten laten vijanden omdraaien; ze lopen een paar seconden terug naar het portaal. Ability *Tijdstroom*.
+- **Wortelaar** (Epic): wortels zetten grondvijanden vast en vertragen ze daarna. Ability *Wortelwoud*.
+- **Garnizoen** (Legendary): stuurt soldaten vanaf jullie basis over het pad naar het portaal. Ze houden vijanden tegen en vechten tot ze vallen. Ability *Uitval* (ridders) / ULTIMATE: een reus.
+- **Oerkiem** (Legendary): wordt na elke golf sterker; vanaf 5 golven schokgolf, vanaf 10 verdoven, vanaf 15 meteoren, vanaf 25 de Oervorm. Ability *Oerbrul*; ULTIMATE geeft ook +2 groei.
+- **Mesmera** (Mythic): hypnotiseert gewone vijanden; ze draaien om en vechten tegen hun eigen bende. Ability *Massahypnose*.
+- **Singulara** (Mythic): zwaartekrachtputten trekken vijanden naar één punt (+15% schade op getrokken vijanden) en imploderen. Ability *Gebeurtenishorizon*.
+- **De Drieling** (Exotic): drie helden in één vak — Vuist (dichtbij, splash), Pijl (ver, ook vliegers) en Vonk (overspringende bliksem) — die ieder een eigen doel aanvallen. Ability *Drievoud*.
+- **Dronemeester** (Exotic): drones zoeken zelf vijanden en worden sterker met elke zege (tot level 20). Ability *Zwermprotocol*.
+- Werkt ook in co-op: de gast ziet soldaten, gehypnotiseerde vijanden, putten, wortels en drones.
+- Test: `tests/heroes4.js` speelt elke nieuwe held, alle abilities en een potje met ze allemaal.
+
 ## Heldenwacht 1.22.0 (2026-10-03)
 - **Megabaas** (Vrienden → *Megabaas*): samen met een vriend tegen **De Oerverslinder**, een gigantische baas (90 miljoen HP op Normaal) die heel langzaam naar jullie basis loopt. 45 seconden voorbereiding, $9.000 startgeld en inkomen voor allebei, en steeds escortes.
   - Fase 1 (100–60%): aardbevingen verdoven helden in de buurt.
