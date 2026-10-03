@@ -1,6 +1,12 @@
 # Wijzigingen
 
-## Heldenwacht 1.25.0 (2026-10-03, staging)
+## Heldenwacht 1.26.0 (2026-10-03)
+- **Megabaas makkelijker**: De Oerverslinder heeft nog maar 15 miljoen HP op Normaal (was 90 miljoen, −83%).
+- **Ultra-helden en hoger raken hem altijd**: in fase 3 kunnen nu ook Ultra's hem raken (niet meer alleen Secret). Een Secret is dus niet meer nodig; vanaf fase 2 doen helden onder Ultra nog steeds geen schade.
+- Gemeten op Normaal (max level, upgrade 5): duo met 1 Ultra per speler wint in ~2:15, met 2 Ultra's per speler in ~1:30; één speler met 1 Ultra + 1 Secret in ~5:20. Zonder Ultra's lukt het niet.
+- **Winkel → Valuta: veel gems kopen met munten**, zonder weeklimiet: 50 gems (10.000), 300 gems (54.000), 1.000 gems (165.000) en 5.000 gems (780.000 munten). Vervangt de oude aanbieding van 25 gems (max. 4 per week). Prijs per gem ligt altijd boven wat je voor gems terugkrijgt, dus heen-en-weer ruilen levert niets op.
+
+## Heldenwacht 1.25.0 (2026-10-03)
 - **Meer gems**, bovenop de bestaande beloningen (in alle modi behalve de Megabaas, die al een eigen grote beloning heeft):
   - Elke verslagen baas: 5 gems + 3 per moeilijkheidsniveau (Normaal 8, Nachtmerrie 14). Je ziet "+gems" boven de baas als hij valt.
   - Elk potje: 1 gem per 2 gehaalde golven, ook als je verliest.

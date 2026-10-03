@@ -39,3 +39,14 @@ Meta.finishMatch = function (g) {
   R.gems27 = total; Store.save();
   return R;
 };
+
+/* ---------- winkel: veel gems kopen met munten (zonder weeklimiet) ----------
+   Prijs per gem blijft boven wat gems→munten oplevert (max. 150 munten per gem), zodat
+   heen-en-weer ruilen nooit gratis geld geeft. */
+const GEM_PACKS = [
+  { id: 'c-gems50', text: '50 Gems', cost: { coins: 10000 }, reward: { gems: 50 } },
+  { id: 'c-gems300', text: '300 Gems', sub: 'Voordeel', cost: { coins: 54000 }, reward: { gems: 300 } },
+  { id: 'c-gems1000', text: '1.000 Gems', sub: 'Groot voordeel', cost: { coins: 165000 }, reward: { gems: 1000 } },
+  { id: 'c-gems5000', text: '5.000 Gems', sub: 'Beste deal', cost: { coins: 780000 }, reward: { gems: 5000 } },
+];
+SHOP_FIXED.currency = GEM_PACKS.concat(SHOP_FIXED.currency.filter(x => x.id !== 'c-gems'));

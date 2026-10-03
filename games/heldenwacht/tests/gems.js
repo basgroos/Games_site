@@ -37,6 +37,15 @@ setTimeout(() => {
     const e = g.spawnEnemy('kolos', 50, 5); e.hp = 0; g.kill(e, null); ok(g.texts.some(t => /gems/.test(t.text)), 'geen tekst'); return true;
   })()`));
   run('geen extra gems als het potje niet begonnen is', () => E(`(() => { const r = play(1, 0, 0, false); ok(r.extra === 0, JSON.stringify(r)); return r; })()`));
+  run('winkel: veel gems kopen met munten, zonder limiet en zonder gratis-geld-lus', () => E(`(() => {
+    const packs = Shop.items('currency').filter(x => x.reward.gems && x.cost.coins); ok(packs.length >= 4, 'packs: ' + packs.length);
+    const sell = Shop.items('currency').filter(x => x.reward.coins && x.cost.gems).map(x => x.reward.coins / x.cost.gems), best = Math.max(...sell);
+    for (const p of packs) { ok(!p.limit, p.id + ' heeft een limiet'); ok(p.cost.coins / p.reward.gems > best, p.id + ' te goedkoop: ' + p.cost.coins / p.reward.gems + ' vs ' + best); }
+    const big = packs.find(p => p.reward.gems === 5000); Store.data.coins = 3e6; const g0 = Store.data.gems;
+    for (let i = 0; i < 3; i++) ok(typeof Shop.buy === 'function' ? Shop.buy(big.id) !== false : true, 'kopen mislukt');
+    const got = Store.data.gems - g0; ok(typeof Shop.buy !== 'function' || got === 15000, 'gekregen: ' + got);
+    return { packs: packs.map(p => p.text + ' = ' + p.cost.coins), gekocht: got };
+  })()`));
   console.log(errors.length ? 'ERRORS: ' + errors.join(', ') : 'ALL PASSED');
   process.exitCode = errors.length ? 1 : 0;
   setTimeout(() => process.exit(process.exitCode), 50);

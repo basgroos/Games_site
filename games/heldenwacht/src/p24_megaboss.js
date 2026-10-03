@@ -7,12 +7,13 @@
      kan ze zelf afleiden.
    - Fase 1 (100–60%): aardbevingen verdoven helden.
      Fase 2 (60–25%): Kosmisch pantser — alleen Ultra/Secret doen schade.
-     Fase 3 (25–0%):  Oerschild — alleen Secret-helden doen nog schade.
+     Fase 3 (25–0%):  Oerschild — alleen Ultra/Secret doen schade; hij loopt sneller.
+     Ultra-helden en hoger raken hem dus altijd.
    - Beloning: veel munten, gems, Reroll Tokens en een gegarandeerde hoge trait.
    ===================================================================== */
 const MEGA = {
   id: 'megabaas', prep: 45, startCash: 9000, income: 220, incomeEvery: 5,
-  hp: 9e7,                   // × moeilijkheid (diff.hp). Gemeten (max level, upgrade 5): 1 Secret ~150–250k/s, 1 Ultra ~300k/s
+  hp: 1.5e7,                 // × moeilijkheid (diff.hp). Gemeten (max level, upgrade 5): 1 Secret ~150–250k/s, 1 Ultra ~300k/s
   armor: 14, walkTime: 480,  // seconden om de hele route te lopen (zonder woede)
   hitCap: 0.0006,            // max. deel van zijn max-HP per treffer (tegen %-schade en runaway-buffs)
   dpsCap: 0.004,             // max. deel van zijn max-HP per seconde: een gevecht duurt altijd minstens ~4 minuten
@@ -28,10 +29,10 @@ const MEGA_DIFF_REWARD = d => 1 + d * 0.6;
 // HP-factor per moeilijkheid: minder steil dan gewone levels, anders is Nachtmerrie+ onmogelijk
 const megaDiffMult = g => 1 + (g.diff.hp - 1) * 0.5;
 // limieten zijn absoluut (op basis van Normaal): hogere moeilijkheid = echt een langer gevecht
-const megaCapBase = () => MEGA.hp;
+const megaCapBase = () => 9e7; // vaste limiet (van de oude 90M-baas), zodat minder HP echt een korter gevecht geeft
 
 ENEMIES.megabaas = { name: 'De Oerverslinder', hp: 1, speed: 0.1, armor: MEGA.armor, reward: 0, r: 50, leak: 999, color: '#7f1d1d', boss: true, ccImmune: true, hidden: true, drawAs: 'overlord',
-  desc: 'De Megabaas. Gigantisch sterk; in de laatste fase kunnen alleen Secret-helden hem nog raken.' };
+  desc: 'De Megabaas. Gigantisch sterk; vanaf de tweede fase kunnen alleen Ultra- en Secret-helden hem nog raken.' };
 
 /* ---------- uitnodigen (kind 'mega' = co-op met map 'mega:<id>') ---------- */
 KIND_LABEL.mega = 'Megabaas';
@@ -54,7 +55,7 @@ openInviteDialog = function (friendId, kind) {
   const k = document.querySelector('.mp-dialog .kicker'), p = document.querySelector('.mp-dialog p.muted'), I = megaTeamInfo();
   if (k) k.textContent = 'Samen · eindbaas';
   if (p) p.innerHTML = `Jullie vechten samen tegen <b>De Oerverslinder</b>, een gigantische baas die heel langzaam naar jullie basis loopt. Jullie krijgen 45 seconden en veel geld om te bouwen.
-    <br><br><b>Fase 2</b>: alleen <b style="color:${rarColor('ultra')}">Ultra</b>- en <b>Secret</b>-helden kunnen hem raken. <b>Fase 3</b>: alleen <b>Secret</b>-helden kunnen het Oerschild breken.
+    <br><br>Vanaf <b>fase 2</b> kunnen alleen <b style="color:${rarColor('ultra')}">Ultra</b>- en <b>Secret</b>-helden hem nog raken (die raken hem altijd). In <b>fase 3</b> loopt hij sneller.
     <br><br>Winst: heel veel munten, gems en Reroll Tokens + een gegarandeerde hoge trait.
     <br><span class="mega-req ${I.ultra + I.secret ? 'ok' : 'bad'}">Jouw team: ${I.ultra} Ultra · ${I.secret} Secret${I.ultra + I.secret ? '' : ' — je hebt minstens 1 Ultra of Secret nodig'}</span>`;
   const send = document.querySelector('.mp-dialog [data-act="inv-send"]'); if (send && !megaTeamOk()) { send.disabled = true; send.title = 'Zet minstens 1 Ultra- of Secret-held in je team'; }
@@ -132,7 +133,7 @@ Game.prototype.update = function (dt) {
   if (ph > this.megaPhase) {
     this.megaPhase = ph; this.shake(16); Sfx.play('boss');
     if (ph === 2) this.banner('KOSMISCH PANTSER', 'Alleen Ultra- en Secret-helden kunnen hem nog raken!', '#fde68a');
-    if (ph === 3) { this.banner('OERSCHILD', 'Alleen Secret-helden kunnen hem nog raken!', '#f5f5f5'); this.flash = { color: '#ffffff', life: 0.5, max: 0.5 }; }
+    if (ph === 3) { this.banner('OERSCHILD', 'Hij loopt sneller! Alleen Ultra- en Secret-helden raken hem.', '#f5f5f5'); this.flash = { color: '#ffffff', life: 0.5, max: 0.5 }; }
     for (let i = 0; i < 6; i++) this.spawnEnemy(i % 2 ? 'tank' : 'juggernaut', Math.max(-10, b.d - 30 - i * 18), 26 + ph * 6);
   }
   // woede in fase 3: iets sneller
@@ -161,9 +162,9 @@ Game.prototype.damage = function (e, amt, h, o = {}) {
   const ph = megaPhaseOf(e.hp / e.maxHp), rar = h && h.def ? h.def.rarity : null;
   let m = 1;
   if (ph === 2 && !(rar && rarAtLeast(rar, 'ultra'))) m = MEGA.armorMult;
-  if (ph === 3 && rar !== 'secret') m = 0;
+  if (ph === 3 && !(rar && rarAtLeast(rar, 'ultra'))) m = 0; // Ultra en hoger raken hem altijd
   if (m === 0) {
-    if ((this.megaImmT || 0) < this.time) { this.megaImmT = this.time + 1.2; this.floatText(e.x + rnd(-20, 20), e.ay - e.r - 10, ph === 3 ? 'OERSCHILD · alleen Secret' : 'PANTSER · alleen Ultra & Secret', ph === 3 ? '#e5e7eb' : '#fde68a', 15, 0.8); }
+    if ((this.megaImmT || 0) < this.time) { this.megaImmT = this.time + 1.2; this.floatText(e.x + rnd(-20, 20), e.ay - e.r - 10, ph === 3 ? 'OERSCHILD · alleen Ultra & Secret' : 'PANTSER · alleen Ultra & Secret', ph === 3 ? '#e5e7eb' : '#fde68a', 15, 0.8); }
     return 0;
   }
   // tijdelijke buffer: zo kan geen enkele treffer (ook %-schade) hem in één keer te ver omlaag halen
@@ -207,7 +208,7 @@ Game.prototype.drawBossBar = function (ctx) {
   ctx.fillStyle = '#fde68a'; ctx.fillRect(x + w * MEGA.phase2 - 1, y + 14, 2, 16); ctx.fillStyle = '#ffffff'; ctx.fillRect(x + w * MEGA.phase3 - 1, y + 14, 2, 16);
   ctx.font = "700 13px 'Barlow Condensed', sans-serif"; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
   ctx.fillStyle = ph === 1 ? '#fca5a5' : ph === 2 ? '#fde68a' : '#ffffff';
-  ctx.fillText(ph === 1 ? 'Fase 1 · Aardbevingen' : ph === 2 ? 'Fase 2 · Kosmisch pantser: alleen Ultra & Secret' : 'Fase 3 · Oerschild: alleen Secret', GW / 2, y + 31);
+  ctx.fillText(ph === 1 ? 'Fase 1 · Aardbevingen' : ph === 2 ? 'Fase 2 · Kosmisch pantser: alleen Ultra & Secret' : 'Fase 3 · Oerschild: alleen Ultra & Secret, hij loopt sneller', GW / 2, y + 31);
 };
 // knop en voorbereiding in de HUD
 const _hud24 = hudUpdate;

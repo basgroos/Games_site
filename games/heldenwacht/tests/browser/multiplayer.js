@@ -255,16 +255,16 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     await A.screenshot({ path: SHOTS + '/mp_mega_host.png' }); await B.screenshot({ path: SHOTS + '/mp_mega_guest.png' });
     ok(host && guest && guest.hp === host.hp, JSON.stringify({ host, guest })); return { host, guest };
   });
-  await step('megabaas: fase 2 alleen Ultra/Secret, fase 3 alleen Secret', async () => {
+  await step('megabaas: vanaf fase 2 alleen Ultra/Secret; die raken hem altijd', async () => {
     const r = await A.evaluate(() => {
       const g = App.game, b = g.enemies.find(e => e.type === 'megabaas'), om = g.heroes.find(h => h.id === 'omega'), nul = g.heroes.find(h => h.id === 'nul');
       const fake = { def: HERO['straatvuist'] || HEROES.find(H => H.rarity === 'common'), st: om.st, id: 'x', owner: 0, kills: 0, dmg: 0 };
       const hit = (h) => { b.megaBudget = 1e12; const h0 = b.hp; g.damage(b, 1e6, h); return Math.round(h0 - b.hp); };
       b.hp = b.maxHp * 0.5; const p2common = hit(fake), p2ultra = hit(om);
-      b.hp = b.maxHp * 0.2; const p3ultra = hit(om), p3secret = hit(nul);
-      return { p2common, p2ultra, p3ultra, p3secret, cap: Math.round(MEGA.hp * MEGA.hitCap) };
+      b.hp = b.maxHp * 0.2; const p3common = hit(fake), p3ultra = hit(om), p3secret = hit(nul);
+      return { p2common, p2ultra, p3common, p3ultra, p3secret, cap: Math.round(megaCapBase() * MEGA.hitCap) };
     });
-    ok(r.p2common === 0 && r.p2ultra > 0 && r.p3ultra === 0 && r.p3secret > 0 && r.p3secret <= r.cap, JSON.stringify(r));
+    ok(r.p2common === 0 && r.p2ultra > 0 && r.p3common === 0 && r.p3ultra > 0 && r.p3secret > 0 && r.p3secret <= r.cap, JSON.stringify(r));
     await B.waitForTimeout(800); await B.screenshot({ path: SHOTS + '/mp_mega_phase3_guest.png' }); return r;
   });
   await step('megabaas: verslagen → beide winnen met gems, tokens en trait-bonus', async () => {
