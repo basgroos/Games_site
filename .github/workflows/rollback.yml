@@ -2,6 +2,7 @@ name: Live terugzetten
 
 # Noodknop: zet de live-site (main) terug naar een eerdere, bewaarde versie.
 # GitHub -> Actions -> "Live terugzetten" -> Run workflow -> kies de versie -> Run.
+# Bewaarde versies zijn branches met een naam als live-v1.17.0.
 # Er wordt niets weggegooid: er komt een nieuwe commit op main met de inhoud van die versie,
 # dus je kunt later altijd weer vooruit (bv. terug naar live-v1.18.0).
 # Staging (develop) wordt niet aangeraakt. Spelers houden hun opgeslagen voortgang.
@@ -9,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       versie:
-        description: 'Naar welke versie terug? (een tag, bv. live-v1.17.0)'
+        description: 'Naar welke versie terug? (bv. live-v1.17.0)'
         required: true
         default: 'live-v1.17.0'
 
@@ -32,14 +33,16 @@ jobs:
           fetch-depth: 0
       - name: Versie controleren
         run: |
-          git rev-parse --verify "refs/tags/${{ inputs.versie }}" >/dev/null || { echo "Versie '${{ inputs.versie }}' bestaat niet. Beschikbaar:"; git tag -l 'live-*'; exit 1; }
+          V="${{ inputs.versie }}"
+          REF=$(git rev-parse --verify -q "refs/tags/$V^{commit}" || git rev-parse --verify -q "refs/remotes/origin/$V") || { echo "Versie '$V' bestaat niet. Beschikbaar:"; git branch -r --list 'origin/live-*'; git tag -l 'live-*'; exit 1; }
+          echo "REF=$REF" >> "$GITHUB_ENV"
       - name: main gelijk maken aan ${{ inputs.versie }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
           git rm -r -q --cached .
           git clean -fdxq -e .git
-          git checkout "${{ inputs.versie }}" -- .
+          git checkout "$REF" -- .
           git checkout HEAD -- .github/workflows/rollback.yml   # de noodknop zelf blijft altijd bestaan
           git add -A
           if git diff --cached --quiet; then echo "Live staat al op ${{ inputs.versie }}"; else
