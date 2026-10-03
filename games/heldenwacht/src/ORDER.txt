@@ -26,3 +26,4 @@ p22_mp.js
 p23_split.js
 p24_megaboss.js
 p25_heroes4.js
+p26_mystery.js

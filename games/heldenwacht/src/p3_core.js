@@ -384,6 +384,13 @@ function drawHero(ctx, H, x, y, s, t, o = {}) {
       ctx.fillStyle = tier >= 4 ? L.suit2 : '#fff'; if (tier >= 4) { ctx.shadowColor = L.suit2; ctx.shadowBlur = 8 * s; }
       ctx.beginPath(); ctx.ellipse(2 * K, hy - 1.5 * K, 1.4 * K, 1.8 * K, 0, 0, TAU); ctx.ellipse(5.6 * K, hy - 1.5 * K, 1.2 * K, 1.7 * K, 0, 0, TAU); ctx.fill(); ctx.shadowBlur = 0;
     }
+    if (L.glasses) { // bril: donkere montuur om beide ogen met een brugje
+      ctx.save(); ctx.strokeStyle = L.glasses === true ? '#111827' : L.glasses; ctx.lineWidth = 0.9 * K; ctx.fillStyle = 'rgba(186,230,253,.25)';
+      ctx.beginPath(); ctx.arc(2 * K, hy - 1.5 * K, 2.4 * K, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(6.2 * K, hy - 1.5 * K, 2.2 * K, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(4.4 * K, hy - 1.8 * K); ctx.lineTo(4 * K, hy - 1.8 * K); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-0.4 * K, hy - 1.8 * K); ctx.lineTo(-3.5 * K, hy - 2.4 * K); ctx.stroke(); ctx.restore();
+    }
   }
   // voorste arm + wapen
   drawArmWeapon(ctx, H, K, s, t, atk, tier, L);

@@ -1,5 +1,12 @@
 # Wijzigingen
 
+## Heldenwacht 1.24.0 (2026-10-03, staging)
+Twee nieuwe **Mystery**-helden, alleen te krijgen in de **Limited Gacha**:
+- **Levo de Jingeling**: jongen met toverstaf en bril. Oneindig bereik, schade en snelheid ongeveer als een Exotic. Ability *Loeky Aanval*: 5 honden rennen vanaf de basis over het pad naar het portaal en bijten elke vijand die ze passeren. ULTIMATE *Loeky Aura*: 10 seconden lang blijven er honden komen, met de grote Loeky voorop.
+- **BoosGras**: jongen die plasmaballen schiet met een mega-explosie (ongeveer zo sterk als een Exotic). Ability *Boze Grasjes*: boos gras groeit 6 seconden op het pad in zijn bereik, vertraagt en doet veel schade. ULTIMATE *Angry Gras*: het hele pad, 9 seconden, nog bozer.
+- Helden kunnen nu een bril dragen.
+- Test: `tests/mystery.js`.
+
 ## Heldenwacht 1.23.0 (2026-10-03)
 Negen nieuwe helden, met nieuwe soorten aanvallen:
 - **Premiejager** (Rare): markeert steeds één vijand met een premie. Wordt die verslagen, dan krijg je extra geld; gemarkeerde vijanden krijgen 20% meer schade. Ability *Premiejacht*: 3 premies ×3.
