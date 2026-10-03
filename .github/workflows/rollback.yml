@@ -1,0 +1,52 @@
+name: Live terugzetten
+
+# Noodknop: zet de live-site (main) terug naar een eerdere, bewaarde versie.
+# GitHub -> Actions -> "Live terugzetten" -> Run workflow -> kies de versie -> Run.
+# Er wordt niets weggegooid: er komt een nieuwe commit op main met de inhoud van die versie,
+# dus je kunt later altijd weer vooruit (bv. terug naar live-v1.18.0).
+# Staging (develop) wordt niet aangeraakt. Spelers houden hun opgeslagen voortgang.
+on:
+  workflow_dispatch:
+    inputs:
+      versie:
+        description: 'Naar welke versie terug? (een tag, bv. live-v1.17.0)'
+        required: true
+        default: 'live-v1.17.0'
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: rollback
+  cancel-in-progress: false
+
+jobs:
+  terugzetten:
+    name: Live terug naar ${{ inputs.versie }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Versie controleren
+        run: |
+          git rev-parse --verify "refs/tags/${{ inputs.versie }}" >/dev/null || { echo "Versie '${{ inputs.versie }}' bestaat niet. Beschikbaar:"; git tag -l 'live-*'; exit 1; }
+      - name: main gelijk maken aan ${{ inputs.versie }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git rm -r -q --cached .
+          git clean -fdxq -e .git
+          git checkout "${{ inputs.versie }}" -- .
+          git checkout HEAD -- .github/workflows/rollback.yml   # de noodknop zelf blijft altijd bestaan
+          git add -A
+          if git diff --cached --quiet; then echo "Live staat al op ${{ inputs.versie }}"; else
+            git commit -q -m "Live teruggezet naar ${{ inputs.versie }}"
+            git push origin HEAD:main
+          fi
+      - name: Site opnieuw online zetten
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref main -R "${{ github.repository }}"
