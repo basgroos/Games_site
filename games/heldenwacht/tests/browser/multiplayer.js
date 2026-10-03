@@ -215,6 +215,65 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     await B.screenshot({ path: SHOTS + '/mp_coop_end.png' });
     ok(/Samen gewonnen/.test(tb) && /Samen gewonnen/.test(ta), 'geen samen-gewonnen'); return 'ok';
   });
+  for (const P of [A, B]) await P.evaluate(() => { closeOverlay(); exitGame('friends'); });
+  await wait(500);
+  // ---------- MEGABAAS ----------
+  await step('megabaas: knop bij vrienden en eis van minstens 1 Ultra/Secret', async () => {
+    await A.evaluate(() => { Store.data.team = Store.data.team.filter(id => !['ultra', 'secret'].includes(HERO[id].rarity)).slice(0, 4); nav('friends'); renderFriends(); });
+    const btn = await A.$('[data-act="fr-invite"][data-k="mega"]'); ok(btn, 'geen Megabaas-knop');
+    await btn.click(); await A.waitForTimeout(200);
+    const dis = await A.$eval('[data-act="inv-send"]', b => b.disabled); ok(dis, 'versturen kan zonder Ultra');
+    await A.screenshot({ path: SHOTS + '/mp_mega_invite_locked.png' });
+    for (const P of [A, B]) await P.evaluate(() => { for (const id of ['omega', 'nul', 'genesis']) { grantHero(id); Store.data.heroes[id].level = MAX_LEVEL; } Store.data.team = ['omega', 'nul', 'genesis'].concat(Store.data.team.filter(id => !['omega', 'nul', 'genesis'].includes(id))).slice(0, 8); Store.save(); });
+    await A.evaluate(() => { closeOverlay(); renderFriends(); }); await A.click('[data-act="fr-invite"][data-k="mega"]'); await A.waitForTimeout(200);
+    const dis2 = await A.$eval('[data-act="inv-send"]', b => b.disabled); ok(!dis2, 'versturen nog steeds uit');
+    await A.screenshot({ path: SHOTS + '/mp_mega_invite.png' }); return 'ok';
+  });
+  await step('megabaas: uitnodigen, accepteren, beide in megabaas-modus', async () => {
+    await A.click('[data-act="inv-send"]'); await A.waitForTimeout(500);
+    const stored = DB.invites[DB.invites.length - 1]; ok(stored.kind === 'coop' && /^mega:/.test(stored.map), 'opgeslagen als ' + stored.kind + ' ' + stored.map);
+    await B.evaluate(() => SOC.refresh()); await B.waitForSelector('.mp-invite', { timeout: 5000 });
+    const lbl = await B.$eval('.mp-invite .mi-kind', el => el.textContent); ok(lbl === 'Megabaas', 'label ' + lbl);
+    await B.click('.mp-invite [data-act="inv-accept"]');
+    await A.waitForFunction(() => App.game && App.game.opts.mega, null, { timeout: 15000 }); await B.waitForFunction(() => App.game && App.game.opts.mega, null, { timeout: 15000 });
+    const r = await A.evaluate(() => ({ mode: App.game.mode, waves: App.game.totalWaves, cash: App.game.cash, label: modeLabel(App.game), prep: Math.round(App.game.autoT) }));
+    ok(r.mode === 'coop2' && r.waves === 1 && r.cash >= 9000, JSON.stringify(r)); return r;
+  });
+  await step('megabaas: helden plaatsen, baas komt, gast ziet hem', async () => {
+    await A.evaluate(() => { const g = App.game; g.cash = 1e6; g.cash2 = 1e6; const t = g.freeTiles.filter(([x, y]) => g.tileFree(x, y)); g.placeHero('omega', t[3][0], t[3][1]); g.placeHero('nul', t[9][0], t[9][1]); });
+    await B.evaluate(() => { const g = App.game, t = g.freeTiles.filter(([x, y]) => g.tileFree(x, y) && x > 10); g.placeHero('genesis', t[0][0], t[0][1]); });
+    await A.waitForTimeout(600);
+    await B.evaluate(() => App.game.startWave()); await B.waitForTimeout(1500);
+    const host = await A.evaluate(() => { const b = App.game.enemies.find(e => e.type === 'megabaas'); return b && { hp: b.maxHp, speed: +b.speed.toFixed(3) }; });
+    const guest = await B.evaluate(() => { const b = App.game.enemies.find(e => e.type === 'megabaas'); return b && { hp: b.maxHp }; });
+    await A.screenshot({ path: SHOTS + '/mp_mega_host.png' }); await B.screenshot({ path: SHOTS + '/mp_mega_guest.png' });
+    ok(host && guest && guest.hp === host.hp, JSON.stringify({ host, guest })); return { host, guest };
+  });
+  await step('megabaas: fase 2 alleen Ultra/Secret, fase 3 alleen Secret', async () => {
+    const r = await A.evaluate(() => {
+      const g = App.game, b = g.enemies.find(e => e.type === 'megabaas'), om = g.heroes.find(h => h.id === 'omega'), nul = g.heroes.find(h => h.id === 'nul');
+      const fake = { def: HERO['straatvuist'] || HEROES.find(H => H.rarity === 'common'), st: om.st, id: 'x', owner: 0, kills: 0, dmg: 0 };
+      const hit = (h) => { b.megaBudget = 1e12; const h0 = b.hp; g.damage(b, 1e6, h); return Math.round(h0 - b.hp); };
+      b.hp = b.maxHp * 0.5; const p2common = hit(fake), p2ultra = hit(om);
+      b.hp = b.maxHp * 0.2; const p3ultra = hit(om), p3secret = hit(nul);
+      return { p2common, p2ultra, p3ultra, p3secret, cap: Math.round(MEGA.hp * MEGA.hitCap) };
+    });
+    ok(r.p2common === 0 && r.p2ultra > 0 && r.p3ultra === 0 && r.p3secret > 0 && r.p3secret <= r.cap, JSON.stringify(r));
+    await B.waitForTimeout(800); await B.screenshot({ path: SHOTS + '/mp_mega_phase3_guest.png' }); return r;
+  });
+  await step('megabaas: verslagen → beide winnen met gems, tokens en trait-bonus', async () => {
+    const g0 = await B.evaluate(() => ({ gems: Store.data.gems, tokens: Store.data.tokens }));
+    const kd = await A.evaluate(() => { const g = App.game, b = g.enemies.find(e => e.type === 'megabaas'), nul = g.heroes.find(h => h.id === 'nul'); let r = 0; for (let i = 0; i < 30 && !g.over; i++) { b.hp = Math.min(b.hp, 10); b.invulnT = 0; b.megaBudget = 1e9; r = g.damage(b, 1e6, nul); } return { r, hp: b.hp, dead: b.dead, over: g.over, nul: !!nul, rar: nul && nul.def.rarity, mb: b.megaBoss, own: g.hasOwnProperty('damage') }; });
+    ok(kd.over, 'baas niet verslagen: ' + JSON.stringify(kd));
+    await A.waitForTimeout(400); await B.waitForTimeout(2800); await A.waitForTimeout(200);
+    const ta = await A.evaluate(() => (document.querySelector('.results-card') || {}).textContent || ''), tb = await B.evaluate(() => (document.querySelector('.results-card') || {}).textContent || '');
+    const g1 = await B.evaluate(() => ({ gems: Store.data.gems, tokens: Store.data.tokens, pity: Store.data.traitPity }));
+    await B.screenshot({ path: SHOTS + '/mp_mega_win.png' });
+    const sa = await A.evaluate(() => ({ over: App.game && App.game.over, res: App.game && App.game.result, boss: App.game && (App.game.enemies.find(e => e.type === 'megabaas') || {}).hp, ov: document.getElementById('overlay-root').textContent.slice(0, 120) }));
+    ok(/Oerverslinder verslagen/.test(ta) && /Oerverslinder verslagen/.test(tb), 'geen winst-regel: ' + JSON.stringify(sa) + ' | B: ' + tb.slice(0, 200));
+    ok(g1.gems - g0.gems >= 400 && g1.tokens - g0.tokens >= 25 && g1.pity >= 49, JSON.stringify([g0, g1]));
+    return { gems: g1.gems - g0.gems, tokens: g1.tokens - g0.tokens };
+  });
   for (const P of [A, B]) out.push(`errors ${P.__name}: ${JSON.stringify(P.errs.slice(0, 5))}`);
   console.log(out.join('\n')); await browser.close(); process.exit(0);
 })();

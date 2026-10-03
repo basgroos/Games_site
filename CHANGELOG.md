@@ -1,5 +1,15 @@
 # Wijzigingen
 
+## Heldenwacht 1.22.0 (2026-10-03, staging)
+- **Megabaas** (Vrienden → *Megabaas*): samen met een vriend tegen **De Oerverslinder**, een gigantische baas (90 miljoen HP op Normaal) die heel langzaam naar jullie basis loopt. 45 seconden voorbereiding, $9.000 startgeld en inkomen voor allebei, en steeds escortes.
+  - Fase 1 (100–60%): aardbevingen verdoven helden in de buurt.
+  - Fase 2 (60–25%): *Kosmisch pantser* — alleen Ultra- en Secret-helden kunnen hem raken.
+  - Fase 3 (25–0%): *Oerschild* — alleen Secret-helden kunnen hem raken; hij loopt sneller.
+  - Meedoen kan alleen met minstens 1 Ultra- of Secret-held in je team.
+  - Schade per treffer en per seconde is begrensd (tegen %-schade en doorgeslagen buffs): een gevecht duurt minstens ~4 minuten. Gemeten: het sterkste duo wint op Normaal in ~8 minuten, een duo met 1 Ultra + 1 Secret per speler of één speler alleen haalt het niet.
+  - Winst: 30.000 munten, 400 gems en 25 Reroll Tokens (× moeilijkheid) + volgende trait-reroll gegarandeerd Legendary of beter. Verlies: troostprijs naar gedane schade.
+- Test: `tests/browser/multiplayer.js` speelt een Megabaas met twee spelers (eis, uitnodiging, fases, winst).
+
 ## Heldenwacht 1.21.0 (2026-10-03, staging)
 - **Fast Forward 5×, 7× en 10×** naast 1×, 2× en 3× (oranje knoppen). Toets F wisselt door alle snelheden.
 - Bij hoge snelheid op een trage computer vertraagt het spel netjes in plaats van te haperen.
