@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## Heldenwacht 1.25.0 (2026-10-03, staging)
+- **Meer gems**, bovenop de bestaande beloningen (in alle modi behalve de Megabaas, die al een eigen grote beloning heeft):
+  - Elke verslagen baas: 5 gems + 3 per moeilijkheidsniveau (Normaal 8, Nachtmerrie 14). Je ziet "+gems" boven de baas als hij valt.
+  - Elk potje: 1 gem per 2 gehaalde golven, ook als je verliest.
+  - Winst: 15 + 5 per moeilijkheidsniveau (Normaal 20, Nachtmerrie 30).
+  - Voorbeeld: winst op Normaal met 4 bazen geeft 62 gems extra; verlies na 9 golven met 1 baas 12 (vroeger 0).
+- Test: `tests/gems.js`.
+
 ## Heldenwacht 1.24.0 (2026-10-03)
 Twee nieuwe **Mystery**-helden, alleen te krijgen in de **Limited Gacha**:
 - **Levo de Jingeling**: jongen met toverstaf en bril. Oneindig bereik, schade en snelheid ongeveer als een Exotic. Ability *Loeky Aanval*: 5 honden rennen vanaf de basis over het pad naar het portaal en bijten elke vijand die ze passeren. ULTIMATE *Loeky Aura*: 10 seconden lang blijven er honden komen, met de grote Loeky voorop.
