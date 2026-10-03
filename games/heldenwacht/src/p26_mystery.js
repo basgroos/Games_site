@@ -25,7 +25,7 @@ const MYSTERY_HEROES = [
 MYSTERY_HEROES.forEach(h => { HEROES.push(h); HERO[h.id] = h; });
 Object.assign(ABILITIES, {
   loeky: { name: 'Loeky Aanval', ult: 'Loeky Aura', cd: 20, desc: 'Stuurt 5 honden vanaf de basis over het pad: ze rennen door alle vijanden heen en bijten hard. ULTIMATE: 10 seconden lang blijven er honden komen, met de grote Loeky voorop.' },
-  bozegrasjes: { name: 'Boze Grasjes', ult: 'Angry Gras', cd: 20, desc: 'Laat 6 seconden boos gras groeien op het pad in zijn bereik: vertraagt en doet veel schade. ULTIMATE: het hele pad, 9 seconden, nog bozer.' },
+  bozegrasjes: { name: 'Boze Grasjes', ult: 'Angry Gras', cd: 20, desc: 'Laat 8 seconden boos gras groeien op het pad rond hem: het schiet omhoog met een klap, houdt vijanden even vast, vertraagt en doet veel schade. ULTIMATE: het hele pad, 12 seconden, nog veel bozer.' },
 });
 
 /* ---------- Limited Gacha ---------- */
@@ -75,12 +75,19 @@ function drawDog(ctx, dog, t) {
 
 /* ---------- boos gras ---------- */
 function grassGrow(g, h, ult) {
-  const st = h.st, R = st.range * TILE * 1.4, P = g.grass || (g.grass = []), life = ult ? 9 : 6;
+  const st = h.st, R = st.range * TILE * 1.8, P = g.grass || (g.grass = []), life = ult ? 12 : 8;
   let n = 0;
   for (let d = 0; d <= g.leakD; d += ult ? 30 : 26) {
     const p = g.posAt(d); if (!ult && (p.x - h.x) ** 2 + (p.y - h.y) ** 2 > R * R) continue;
-    if (P.length >= 90) break;
-    P.push({ d, x: p.x, y: p.y, r: 24, life, max: life, dps: st.dmg * (ult ? 1.7 : 1.1), slow: ult ? 0.6 : 0.45, angry: ult || Math.random() < 0.3, h, seed: Math.random() * 10 }); n++;
+    if (P.length >= 110) break;
+    P.push({ d, x: p.x, y: p.y, r: 26, life, max: life, dps: st.dmg * (ult ? 4.5 : 2.6), slow: ult ? 0.7 : 0.55, angry: ult || Math.random() < 0.3, h, seed: Math.random() * 10 }); n++;
+  }
+  // het gras schiet omhoog: meteen een klap en grondvijanden zitten even vast
+  const hh = g.heroes.includes(h) ? h : null, hit = new Set();
+  for (const gp of P.slice(-n)) for (const e of g.enemies) {
+    if (e.dead || e.flying || hit.has(e.id) || (e.x - gp.x) ** 2 + (e.y - gp.y) ** 2 > (gp.r + e.r) ** 2) continue;
+    hit.add(e.id); g.damage(e, st.dmg * (ult ? 8 : 4), hh, { color: '#84cc16' });
+    if (!e.dead && !e.boss && !e.ccImm && !e.megaBoss) e.stunT = Math.max(e.stunT || 0, ult ? 1.5 : 0.8);
   }
   return n;
 }

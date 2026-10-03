@@ -65,7 +65,7 @@ setTimeout(() => {
     const { g, h } = solo('boosgras'); h.abilCd = 0; g.useAbility(h); const n = g.grass.length; ok(n > 2, 'gras: ' + n);
     const gp = g.grass[0]; const e = g.spawnEnemy('tank', gp.d, 5); e.hp = e.maxHp = 1e6; e.speed = 0.0001; step(g, 1); ok(e.hp < 1e6 && e.slowT > 0, 'geen schade/vertraging');
     const { g: g2, h: h2 } = solo('boosgras', 5); h2.abilCd = 0; g2.useAbility(h2); const n2 = g2.grass.length; ok(n2 > n * 2 && g2.grass.some(x => x.angry), 'Angry Gras te klein: ' + n2);
-    step(g2, 10); ok(!g2.grass.length, 'gras verdwijnt niet');
+    step(g2, 13); ok(!g2.grass.length, 'gras verdwijnt niet');
     return { grasjes: n, angryGras: n2 };
   })()`));
   run('tekenen (bril, honden, gras) zonder fouten', () => E(`(() => { const g = App.game; const h = g.heroes[0]; h.abilCd = 0; g.useAbility(h); loekyDog(g, h, { dmg: 1, big: true }); g.update(0.3); const ctx = document.createElement('canvas').getContext('2d'); g.render(ctx, 1); drawHero(ctx, HERO.levo, 0, 0, 1, 0, {}); drawHero(ctx, HERO.boosgras, 0, 0, 1, 0, {}); return true; })()`));
