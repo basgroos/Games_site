@@ -213,6 +213,8 @@ kbd{font-family:var(--f-num);font-weight:700;background:var(--panel3);border:2px
 .seg{display:flex;border:2px solid var(--edge);border-radius:4px;overflow:hidden}
 .seg button{border:0;background:var(--panel3);padding:6px 10px;font-weight:800;font-family:var(--f-num);font-size:15px}
 .seg button[aria-pressed="true"]{background:var(--pow);color:var(--pow-ink)}
+.seg button.turbo{color:#fb923c}.seg button.turbo[aria-pressed="true"]{background:#f97316;color:#1c0a00}
+@media (max-width:900px){.ff .seg button{padding:6px 7px;font-size:14px}}
 .g-main{flex:1;min-height:0;display:flex}
 .canvas-box{flex:1;min-width:0;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;padding:8px}
 .canvas-box canvas{display:block;border:3px solid var(--edge);border-radius:6px;touch-action:none;box-shadow:0 0 0 1px var(--line)}

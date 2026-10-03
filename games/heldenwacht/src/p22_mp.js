@@ -334,7 +334,7 @@ function coopHostMsg(g, ev, p) {
     case 'abil': { const h = hByUid(p.uid); if (h && h.owner === 1) { g.cmdOwner = 1; g.useAbility(h); g.cmdOwner = 0; } break; }
     case 'mode': { const h = hByUid(p.uid); if (h && h.owner === 1 && TARGET_MODES.some(m => m[0] === p.m)) h.mode = p.m; break; }
     case 'wave': g.startWave(); break;
-    case 'speed': if ([1, 2, 3].includes(p.s)) { g.speed = p.s; $$('.seg button[data-act="g-speed"]').forEach(x => x.setAttribute('aria-pressed', +x.dataset.s === g.speed)); } break;
+    case 'speed': if (GAME_SPEEDS.includes(p.s)) { g.speed = p.s; $$('.seg button[data-act="g-speed"]').forEach(x => x.setAttribute('aria-pressed', +x.dataset.s === g.speed)); } break;
     case 'auto': if (['off', 'clear', 'direct'].includes(p.m)) { applyAutoMode(g, p.m); const b = $('#h-auto'); if (b) { b.setAttribute('aria-pressed', g.autoWave); b.dataset.mode = p.m; const l = $('#h-auto-l'); if (l) l.textContent = AUTO_LABEL[p.m]; } } break;
     case 'leave': g.banner(`${g.mp.opp.name} is gestopt`, 'Zijn helden blijven staan; jij speelt verder.', '#f59e0b'); for (const h of g.heroes) if (h.owner === 1) h.owner = 0; g.mpSolo = true; break;
   }

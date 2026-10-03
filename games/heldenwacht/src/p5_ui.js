@@ -484,6 +484,7 @@ function renderSettings() {
 /* =====================================================================
    Match
    ===================================================================== */
+const GAME_SPEEDS = [1, 2, 3, 5, 7, 10];
 function startGame() {
   const mi = App.mapSel, di = App.diffSel;
   if (!Progress.diffUnlocked(mi, di) || !Store.data.team.length) return;
@@ -518,7 +519,7 @@ function buildGameDom() {
     <div class="pill" style="font-size:14px"><span>${esc(g.map.name)} · ${esc(modeLabel(g))}</span></div>
     ${g.rules.maxHeroes || g.rules.maxRarity || g.rules.maxTier != null ? `<span class="mode-pill" title="${esc(RULE_LABEL(g.rules))}">Regels: ${esc(RULE_LABEL(g.rules))}</span>` : ''}
     <span class="spacer"></span>
-    <div class="ff" role="group" aria-label="Fast Forward"><small>Fast Forward</small><div class="seg">${[1, 2, 3].map(s => `<button data-act="g-speed" data-s="${s}" aria-pressed="${s === 1}">${s}×</button>`).join('')}</div></div>
+    <div class="ff" role="group" aria-label="Fast Forward"><small>Fast Forward</small><div class="seg">${GAME_SPEEDS.map(s => `<button data-act="g-speed" data-s="${s}" aria-pressed="${s === 1}"${s >= 5 ? ' class="turbo"' : ''}>${s}×</button>`).join('')}</div></div>
     ${g.mode === 'coop' ? '' : `<button class="skip-btn" data-act="g-auto" id="h-auto" data-mode="${autoModeOf(g)}" aria-pressed="${g.autoWave}" title="Auto Skip (A): Uit → Na golf (start als de golf verslagen is) → Direct (start zodra alle vijanden van de golf binnen zijn)"><span class="sw"></span><span>Auto: <b id="h-auto-l">${AUTO_LABEL[autoModeOf(g)]}</b></span></button>`}
     <button class="btn btn-sm" data-act="g-pause">Pauze</button>
     <button class="btn btn-good" data-act="g-start" id="h-start">Start golf 1</button>
@@ -780,7 +781,7 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'q' || e.key === 'Q') { if (g.sel) g.useAbility(g.sel); }
   else if (e.key === 'p' || e.key === 'P') showPause();
   else if (e.key === 'a' || e.key === 'A') toggleAutoSkip();
-  else if (e.key === 'f' || e.key === 'F') { g.speed = g.speed >= 3 ? 1 : g.speed + 1; $$('.seg button[data-act="g-speed"]').forEach(x => x.setAttribute('aria-pressed', +x.dataset.s === g.speed)); Sfx.play('click'); }
+  else if (e.key === 'f' || e.key === 'F') { g.speed = GAME_SPEEDS[(GAME_SPEEDS.indexOf(g.speed) + 1) % GAME_SPEEDS.length] || 1; $$('.seg button[data-act="g-speed"]').forEach(x => x.setAttribute('aria-pressed', +x.dataset.s === g.speed)); Sfx.play('click'); }
 });
 window.addEventListener('resize', () => { if (App.game) fitCanvas(); if (App.screen === 'maps' && !App.game) $$('#scr-maps canvas[data-map]').forEach(cv => drawMapThumb(cv, MAPS.find(x => x.id === cv.dataset.map))); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { Store.save(); if (App.game && !App.game.over && !App.game.paused) showPause(); } });
@@ -791,7 +792,8 @@ function frame(ts) {
   const dt = Math.min(0.05, Math.max(0, (ts - (App.lastTs || ts)) / 1000)); App.lastTs = ts;
   const g = App.game;
   if (g) {
-    if (!g.paused) { const steps = g.over ? 1 : g.speed; for (let i = 0; i < steps; i++) g.update(dt); }
+    // snelheid = aantal stappen per beeld; bij hoge snelheid stoppen we als een beeld te lang duurt (spel vertraagt dan liever dan dat het hapert)
+    if (!g.paused) { const steps = g.over ? 1 : g.speed, t0 = performance.now(); for (let i = 0; i < steps; i++) { g.update(dt); if (i >= 2 && performance.now() - t0 > 22) break; } }
     const ctx = App.cv && App.cv.getContext('2d'); if (ctx) g.render(ctx, App.k);
     hudUpdate(); handleGameEvents();
     if (g.panelDirty || (ts - lastSide > 1000 && !g.sel)) { lastSide = ts; renderSide(); }

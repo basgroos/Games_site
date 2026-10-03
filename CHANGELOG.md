@@ -1,5 +1,10 @@
 # Wijzigingen
 
+## Heldenwacht 1.21.0 (2026-10-03, staging)
+- **Fast Forward 5×, 7× en 10×** naast 1×, 2× en 3× (oranje knoppen). Toets F wisselt door alle snelheden.
+- Bij hoge snelheid op een trage computer vertraagt het spel netjes in plaats van te haperen.
+- Co-op: ook de gast kan de nieuwe snelheden kiezen.
+
 ## Heldenwacht 1.20.0 (2026-10-03)
 - **Race: oneindig golven**: een race tegen een vriend heeft geen laatste golf meer. Net als in Endless komen er elke 5 golven bazen en worden vijanden na golf 30 steeds sneller sterker. Wie het langst overeind blijft (of als de ander opgeeft) wint. De golfteller toont `Golf 12/∞`.
 - **Bazen sturen**: twee nieuwe knoppen in de stuurbalk. Chaos-Opperheer voor $20k (toets N, +$300 inkomen) en Mega-Tiran voor $50k (toets M, +$800 inkomen). Vaste prijs, stijgt niet per golf. Lekt een gestuurde baas, dan kost dat 40 of 75 levens in plaats van direct verlies. De ontvanger krijgt een grote waarschuwing.
