@@ -93,7 +93,7 @@ function h4Hypno(g, e, h) {
   const hp = Math.min(Math.max(30, e.hp), 400 * (1 + 0.1 * Math.min(g.wave || 1, 80))), E = e.E, d = e.d;
   g.kill(e, h); if (!e.dead) return false;
   const a = h4Ally(g, { kind: 'hyp', type: e.type, E, d, hp: hp * 1.2, dmg: h.st.dmg * 0.5 + E.hp * 0.08, r: e.r, speed: Math.max(0.7, E.speed * 0.9), owner: h });
-  if (a) g.floatText(a.x, a.y - 26, 'GEHYPNOTISEERD', '#f472b6', 14, 0.9);
+  if (a) { g.hypnoN = (g.hypnoN || 0) + 1; g.lastHypno = a; g.floatText(a.x, a.y - 26, 'GEHYPNOTISEERD', '#f472b6', 14, 0.9); }
   return !!a;
 }
 function h4Well(g, h, d, opts = {}) {

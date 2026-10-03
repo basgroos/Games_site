@@ -75,10 +75,13 @@ setTimeout(() => {
     ok(comet > 0, 'geen meteoren'); return { groei: h.growth, schade: Math.round(d0) + ' → ' + Math.round(st.dmg) };
   })()`));
   run('Mesmera hypnotiseert vijanden; die lopen terug en vechten', () => E(`(() => {
-    const { g, h } = solo('mesmera', { tier: 4 }); const es = spawnAt(g, 'grunt', dNear(g, h) - 30, 12, 3);
-    step(g, 8); const hyp = (g.allies || []).filter(a => a.kind === 'hyp');
+    const { g, h } = solo('mesmera', { tier: 4 }); const es = spawnAt(g, 'grunt', dNear(g, h) - 40, 30, 3); es.forEach(e => { e.speed = 0.2; });
+    // kansgebaseerd: speel tot de eerste hypnose (max. 30 s) en kijk dan meteen of hij terugloopt
+    for (let t = 0; t < 30 && !g.hypnoN; t += 0.05) g.update(0.05);
+    ok(g.hypnoN > 0, 'niemand gehypnotiseerd in 30 s (kills ' + g.kills + ')');
+    const b = g.lastHypno; b.hp = b.maxHp = 1e9; const d1 = b.d; g.enemies.forEach(e => { e.hp = 0; e.dead = true; }); g.enemies = []; step(g, 0.5); ok(b.d < d1, 'gehypnotiseerde vijand loopt niet terug');
     const boss = g.spawnEnemy('kolos', 50, 5); ok(!h4Hypno(g, boss, h), 'baas gehypnotiseerd');
-    ok(hyp.length > 0, 'niemand gehypnotiseerd (kills ' + g.kills + ')'); const a = hyp[0], d0 = a.d; step(g, 0.5); ok(a.gone || a.d <= d0, 'loopt niet terug'); return { gehypnotiseerd: hyp.length, kills: g.kills };
+    return { gehypnotiseerd: g.hypnoN, kills: g.kills };
   })()`));
   run('Singulara trekt vijanden naar één punt', () => E(`(() => {
     const { g, h } = solo('singulara'); const es = spawnAt(g, 'tank', dNear(g, h) - 30, 6, 8); es.forEach((e, i) => { e.d += i * 12; e.hp = e.maxHp = 1e7; e.speed = 0; });
