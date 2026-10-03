@@ -23,3 +23,4 @@ p19_fx.js
 p20_rareanim.js
 p21_social.js
 p22_mp.js
+p23_split.js

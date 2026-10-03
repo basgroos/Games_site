@@ -42,7 +42,7 @@ Object.assign(MP, {
       const rt = await SOC.rtClient(), me = playerId();
       const ch = rt.channel('bg-room-' + inv.id, { config: { presence: { key: me }, broadcast: { self: false, ack: false } } });
       ch.on('presence', { event: 'sync' }, () => { this.present = new Set(Object.keys(ch.presenceState())); this.onPresence(); });
-      for (const ev of ['start', 'st', 'atk', 'end', 'snap', 'cmd', 'msg', 'bye']) ch.on('broadcast', { event: ev }, ({ payload }) => { this.lastMsg = Date.now(); this.onMsg(ev, payload || {}); });
+      for (const ev of ['start', 'st', 'vw', 'atk', 'end', 'snap', 'cmd', 'msg', 'bye']) ch.on('broadcast', { event: ev }, ({ payload }) => { this.lastMsg = Date.now(); this.onMsg(ev, payload || {}); });
       ch.subscribe(st => { if (st === 'SUBSCRIBED') ch.track({ name: playerName(), role }); });
       this.ch = ch;
       clearTimeout(this.joinTO); this.joinTO = setTimeout(() => { if (!this.started) { toast(`${opp.name} is niet in de kamer gekomen.`, 'bad'); this.leave(); closeOverlay(); } }, 60000);
@@ -135,31 +135,71 @@ Meta.finishMatch = function (g) {
 /* =====================================================================
    RACE
    ===================================================================== */
+// Zonder cooldown: zo vaak sturen als je geld hebt. Ingedrukt houden = blijven sturen.
+// Elke zending verhoogt je inkomen (+eco elke 6 seconden), dus aanvallen loont.
 const RACE_SEND = [
-  { name: 'Sprinters', type: 'runner', n: 6, cost: 120, cd: 6 },
-  { name: 'Tanks', type: 'tank', n: 2, cost: 280, cd: 10 },
-  { name: 'Juggernaut', type: 'juggernaut', n: 1, cost: 650, cd: 16 },
+  { name: 'Handlangers', type: 'grunt', n: 5, cost: 60, eco: 3, key: 'z' },
+  { name: 'Sprinters', type: 'runner', n: 6, cost: 110, eco: 6, key: 'x' },
+  { name: 'Schildwachten', type: 'shield', n: 3, cost: 190, eco: 10, key: 'c' },
+  { name: 'Tanks', type: 'tank', n: 2, cost: 260, eco: 14, key: 'v' },
+  { name: 'Juggernaut', type: 'juggernaut', n: 1, cost: 600, eco: 34, key: 'b' },
 ];
-const raceCost = (g, s) => Math.round(s.cost * (1 + Math.max(0, g.wave - 1) * 0.1));
+const RACE_ECO_EVERY = 6, RACE_MIN_GAP = 0.12, RACE_INQ_MAX = 160;
+const raceCost = (g, s) => Math.round(s.cost * (1 + Math.max(0, g.wave - 1) * 0.08));
 function raceSetup(g) {
   g.opp = { w: 0, tw: g.totalWaves, hp: g.hp, mhp: g.maxHp, k: 0, over: null, t: Date.now() };
-  g.sendCd = RACE_SEND.map(() => 0);
+  g.sendGap = 0; g.eco = 0; g.ecoT = RACE_ECO_EVERY; g.inQ = []; g.inT = 0; g.sentN = 0; g.atkBannerT = 0; g.atkPending = 0;
   const hud = document.querySelector('#scr-game .hud');
   if (hud) {
     const box = document.createElement('div'); box.className = 'mp-opp'; box.id = 'mp-opp';
     box.innerHTML = `<div class="mo-name"><span class="dot on"></span><b>${esc(g.mp.opp.name)}</b></div><div class="mo-stats"><span id="mo-wave">Golf 0/${g.totalWaves}</span><div class="mo-hp"><i id="mo-hpbar" style="width:100%"></i></div><span id="mo-hp" class="num">${g.hp}</span></div>`;
     hud.appendChild(box);
     const sb = document.createElement('div'); sb.className = 'mp-send'; sb.id = 'mp-send';
-    sb.innerHTML = `<small>Stuur naar ${esc(g.mp.opp.name)}</small>${RACE_SEND.map((s, i) => `<button class="btn btn-sm" data-act="race-send" data-i="${i}" id="rs-${i}"><span class="cdf"></span><span class="l">${s.n}× ${s.name}</span> <span class="num c">$${raceCost(g, s)}</span></button>`).join('')}`;
+    sb.innerHTML = `<small>Stuur naar ${esc(g.mp.opp.name)}</small>${RACE_SEND.map((s, i) => `<button class="btn btn-sm rs-btn" data-i="${i}" id="rs-${i}" title="${s.n}× ${esc(s.name)} sturen (toets ${s.key.toUpperCase()}) · ingedrukt houden = blijven sturen · +$${s.eco} inkomen"><kbd>${s.key.toUpperCase()}</kbd><span class="l">${s.n}× ${s.name}</span> <span class="num c">$${raceCost(g, s)}</span><span class="eco">+${s.eco}</span></button>`).join('')}
+      <span class="mp-eco" title="Extra inkomen elke ${RACE_ECO_EVERY} seconden. Stijgt met elke zending."><span>Inkomen</span> <b class="num" id="mp-eco">+$0</b><i><b id="mp-ecobar"></b></i></span>`;
     hud.after(sb);
+    raceBindSend(sb);
   }
 }
+function raceSend(g, i, quiet) {
+  if (!g || g.mode !== 'race' || g.over || g.sendGap > 0) return false;
+  const s = RACE_SEND[i]; if (!s) return false; const c = raceCost(g, s);
+  if (g.cash < c) { if (!quiet) { Sfx.play('error'); toast(`Je hebt $${c} nodig.`, 'bad'); } return false; }
+  g.cash -= c; g.eco += s.eco; g.sendGap = RACE_MIN_GAP; g.sentN++;
+  MP.send('atk', { i }); Sfx.play('shoot');
+  g.floatText(GW - 120, 60 + (g.sentN % 4) * 16, `${s.n}× ${s.name} →`, '#ef4444', 16, 0.9);
+  if (g.oppFx) g.oppFx.push({ text: `+${s.n} ${s.name}`, life: 1.4, max: 1.4, k: g.sentN });
+  const btn = document.getElementById('rs-' + i); if (btn) { btn.classList.remove('sent'); void btn.offsetWidth; btn.classList.add('sent'); }
+  return true;
+}
+// ingedrukt houden = blijven sturen
+function raceBindSend(bar) {
+  let rep = null, del = null;
+  const stop = () => { clearTimeout(del); clearInterval(rep); del = rep = null; };
+  bar.addEventListener('pointerdown', e => {
+    const b = e.target.closest('.rs-btn'); if (!b || b.disabled) return; e.preventDefault(); Sfx.init();
+    const i = +b.dataset.i; stop(); raceSend(App.game, i);
+    del = setTimeout(() => { rep = setInterval(() => { const g = App.game; if (!g || g.over || !raceSend(g, i, true)) { if (!g || g.over) stop(); } }, 150); }, 320);
+  });
+  for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) bar.addEventListener(ev, stop);
+  window.addEventListener('blur', stop);
+  bar.addEventListener('click', e => { const b = e.target.closest('.rs-btn'); if (b && e.detail === 0) raceSend(App.game, +b.dataset.i); }); // toetsenbord (Enter/spatie op de knop)
+}
+document.addEventListener('keydown', e => {
+  const g = App.game; if (!g || g.mode !== 'race' || g.over || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.target && e.target.matches && e.target.matches('input,textarea')) return;
+  if ($('#overlay-root').children.length) return;
+  const i = RACE_SEND.findIndex(s => s.key === (e.key || '').toLowerCase()); if (i < 0) return;
+  raceSend(g, i, e.repeat); e.preventDefault();
+});
 function raceMsg(g, ev, p) {
   if (ev === 'st') { g.opp = Object.assign(g.opp || {}, p, { t: Date.now() }); return; }
   if (ev === 'atk' && !g.over) {
     const s = RACE_SEND[p.i]; if (!s) return;
-    for (let k = 0; k < s.n; k++) { const e = g.spawnEnemy(s.type, -10 - k * 18, Math.max(1, g.wave)); if (e) e.sentBy = true; }
-    g.banner(`${g.mp.opp.name} stuurt ${s.n}× ${s.name}!`, 'Hou ze tegen!', '#ef4444'); Sfx.play('boss'); g.shake(4);
+    for (let k = 0; k < s.n && g.inQ.length < RACE_INQ_MAX; k++) g.inQ.push(s.type);
+    g.atkPending += s.n;
+    if (g.atkBannerT <= 0) { g.atkBannerT = 2.5; g.banner(`${g.mp.opp.name} stuurt ${s.n}× ${s.name}!`, 'Hou ze tegen!', '#ef4444'); Sfx.play('boss'); g.shake(4); }
+    else g.floatText(g.portal.x, g.portal.y - 34, `+${s.n} ${s.name}`, '#ef4444', 16, 0.9);
     return;
   }
   if (ev === 'end' && !g.over) {
@@ -178,21 +218,15 @@ Game.prototype.update = function (dt) {
   const r = _update14.call(this, dt);
   if (this.mode === 'race' && this.mp && !this.over) {
     mpTickSend(this, 500, () => MP.send('st', { w: this.wave, tw: this.totalWaves, hp: Math.max(0, Math.ceil(this.hp)), mhp: this.maxHp, k: this.kills, cl: this.cleared }));
-    for (let i = 0; i < this.sendCd.length; i++) if (this.sendCd[i] > 0) this.sendCd[i] = Math.max(0, this.sendCd[i] - dt);
+    if (this.sendGap > 0) this.sendGap -= dt;
+    if (this.atkBannerT > 0) this.atkBannerT -= dt;
+    if (this.wave > 0 || this.eco > 0) { this.ecoT -= dt; if (this.ecoT <= 0) { this.ecoT += RACE_ECO_EVERY; if (this.eco > 0) { this.cash += this.eco; this.floatText(110, 70, `+$${this.eco} inkomen`, '#3ddc97', 15, 1); } } }
+    if (this.inQ.length) { this.inT -= dt; while (this.inQ.length && this.inT <= 0) { this.inT += 0.22; const e = this.spawnEnemy(this.inQ.shift(), -10, Math.max(1, this.wave)); if (e) e.sentBy = true; } } else this.inT = 0;
     if (this.opp && Date.now() - this.opp.t > 6000 && !this.oppLagShown) { this.oppLagShown = true; }
   }
   if (this.mode === 'coop2' && this.mp && this.mp.role === 'host') coopHostTick(this);
   return r;
 };
-Object.assign(ACTIONS, {
-  'race-send': b => {
-    const g = App.game; if (!g || g.mode !== 'race' || g.over) return;
-    const i = +b.dataset.i, s = RACE_SEND[i], c = raceCost(g, s);
-    if (g.sendCd[i] > 0) return; if (g.cash < c) { Sfx.play('error'); toast(`Je hebt $${c} nodig.`, 'bad'); return; }
-    g.cash -= c; g.sendCd[i] = s.cd; MP.send('atk', { i }); Sfx.play('shoot');
-    g.floatText(GW - 120, 60, `${s.n}× ${s.name} verstuurd!`, '#ef4444', 18, 1.2);
-  },
-});
 const _hud14 = hudUpdate;
 hudUpdate = function () {
   _hud14.apply(this, arguments);
@@ -202,7 +236,8 @@ hudUpdate = function () {
     set('mo-wave', o.over ? '' : `Golf ${o.w}/${o.tw}`); set('mo-hp', o.hp);
     const bar = document.getElementById('mo-hpbar'); if (bar) bar.style.width = clamp(o.hp / (o.mhp || 1), 0, 1) * 100 + '%';
     const dot = document.querySelector('#mp-opp .dot'); if (dot) dot.classList.toggle('on', Date.now() - o.t < 4000);
-    RACE_SEND.forEach((s, i) => { const btn = document.getElementById('rs-' + i); if (!btn) return; const c = raceCost(g, s); btn.disabled = g.over || g.sendCd[i] > 0 || g.cash < c; const cc = btn.querySelector('.c'); if (cc && cc.textContent !== '$' + c) cc.textContent = '$' + c; const f = btn.querySelector('.cdf'); if (f) f.style.width = (g.sendCd[i] / s.cd * 100) + '%'; });
+    RACE_SEND.forEach((s, i) => { const btn = document.getElementById('rs-' + i); if (!btn) return; const c = raceCost(g, s); const dis = g.over || g.cash < c; if (btn.disabled !== dis) btn.disabled = dis; const cc = btn.querySelector('.c'); if (cc && cc.textContent !== '$' + c) cc.textContent = '$' + c; });
+    set('mp-eco', `+$${g.eco}`); const eb = document.getElementById('mp-ecobar'); if (eb) eb.style.width = clamp(1 - g.ecoT / RACE_ECO_EVERY, 0, 1) * 100 + '%';
   }
   if (g.mode === 'coop2') coopHud(g);
 };

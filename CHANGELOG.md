@@ -1,6 +1,13 @@
 # Wijzigingen
 
-## Heldenwacht 1.18.0 (2026-10-02, staging)
+## Heldenwacht 1.19.0 (2026-10-03)
+- **Race: onbeperkt vijanden sturen**: geen cooldown meer. Zo vaak sturen als je geld hebt; knop ingedrukt houden (of toets Z/X/C/V/B) blijft sturen. Vijf soorten: handlangers, sprinters, schildwachten, tanks en juggernaut.
+- **Inkomen**: elke zending verhoogt je inkomen; dat krijg je elke 6 seconden uitbetaald. Aanvallen loont dus.
+- Gestuurde vijanden komen bij de ander netjes achter elkaar binnen (niet op één hoop); meldingen worden samengevoegd.
+- **Splitscreen**: in een race zie je live het veld van je tegenstander naast het jouwe: zijn helden, zijn vijanden (die van jou met een rode ring) en zijn basis. Op een telefoon staat het eronder. Verbergen/tonen met één knop.
+- Noodknop *Live terugzetten* staat standaard op de vorige live-versie.
+
+## Heldenwacht 1.18.0 (2026-10-02)
 - **Vrienden**: iedereen krijgt een vriendcode (bijv. K7Q-M2X) als hij zijn naam kiest. Vrienden toevoegen met een code, verzoeken accepteren of weigeren, online-status, verwijderen. Menu *Vrienden*.
 - **Uitnodigingen**: nodig een vriend uit voor een Race of Co-op op een map en moeilijkheid naar keuze. Melding overal in het spel; uitnodigingen blijven 15 minuten geldig.
 - **Race**: tegen elkaar op dezelfde map met precies dezelfde golven. Live stand van je tegenstander, vijanden naar hem sturen (sprinters, tanks, juggernaut). Eerste die alle golven haalt wint; valt je basis, dan verlies je.

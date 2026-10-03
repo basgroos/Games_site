@@ -81,7 +81,7 @@ async function step(label, fn) { try { const r = await fn(); out.push('OK   ' + 
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
 (async () => {
-  const browser = await chromium.launch();
+  const browser = await chromium.launch(process.env.PW_CHROME ? { executablePath: process.env.PW_CHROME } : {});
   const A = await player(browser, 'Anna'), B = await player(browser, 'Bram');
   const codeA = await A.evaluate(() => readPlayer().code), codeB = await B.evaluate(() => readPlayer().code);
   await step('beide spelers geregistreerd met vriendcode', () => { ok(codeA && codeB && codeA !== codeB, 'geen codes'); return { codeA, codeB }; });
@@ -113,10 +113,37 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     const opp = await A.evaluate(() => App.game.opp);
     ok(opp && opp.w >= 1, 'stand van Bram niet ontvangen: ' + JSON.stringify(opp));
     const n0 = await B.evaluate(() => App.game.enemies.length);
-    await A.click('[data-act="race-send"][data-i="0"]'); await B.waitForTimeout(600);
+    await A.click('#rs-0'); await B.waitForTimeout(1800);
     const sent = await B.evaluate(() => App.game.enemies.filter(e => e.sentBy).length);
-    await B.screenshot({ path: SHOTS + '/mp_race_b.png' }); await A.screenshot({ path: SHOTS + '/mp_race_a.png' });
-    ok(sent === 6, 'Bram kreeg ' + sent + ' sprinters'); return { oppGolf: opp.w, ontvangen: sent, n0 };
+    ok(sent === 5, 'Bram kreeg ' + sent + ' handlangers'); return { oppGolf: opp.w, ontvangen: sent, n0 };
+  });
+  await step('race: zonder cooldown — ingedrukt houden en sneltoets blijven sturen, inkomen stijgt', async () => {
+    const c0 = await A.evaluate(() => { const g = App.game; g.cash = 99999; return g.sentN; });
+    const bx = await A.$eval('#rs-1', el => { const r = el.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
+    await A.mouse.move(bx[0], bx[1]); await A.mouse.down(); await A.waitForTimeout(1300); await A.mouse.up();
+    const held = await A.evaluate(c => App.game.sentN - c, c0);
+    await A.waitForTimeout(200); await A.keyboard.press('z'); await A.waitForTimeout(200); await A.keyboard.press('z'); await A.waitForTimeout(300);
+    const r = await A.evaluate(c => ({ totaal: App.game.sentN - c, eco: App.game.eco }), c0);
+    ok(held >= 5, 'ingedrukt houden stuurde maar ' + held + '×'); ok(r.totaal >= held + 2, 'sneltoets werkt niet'); ok(r.eco > 0, 'geen inkomen');
+    await B.waitForTimeout(1500); const inc = await B.evaluate(() => App.game.enemies.filter(e => e.sentBy).length + App.game.inQ.length);
+    ok(inc > 30, 'Bram kreeg te weinig: ' + inc); return Object.assign(r, { ingedrukt: held, bijBram: inc });
+  });
+  await step('race: splitscreen toont veld, helden en vijanden van de ander', async () => {
+    await A.waitForTimeout(800);
+    const v = await A.evaluate(() => { const V = App.game.oview, cv = document.getElementById('ocv'); return { helden: V ? V.heroes.length : 0, vijanden: V && V.cur ? V.cur.m.size : 0, gestuurd: V && V.cur ? [...V.cur.m.values()].filter(e => e.f & 2).length : 0, breed: cv ? cv.clientWidth : 0, zichtbaar: !!(cv && cv.offsetParent) }; });
+    await A.screenshot({ path: SHOTS + '/mp_race_split_a.png' }); await B.screenshot({ path: SHOTS + '/mp_race_split_b.png' });
+    ok(v.helden >= 1 && v.vijanden > 0 && v.gestuurd > 0 && v.zichtbaar && v.breed > 200, JSON.stringify(v));
+    await A.click('.opp-box [data-act="split-toggle"]'); const hid = await A.evaluate(() => document.getElementById('obox').hidden);
+    await A.click('#ob-show'); const back = await A.evaluate(() => !document.getElementById('obox').hidden);
+    ok(hid && back, 'verbergen/tonen werkt niet'); return v;
+  });
+  await step('race: splitscreen op telefoon (onder elkaar)', async () => {
+    await B.setViewportSize({ width: 400, height: 860 }); await B.waitForTimeout(400);
+    await B.evaluate(() => fitCanvas());
+    const r = await B.evaluate(() => { const a = document.getElementById('gcv').getBoundingClientRect(), b = document.getElementById('ocv').getBoundingClientRect(); return { onder: b.top >= a.bottom - 2, breed: Math.round(b.width), scroll: document.documentElement.scrollWidth <= 400 }; });
+    await B.screenshot({ path: SHOTS + '/mp_race_split_phone.png', fullPage: true });
+    await B.setViewportSize({ width: 1300, height: 820 });
+    ok(r.onder && r.breed > 300, JSON.stringify(r)); return r;
   });
   await step('race: basis van Bram valt → Anna wint', async () => {
     await B.evaluate(() => { const g = App.game; g.hp = 0; g.lose(); }); await A.waitForTimeout(800);
