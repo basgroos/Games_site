@@ -128,6 +128,21 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     await B.waitForTimeout(1500); const inc = await B.evaluate(() => App.game.enemies.filter(e => e.sentBy).length + App.game.inQ.length);
     ok(inc > 30, 'Bram kreeg te weinig: ' + inc); return Object.assign(r, { ingedrukt: held, bijBram: inc });
   });
+  await step('race: oneindig golven + bazen sturen voor 20k en 50k', async () => {
+    const info = await A.evaluate(() => ({ tw: App.game.totalWaves, lbl: document.getElementById('mo-wave').textContent, b5: document.querySelector('#rs-5 .c').textContent, b6: document.querySelector('#rs-6 .c').textContent, canStart: App.game.wave < App.game.totalWaves }));
+    ok(info.tw === Infinity && info.canStart, 'race heeft geen oneindig golven: ' + info.tw); ok(!/\//.test(info.lbl), 'golflabel toont nog een einde: ' + info.lbl);
+    ok(info.b5 === '$20k' && info.b6 === '$50k', 'bazenprijzen kloppen niet: ' + info.b5 + ' ' + info.b6);
+    await B.evaluate(() => { App.game.inQ = []; App.game.hp = 99999; }); // wachtrij van de vorige stap leeg, zodat de bazen meteen komen
+    const before = await A.evaluate(() => { const g = App.game; g.cash = 70000; g.wave = 12; return g.cash; });
+    await A.click('#rs-5'); await A.waitForTimeout(200); await A.keyboard.press('m'); await A.waitForTimeout(200);
+    const after = await A.evaluate(() => ({ cash: App.game.cash, b5: document.querySelector('#rs-5 .c').textContent }));
+    ok(before - after.cash === 70000, 'betaald: ' + (before - after.cash)); ok(after.b5 === '$20k', 'prijs stijgt mee met golf');
+    await B.waitForTimeout(2500);
+    const bosses = await B.evaluate(() => App.game.enemies.filter(e => e.sentBy && e.boss).map(e => ({ t: e.type, leak: e.E.leak, hp: Math.round(e.maxHp) })));
+    ok(bosses.some(b => b.t === 'chaoskoning' && b.leak === 40) && bosses.some(b => b.t === 'tiran' && b.leak === 75), 'Bram kreeg de bazen niet: ' + JSON.stringify(bosses));
+    await B.screenshot({ path: SHOTS + '/mp_race_boss.png' });
+    return bosses;
+  });
   await step('race: splitscreen toont veld, helden en vijanden van de ander', async () => {
     await A.waitForTimeout(800);
     const v = await A.evaluate(() => { const V = App.game.oview, cv = document.getElementById('ocv'); return { helden: V ? V.heroes.length : 0, vijanden: V && V.cur ? V.cur.m.size : 0, gestuurd: V && V.cur ? [...V.cur.m.values()].filter(e => e.f & 2).length : 0, breed: cv ? cv.clientWidth : 0, zichtbaar: !!(cv && cv.offsetParent) }; });

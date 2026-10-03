@@ -1,5 +1,11 @@
 # Wijzigingen
 
+## Heldenwacht 1.20.0 (2026-10-03)
+- **Race: oneindig golven**: een race tegen een vriend heeft geen laatste golf meer. Net als in Endless komen er elke 5 golven bazen en worden vijanden na golf 30 steeds sneller sterker. Wie het langst overeind blijft (of als de ander opgeeft) wint. De golfteller toont `Golf 12/∞`.
+- **Bazen sturen**: twee nieuwe knoppen in de stuurbalk. Chaos-Opperheer voor $20k (toets N, +$300 inkomen) en Mega-Tiran voor $50k (toets M, +$800 inkomen). Vaste prijs, stijgt niet per golf. Lekt een gestuurde baas, dan kost dat 40 of 75 levens in plaats van direct verlies. De ontvanger krijgt een grote waarschuwing.
+- Beloningen na een race rekenen met het aantal gehaalde golven.
+- Test: `tests/browser/multiplayer.js` controleert oneindig golven en het sturen van beide bazen.
+
 ## Ashen Depths 1.0.0 (2026-10-03)
 - **Nieuw spel**: Ashen Depths, een roguelite dungeon crawler in pixel-art (vervangt "Dungeon Crawler" uit Binnenkort).
 - 6 classes (Warrior, Rogue, Mage, Ranger, Paladin, Necromancer), elk met 5 abilities met 5 ranks, een passive en eigen level-up keuzes.

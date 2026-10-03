@@ -24,7 +24,7 @@ class Game {
     this.heroes = []; this.enemies = []; this.proj = []; this.effects = []; this.texts = []; this.timers = []; this.amb = [];
     this.fx = new FX();
     this.cash = this.map.startCash + this.diff.cash; this.hp = M.baseHp || this.diff.baseHp; this.maxHp = this.hp;
-    this.wave = 0; this.totalWaves = this.mode === 'endless' ? Infinity : this.mode === 'bossrush' ? BOSSRUSH.length : this.raid ? this.raid.phases.reduce((n, p) => n + (p.boss ? 1 : p.waves), 0) : this.mode === 'coop' ? 1 : this.diff.waves; this.queue = []; this.spawnT = 0; this.cleared = 0; this.bonusPending = false;
+    this.wave = 0; this.totalWaves = this.mode === 'endless' || this.mode === 'race' ? Infinity : this.mode === 'bossrush' ? BOSSRUSH.length : this.raid ? this.raid.phases.reduce((n, p) => n + (p.boss ? 1 : p.waves), 0) : this.mode === 'coop' ? 1 : this.diff.waves; this.queue = []; this.spawnT = 0; this.cleared = 0; this.bonusPending = false;
     this.time = 0; this.speed = 1; this.paused = false; this.autoWave = false; this.autoT = -1;
     this.placing = null; this.sel = null; this.hover = null;
     this.shakeA = 0; this.banners = []; this.cutin = null; this.flash = null;
@@ -58,7 +58,7 @@ class Game {
   /* ---------- waves ---------- */
   hpScale(n) {
     const m = n - 1; let s = (1 + 0.14 * m + 0.010 * m * m) * this.diff.hp * this.map.hpMult * this.M.hp;
-    if (this.mode === 'endless' && n > 30) s *= Math.pow(1.035, n - 30);
+    if ((this.mode === 'endless' || this.mode === 'race') && n > 30) s *= Math.pow(1.035, n - 30);
     if (this.raidDiff) s *= this.raidDiff.hp;
     if (this.mode === 'dungeon') s *= 1 + 0.4 * ((this.opts.depth || 1) - 1);
     return s;
@@ -112,7 +112,7 @@ class Game {
       out.push({ type: '__pause', gap: 2.5 });
       out.push({ type: this.map.finalBoss, gap: 1.2 });
       for (let i = 0; i < 6; i++) out.push({ type: pool[Math.floor(rng() * pool.length)], gap: 0.5 });
-    } else if (this.mode === 'endless' && n % 5 === 0) {
+    } else if ((this.mode === 'endless' || this.mode === 'race') && n % 5 === 0) {
       const list = this.map.bosses.concat([this.map.finalBoss, 'overlord']), k = n / 5 - 1;
       out.splice(Math.floor(out.length / 2), 0, { type: list[k % list.length], gap: 1.6 });
       if (n >= 25) out.push({ type: list[(k + 1) % list.length], gap: 1.6 });

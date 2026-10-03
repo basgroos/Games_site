@@ -123,7 +123,7 @@ const _finish14 = Meta.finishMatch;
 Meta.finishMatch = function (g) {
   const R = _finish14.call(this, g);
   if ((g.mode !== 'race' && g.mode !== 'coop2') || g._mpRew) return R; g._mpRew = true;
-  const win = !!g.result.win, waves = win ? g.totalWaves : g.cleared;
+  const win = !!g.result.win, waves = win && g.totalWaves !== Infinity ? g.totalWaves : g.cleared;
   const base = matchRewards(g.map, g.diffIdx, waves, g.bossKills, win, false);
   let c = 0; for (const r of base.rows) { const v = Math.round(r[1] * 0.8); R.rows.push([r[0], v]); c += v; }
   if (g.mode === 'race' && win) { const b = 300 + g.diffIdx * 150; R.rows.push([g.mpWinWhy === 'forfeit' ? 'Race gewonnen (tegenstander gestopt)' : 'Race gewonnen!', b]); c += b; }
@@ -143,19 +143,24 @@ const RACE_SEND = [
   { name: 'Schildwachten', type: 'shield', n: 3, cost: 190, eco: 10, key: 'c' },
   { name: 'Tanks', type: 'tank', n: 2, cost: 260, eco: 14, key: 'v' },
   { name: 'Juggernaut', type: 'juggernaut', n: 1, cost: 600, eco: 34, key: 'b' },
+  // Bazen: vaste prijs (stijgt niet per golf). Lekken kost 'leak' levens in plaats van direct verlies.
+  { name: 'Chaos-Opperheer', type: 'chaoskoning', n: 1, cost: 20000, eco: 300, key: 'n', boss: true, fixed: true, leak: 40 },
+  { name: 'Mega-Tiran', type: 'tiran', n: 1, cost: 50000, eco: 800, key: 'm', boss: true, fixed: true, leak: 75 },
 ];
 const RACE_ECO_EVERY = 6, RACE_MIN_GAP = 0.12, RACE_INQ_MAX = 160;
-const raceCost = (g, s) => Math.round(s.cost * (1 + Math.max(0, g.wave - 1) * 0.08));
+const raceCost = (g, s) => s.fixed ? s.cost : Math.round(s.cost * (1 + Math.max(0, g.wave - 1) * 0.08));
+const raceWaveLbl = (w, tw) => `Golf ${w || 0}${tw > 0 && isFinite(tw) ? '/' + tw : ''}`; // race heeft oneindig golven
+const fmtCost = c => c >= 10000 ? `${c / 1000}k` : String(c);
 function raceSetup(g) {
   g.opp = { w: 0, tw: g.totalWaves, hp: g.hp, mhp: g.maxHp, k: 0, over: null, t: Date.now() };
   g.sendGap = 0; g.eco = 0; g.ecoT = RACE_ECO_EVERY; g.inQ = []; g.inT = 0; g.sentN = 0; g.atkBannerT = 0; g.atkPending = 0;
   const hud = document.querySelector('#scr-game .hud');
   if (hud) {
     const box = document.createElement('div'); box.className = 'mp-opp'; box.id = 'mp-opp';
-    box.innerHTML = `<div class="mo-name"><span class="dot on"></span><b>${esc(g.mp.opp.name)}</b></div><div class="mo-stats"><span id="mo-wave">Golf 0/${g.totalWaves}</span><div class="mo-hp"><i id="mo-hpbar" style="width:100%"></i></div><span id="mo-hp" class="num">${g.hp}</span></div>`;
+    box.innerHTML = `<div class="mo-name"><span class="dot on"></span><b>${esc(g.mp.opp.name)}</b></div><div class="mo-stats"><span id="mo-wave">${raceWaveLbl(0, g.totalWaves)}</span><div class="mo-hp"><i id="mo-hpbar" style="width:100%"></i></div><span id="mo-hp" class="num">${g.hp}</span></div>`;
     hud.appendChild(box);
     const sb = document.createElement('div'); sb.className = 'mp-send'; sb.id = 'mp-send';
-    sb.innerHTML = `<small>Stuur naar ${esc(g.mp.opp.name)}</small>${RACE_SEND.map((s, i) => `<button class="btn btn-sm rs-btn" data-i="${i}" id="rs-${i}" title="${s.n}× ${esc(s.name)} sturen (toets ${s.key.toUpperCase()}) · ingedrukt houden = blijven sturen · +$${s.eco} inkomen"><kbd>${s.key.toUpperCase()}</kbd><span class="l">${s.n}× ${s.name}</span> <span class="num c">$${raceCost(g, s)}</span><span class="eco">+${s.eco}</span></button>`).join('')}
+    sb.innerHTML = `<small>Stuur naar ${esc(g.mp.opp.name)}</small>${RACE_SEND.map((s, i) => `<button class="btn btn-sm rs-btn" data-i="${i}" id="rs-${i}" ${s.boss ? 'data-boss="1" ' : ''}title="${s.n}× ${esc(s.name)} sturen${s.boss ? ` ($${s.cost.toLocaleString('nl-NL')}, lekt ${s.leak} ♥)` : ''} (toets ${s.key.toUpperCase()}) · ingedrukt houden = blijven sturen · +$${s.eco} inkomen"><kbd>${s.key.toUpperCase()}</kbd><span class="l">${s.n}× ${s.name}</span> <span class="num c">$${fmtCost(raceCost(g, s))}</span><span class="eco">+${s.eco}</span></button>`).join('')}
       <span class="mp-eco" title="Extra inkomen elke ${RACE_ECO_EVERY} seconden. Stijgt met elke zending."><span>Inkomen</span> <b class="num" id="mp-eco">+$0</b><i><b id="mp-ecobar"></b></i></span>`;
     hud.after(sb);
     raceBindSend(sb);
@@ -196,9 +201,10 @@ function raceMsg(g, ev, p) {
   if (ev === 'st') { g.opp = Object.assign(g.opp || {}, p, { t: Date.now() }); return; }
   if (ev === 'atk' && !g.over) {
     const s = RACE_SEND[p.i]; if (!s) return;
-    for (let k = 0; k < s.n && g.inQ.length < RACE_INQ_MAX; k++) g.inQ.push(s.type);
+    for (let k = 0; k < s.n && (g.inQ.length < RACE_INQ_MAX || s.boss); k++) g.inQ.push(s.boss ? { type: s.type, leak: s.leak } : s.type);
     g.atkPending += s.n;
-    if (g.atkBannerT <= 0) { g.atkBannerT = 2.5; g.banner(`${g.mp.opp.name} stuurt ${s.n}× ${s.name}!`, 'Hou ze tegen!', '#ef4444'); Sfx.play('boss'); g.shake(4); }
+    if (s.boss) { g.atkBannerT = 2.5; g.banner(`${g.mp.opp.name} stuurt een baas: ${s.name}!`, `Lekt hij, dan kost dat ${s.leak} ♥`, '#ef4444'); Sfx.play('boss'); g.shake(10); }
+    else if (g.atkBannerT <= 0) { g.atkBannerT = 2.5; g.banner(`${g.mp.opp.name} stuurt ${s.n}× ${s.name}!`, 'Hou ze tegen!', '#ef4444'); Sfx.play('boss'); g.shake(4); }
     else g.floatText(g.portal.x, g.portal.y - 34, `+${s.n} ${s.name}`, '#ef4444', 16, 0.9);
     return;
   }
@@ -217,11 +223,11 @@ const _update14 = Game.prototype.update;
 Game.prototype.update = function (dt) {
   const r = _update14.call(this, dt);
   if (this.mode === 'race' && this.mp && !this.over) {
-    mpTickSend(this, 500, () => MP.send('st', { w: this.wave, tw: this.totalWaves, hp: Math.max(0, Math.ceil(this.hp)), mhp: this.maxHp, k: this.kills, cl: this.cleared }));
+    mpTickSend(this, 500, () => MP.send('st', { w: this.wave, tw: this.totalWaves === Infinity ? -1 : this.totalWaves, hp: Math.max(0, Math.ceil(this.hp)), mhp: this.maxHp, k: this.kills, cl: this.cleared }));
     if (this.sendGap > 0) this.sendGap -= dt;
     if (this.atkBannerT > 0) this.atkBannerT -= dt;
     if (this.wave > 0 || this.eco > 0) { this.ecoT -= dt; if (this.ecoT <= 0) { this.ecoT += RACE_ECO_EVERY; if (this.eco > 0) { this.cash += this.eco; this.floatText(110, 70, `+$${this.eco} inkomen`, '#3ddc97', 15, 1); } } }
-    if (this.inQ.length) { this.inT -= dt; while (this.inQ.length && this.inT <= 0) { this.inT += 0.22; const e = this.spawnEnemy(this.inQ.shift(), -10, Math.max(1, this.wave)); if (e) e.sentBy = true; } } else this.inT = 0;
+    if (this.inQ.length) { this.inT -= dt; while (this.inQ.length && this.inT <= 0) { this.inT += 0.22; const q = this.inQ.shift(), e = this.spawnEnemy(q.type || q, -10, Math.max(1, this.wave)); if (e) { e.sentBy = true; if (q.leak) e.E = Object.assign({}, e.E, { leak: q.leak }); } } } else this.inT = 0;
     if (this.opp && Date.now() - this.opp.t > 6000 && !this.oppLagShown) { this.oppLagShown = true; }
   }
   if (this.mode === 'coop2' && this.mp && this.mp.role === 'host') coopHostTick(this);
@@ -233,10 +239,10 @@ hudUpdate = function () {
   const g = App.game; if (!g || !g.mp) return;
   if (g.mode === 'race' && g.opp) {
     const o = g.opp, set = (id, v) => { const el = document.getElementById(id); if (el && el.textContent !== String(v)) el.textContent = v; };
-    set('mo-wave', o.over ? '' : `Golf ${o.w}/${o.tw}`); set('mo-hp', o.hp);
+    set('mo-wave', o.over ? '' : raceWaveLbl(o.w, o.tw)); set('mo-hp', o.hp);
     const bar = document.getElementById('mo-hpbar'); if (bar) bar.style.width = clamp(o.hp / (o.mhp || 1), 0, 1) * 100 + '%';
     const dot = document.querySelector('#mp-opp .dot'); if (dot) dot.classList.toggle('on', Date.now() - o.t < 4000);
-    RACE_SEND.forEach((s, i) => { const btn = document.getElementById('rs-' + i); if (!btn) return; const c = raceCost(g, s); const dis = g.over || g.cash < c; if (btn.disabled !== dis) btn.disabled = dis; const cc = btn.querySelector('.c'); if (cc && cc.textContent !== '$' + c) cc.textContent = '$' + c; });
+    RACE_SEND.forEach((s, i) => { const btn = document.getElementById('rs-' + i); if (!btn) return; const c = raceCost(g, s); const dis = g.over || g.cash < c; if (btn.disabled !== dis) btn.disabled = dis; const cc = btn.querySelector('.c'), ct = '$' + fmtCost(c); if (cc && cc.textContent !== ct) cc.textContent = ct; });
     set('mp-eco', `+$${g.eco}`); const eb = document.getElementById('mp-ecobar'); if (eb) eb.style.width = clamp(1 - g.ecoT / RACE_ECO_EVERY, 0, 1) * 100 + '%';
   }
   if (g.mode === 'coop2') coopHud(g);

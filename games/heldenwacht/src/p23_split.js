@@ -134,7 +134,7 @@ function splitSetup(g) {
   const main = document.querySelector('#scr-game .g-main'), cbox = document.getElementById('cbox'); if (!main || !cbox) return;
   g.oppFx = [];
   const box = document.createElement('div'); box.className = 'opp-box'; box.id = 'obox';
-  box.innerHTML = `<div class="ob-head"><span class="dot on" id="ob-dot"></span><b>${esc(g.mp.opp.name)}</b><span class="ob-stat" id="ob-wave">Golf 0/${g.totalWaves}</span><span class="ob-hp"><i id="ob-hpbar" style="width:100%"></i></span><span class="num ob-stat" id="ob-hp">${g.maxHp}</span><span class="spacer"></span><button class="btn btn-sm" data-act="split-toggle" title="Veld van je tegenstander verbergen">Verberg</button></div>
+  box.innerHTML = `<div class="ob-head"><span class="dot on" id="ob-dot"></span><b>${esc(g.mp.opp.name)}</b><span class="ob-stat" id="ob-wave">${raceWaveLbl(0, g.totalWaves)}</span><span class="ob-hp"><i id="ob-hpbar" style="width:100%"></i></span><span class="num ob-stat" id="ob-hp">${g.maxHp}</span><span class="spacer"></span><button class="btn btn-sm" data-act="split-toggle" title="Veld van je tegenstander verbergen">Verberg</button></div>
     <div class="ob-cv"><canvas id="ocv" aria-label="Veld van ${esc(g.mp.opp.name)}"></canvas></div>`;
   cbox.after(box);
   App.ocv = document.getElementById('ocv');
@@ -173,7 +173,7 @@ hudUpdate = function () {
   const g = App.game; if (!g || g.mode !== 'race' || !g.mp || !App.ocv) return;
   const V = g.oview, o = g.opp || {}, hp = V && V.hp != null ? V.hp : o.hp, mhp = (V && V.mhp) || o.mhp || g.maxHp, w = V && V.w != null ? V.w : o.w;
   const set = (id, v) => { const el = document.getElementById(id); if (el && el.textContent !== String(v)) el.textContent = v; };
-  set('ob-wave', `Golf ${w || 0}/${g.totalWaves}`); set('ob-hp', hp == null ? '' : hp);
+  set('ob-wave', raceWaveLbl(w, g.totalWaves)); set('ob-hp', hp == null ? '' : hp);
   const bar = document.getElementById('ob-hpbar'); if (bar) bar.style.width = clamp((hp == null ? mhp : hp) / mhp, 0, 1) * 100 + '%';
   const dot = document.getElementById('ob-dot'); if (dot) dot.classList.toggle('on', !!V && Date.now() - V.t < 3000);
 };
