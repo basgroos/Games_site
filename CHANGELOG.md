@@ -1,5 +1,14 @@
 # Wijzigingen
 
+## Ashen Depths 1.0.0 (2026-10-03)
+- **Nieuw spel**: Ashen Depths, een roguelite dungeon crawler in pixel-art (vervangt "Dungeon Crawler" uit Binnenkort).
+- 6 classes (Warrior, Rogue, Mage, Ranger, Paladin, Necromancer), elk met 5 abilities met 5 ranks, een passive en eigen level-up keuzes.
+- 10 gebieden met eigen tegels, vijanden, gevaren en muziek; 10 bazen met meerdere fases; procedurele kerkers met shops, fonteinen, geheime kamers, vallen, mimics en 7 soorten events.
+- Willekeurige buit (Common tot Mythic, prefixes en suffixes, 12 unieke legendaries) en een Luck-stat met afnemende meeropbrengst.
+- Kamp tussen runs: permanente upgrades met Soul Shards, 31 achievements, bestiary, armory, 6 moeilijkheden en Endless.
+- Voortgang per apparaat in de browser; staging gebruikt een eigen save. Knop terug naar Bas Games in het kamp.
+- Test: `games/ashen-depths/tests/smoke.js` speelt alle classes, alle bazen, shop, events, inventory en het einde van een run.
+
 ## Heldenwacht 1.19.0 (2026-10-03)
 - **Race: onbeperkt vijanden sturen**: geen cooldown meer. Zo vaak sturen als je geld hebt; knop ingedrukt houden (of toets Z/X/C/V/B) blijft sturen. Vijf soorten: handlangers, sprinters, schildwachten, tanks en juggernaut.
 - **Inkomen**: elke zending verhoogt je inkomen; dat krijg je elke 6 seconden uitbetaald. Aanvallen loont dus.

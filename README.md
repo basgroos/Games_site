@@ -12,7 +12,7 @@ Een website met browsergames. Alles draait direct in de browser; voortgang wordt
 | Spel | Map | Status |
 |---|---|---|
 | Heldenwacht | `games/heldenwacht/` | live |
-| Dungeon Crawler | – | binnenkort |
+| Ashen Depths | `games/ashen-depths/` | live |
 
 ## Hoe het werkt
 

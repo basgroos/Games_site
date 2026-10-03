@@ -1,0 +1,19 @@
+{
+  "id": "ashen-depths",
+  "name": "Ashen Depths",
+  "tagline": "Dungeon crawler",
+  "description": "Kruip door tien vervloekte gebieden vol monsters, vallen en geheime kamers. Kies uit zes classes, vind willekeurige buit van Common tot Mythic en versla tien bazen met meerdere fases. Ga je dood, dan word je permanent sterker voor de volgende run.",
+  "version": "1.0.0",
+  "status": "live",
+  "color": "#e8b04a",
+  "tags": [
+    "Roguelite",
+    "Actie",
+    "Buit",
+    "Pixel-art"
+  ],
+  "order": 2,
+  "tests": [
+    "tests/smoke.js"
+  ]
+}

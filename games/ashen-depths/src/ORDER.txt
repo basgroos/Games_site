@@ -1,0 +1,8 @@
+1-core.js
+2-sprites.js
+3-data.js
+4-loot.js
+5-world.js
+6-combat.js
+7-ui.js
+8-main.js
