@@ -1,5 +1,18 @@
 # Wijzigingen
 
+## Heldenwacht 1.27.0 (2026-10-04, staging)
+- **Endless kan niet meer eindeloos**: met de beste helden kon je tot in het oneindige doorgaan (getest: golf 2000 zonder een leven te verliezen). Nu wordt het steeds lastiger en rond golf 1000 onmogelijk, geleidelijk:
+  - golf 50–450: uitwissen, executie, hypnose en %-max-HP-schade worden steeds zwakker en werken daarna niet meer;
+  - vanaf golf 60: vijanden lopen sneller (tot 2,5×) en krijgen meer pantser;
+  - golf 150–650: steeds meer vijanden zijn *onstuitbaar* (geen verdoving, vertraging of terugduwen), vanaf 650 allemaal;
+  - golf 200–500: de basis genezen werkt steeds minder, daarna niet meer;
+  - vanaf golf 300: één treffer kan maar een deel van de levens van een vijand weghalen (21% bij golf 500, 0,5% bij golf 1000);
+  - vanaf golf 550: elke vijand heeft een minimale tijd nodig om te sterven (1 s bij 650, 11 s bij 1000) en lekken kost meer levens. Bazen kosten in endless hooguit 20 levens × die factor (niet meer 999).
+  - Mijlpaal-meldingen bij golf 150, 300, 500, 750 en 900.
+- Gemeten met volledig gemaxte teams (één golf per test): het allersterkste team (2× alle Ultra's/Secrets) houdt het tot golf 900, verliest bij 950 ~60 levens en haalt golf 1000 niet meer. Een sterk team (Ultra's + Exotics + Mythics) gaat rond golf 500–600 onderuit.
+- Geldt ook voor de Race (die is ook eindeloos).
+- Test: `tests/endless.js`.
+
 ## Heldenwacht 1.26.0 (2026-10-03)
 - **Megabaas makkelijker**: De Oerverslinder heeft nog maar 15 miljoen HP op Normaal (was 90 miljoen, −83%).
 - **Ultra-helden en hoger raken hem altijd**: in fase 3 kunnen nu ook Ultra's hem raken (niet meer alleen Secret). Een Secret is dus niet meer nodig; vanaf fase 2 doen helden onder Ultra nog steeds geen schade.

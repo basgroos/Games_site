@@ -28,3 +28,4 @@ p24_megaboss.js
 p25_heroes4.js
 p26_mystery.js
 p27_gems.js
+p28_endless.js
