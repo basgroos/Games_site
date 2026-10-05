@@ -44,6 +44,26 @@ setTimeout(() => {
     g.useAbility = g.useAbility; const fake = Game.prototype.useAbility; g.hp = 50; const h = g.heroes[1]; h.abilCd = 0; const s = g.hp; Game.prototype.update.call(g, 0.01); ok(g.hp <= s, 'basis geneest');
     const b = g.spawnEnemy('overlord', 300, 1000); ok(b.E.leak < 200 && b.ccImm, 'baas lekt ' + b.E.leak); return { baasLek: b.E.leak };
   })()`));
+  run('De Nul groeit niet mee met endless-HP (schade per klap en ability)', () => E(`(() => {
+    const out = {};
+    for (const wave of [40, 400, 900]) {
+      const g = endless(wave), nul = g.heroes[0]; let sum = 0, n = 0;
+      for (let i = 0; i < 150; i++) for (const type of ['grunt', 'tank', 'kolos']) { const e = g.spawnEnemy(type, 300, wave); e.speed = 0; e.hp = e.maxHp = 1e15; e.endBud = Infinity; e.endRate = 0; const hp0 = e.hp; g.damage(e, nul.st.dmg, nul); sum += hp0 - Math.max(0, e.hp); n++; }
+      // ability: kan niet meer de hele map wegvagen
+      const es = []; for (let i = 0; i < 10; i++) { const e = g.spawnEnemy('tank', 200 + i * 10, wave); e.speed = 0; e.hp = e.maxHp = 1e15; e.endBud = Infinity; e.endRate = 0; es.push(e); }
+      const before = es.reduce((a, e) => a + e.hp, 0); nul.abilCd = 0; g.useAbility(nul); for (let i = 0; i < 20; i++) g.update(0.05);
+      const abil = before - es.reduce((a, e) => a + Math.max(0, e.hp), 0);
+      out[wave] = { perKlap: Math.round(sum / n), klapNul: Math.round(nul.st.dmg), ability: Math.round(abil) };
+    }
+    const r = out[900].perKlap / out[40].perKlap, ra = out[900].ability / Math.max(1, out[40].ability);
+    ok(r < 2 && ra < 3, 'groeit nog: per klap ×' + r.toFixed(1) + ', ability ×' + ra.toFixed(1));
+    return Object.assign(out, { verhoudingKlap: +r.toFixed(2), verhoudingAbility: +ra.toFixed(2) });
+  })()`));
+  run('buiten endless blijft De Nul hetzelfde (ability wist gewone vijanden)', () => E(`(() => {
+    Store.data.team = ['nul']; closeOverlay(); startMatch({ map: MAPS[0].id, diffIdx: 1, mode: 'campaign' }); const g = App.game; g.cash = 1e9; const t = g.freeTiles.filter(([x, y]) => g.tileFree(x, y)); g.placeHero('nul', t[3][0], t[3][1]); const nul = g.heroes[0];
+    const es = []; for (let i = 0; i < 10; i++) { const e = g.spawnEnemy('tank', 200 + i * 10, 5); e.hp = e.maxHp = 1e7; e.speed = 0; es.push(e); }
+    nul.abilCd = 0; g.useAbility(nul); for (let i = 0; i < 20; i++) g.update(0.05); ok(es.every(e => e.dead), 'campagne-ability wist niet meer alles'); return true;
+  })()`));
   console.log(errors.length ? 'ERRORS: ' + errors.join(', ') : 'ALL PASSED');
   process.exitCode = errors.length ? 1 : 0;
   setTimeout(() => process.exit(process.exitCode), 50);

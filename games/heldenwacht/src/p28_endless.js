@@ -98,3 +98,26 @@ for (const fn of ['update', 'useAbility']) {
     return r;
   };
 }
+
+/* ---------- De Nul (en andere %-/uitwis-helden) groeien niet mee met endless-HP ----------
+   Uitwissen gaf de volledige HP van de vijand als schade en de ability wiste de hele map;
+   %-max-HP-schade groeit met de exponentiële endless-HP. In endless/race nu:
+   - passief uitwissen alleen bij vijanden met hooguit 10× zijn eigen klap aan HP
+   - %-max-HP-bonus per treffer hooguit 2× zijn eigen schade
+   - ability 'Uitwissen': zware gewone schade (12×, ULTIMATE 25×) i.p.v. alles wegvagen */
+const _damage28b = Game.prototype.damage;
+Game.prototype.damage = function (e, amt, h, o = {}) {
+  const st = h && h.st;
+  if (!st || !e || !endlessOn(this) || !(st.erase > 0 || st.pctMax > 0)) return _damage28b.call(this, e, amt, h, o);
+  const keep = [st.erase, st.pctMax];
+  if (st.erase > 0 && e.hp > st.dmg * 10) st.erase = 0;
+  if (st.pctMax > 0 && e.maxHp > 0) st.pctMax = Math.min(st.pctMax, st.dmg * 2 / e.maxHp);
+  try { return _damage28b.call(this, e, amt, h, o); } finally { st.erase = keep[0]; st.pctMax = keep[1]; }
+};
+const _eraseAbility28 = ABILITY_FX.erase;
+ABILITY_FX.erase = function (g, h, ult) {
+  if (!endlessOn(g)) return _eraseAbility28.apply(this, arguments);
+  const list = g.enemies.filter(e => !e.dead);
+  g.effects.push({ type: 'tint', color: '#fafafa', alpha: 0.6, life: 0.5, max: 0.5 });
+  g.after(0.35, () => { for (const e of list) if (!e.dead) { g.damage(e, h.st.dmg * (ult ? 25 : 12), h, { color: '#fafafa' }); if (!e.dead) g.eraseFx && g.fx.burst(e.x, e.ay, '#fafafa', 6, 90, 2, 0.3, 'spark'); } g.shake(10); Sfx.play('void'); });
+};

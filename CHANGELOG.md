@@ -5,6 +5,7 @@
 - **Vier element-helden in Ultra**: *Pyra* (vuur: brandende explosies, *Vuurregen*), *Glaciëra* (ijs: vertraagt en bevriest, *IJstijd*), *Venoma* (gif: schade per seconde en pantser weg, *Gifwolk*) en *Voltara* (bliksem: springt van vijand naar vijand, *Donderslag*).
 - **Gif** is een nieuwe status: schade per seconde en vijanden verliezen pantser (groene belletjes boven hun hoofd).
 - **Legendary-, Epic- en Mythic Gacha verwijderd.** Hun tickets worden automatisch omgezet, ook die je al had en die je nog krijgt: Epic → 2 Rare, Legendary → 3 Rare, Mythic → 1 Kosmisch Ticket.
+- **Endless: De Nul groeit niet meer mee.** Zijn uitwissen, %-schade op bazen en de ability *Uitwissen* schaalden met de (exponentiële) levens van endless-vijanden, waardoor zijn schade steeds verder steeg en de ability de hele map wegvaagde. In endless en race: uitwissen alleen nog bij vijanden met hooguit 10× zijn klap aan levens, %-bonus hooguit 2× zijn schade, en de ability doet zware gewone schade (12×, ULTIMATE 25×). Buiten endless blijft hij hetzelfde.
 - **100× openen** in elke gacha: kost 90× de prijs, met de gewone garantie in elk blok van 10. Je krijgt een overzicht per held (met aantallen) in plaats van 100 losse kaarten.
 - Test: `tests/godly.js`.
 
