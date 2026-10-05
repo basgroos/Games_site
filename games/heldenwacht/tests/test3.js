@@ -92,7 +92,7 @@ const $ = s => d.querySelector(s), $$ = s => [...d.querySelectorAll(s)];
   run('gem + limited gachas', () => {
     E(`Store.data.gems = 10000; Store.data.coins = 500000; Store.data.level = 40; nav('gacha')`);
     const out = {};
-    for (const id of ['epic', 'mythic', 'exotic', 'limited']) { click($(`[data-act="sel-gacha"][data-id="${id}"]`)); const g0 = E('Store.data.gems'), c0 = E('Store.data.coins'); click($(`[data-act="pull"][data-id="${id}"][data-n="10"]`)); click($('#reveal-skip')); out[id] = { cards: $$('#rcards .rcard').length, gemsSpent: g0 - E('Store.data.gems'), coinsSpent: c0 - E('Store.data.coins') }; click($('[data-act="reveal-close"]')); }
+    for (const id of ['exotic', 'limited']) { click($(`[data-act="sel-gacha"][data-id="${id}"]`)); const g0 = E('Store.data.gems'), c0 = E('Store.data.coins'); click($(`[data-act="pull"][data-id="${id}"][data-n="10"]`)); click($('#reveal-skip')); out[id] = { cards: $$('#rcards .rcard').length, gemsSpent: g0 - E('Store.data.gems'), coinsSpent: c0 - E('Store.data.coins') }; click($('[data-act="reveal-close"]')); }
     // limited pity
     E(`Store.data.pityLimited = 69`); E(`doPull('limited', 1)`); out.limPityHit = E(`App.reveal && App.reveal.res.map(r => r.id || ('skin:'+r.skin)).join()`); E('closeOverlay()');
     out.limitedSet = E('JSON.stringify(Meta.limitedSet().heroes)');

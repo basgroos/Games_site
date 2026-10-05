@@ -29,3 +29,4 @@ p25_heroes4.js
 p26_mystery.js
 p27_gems.js
 p28_endless.js
+p29_godly.js
