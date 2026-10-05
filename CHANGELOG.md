@@ -1,6 +1,6 @@
 # Wijzigingen
 
-## Heldenwacht 1.28.0 (2026-10-05, staging)
+## Heldenwacht 1.28.0 (2026-10-05)
 - **Nieuwe rarity: Godly** (boven Secret). Er is er één: **De Koning der Elementen**, alleen te krijgen in de **Basic Gacha** met **0,01%** kans. Elk schot is om de beurt vuur (brand), ijs (vertraagt en bevriest) of gif, op 3 vijanden tegelijk met explosies; ongeveer 7× zo sterk als een Ultra. Ability *Elementenstorm*, ULTIMATE *Kroon der Elementen* (vuur, ijs en gif over de hele map).
 - **Vier element-helden in Ultra**: *Pyra* (vuur: brandende explosies, *Vuurregen*), *Glaciëra* (ijs: vertraagt en bevriest, *IJstijd*), *Venoma* (gif: schade per seconde en pantser weg, *Gifwolk*) en *Voltara* (bliksem: springt van vijand naar vijand, *Donderslag*).
 - **Gif** is een nieuwe status: schade per seconde en vijanden verliezen pantser (groene belletjes boven hun hoofd).
@@ -9,7 +9,7 @@
 - **100× openen** in elke gacha: kost 90× de prijs, met de gewone garantie in elk blok van 10. Je krijgt een overzicht per held (met aantallen) in plaats van 100 losse kaarten.
 - Test: `tests/godly.js`.
 
-## Heldenwacht 1.27.0 (2026-10-04, staging)
+## Heldenwacht 1.27.0 (2026-10-04)
 - **Endless kan niet meer eindeloos**: met de beste helden kon je tot in het oneindige doorgaan (getest: golf 2000 zonder een leven te verliezen). Nu wordt het steeds lastiger en rond golf 1000 onmogelijk, geleidelijk:
   - golf 50–450: uitwissen, executie, hypnose en %-max-HP-schade worden steeds zwakker en werken daarna niet meer;
   - vanaf golf 60: vijanden lopen sneller (tot 2,5×) en krijgen meer pantser;
