@@ -1,5 +1,16 @@
 # Wijzigingen
 
+## Heldenwacht 1.31.0 (2026-10-06)
+- **Portalen!** Win je een gewoon potje (alleen of in co-op) in wereld 1, dan heb je kans op een **Underworld Portal**; in wereld 2 een **Lunar Portal**. De kans loopt van **0,5%** op de eerste map tot **3%** op de laatste map van die wereld, en gaat **×1,2 omhoog per moeilijkheid** (op Afgrond bijna 9% op de laatste map).
+- Een gevonden portaal is altijd **Rare**. Win je een portaal, dan krijg je munten en gems en heb je kans op het volgende portaal: **Rare → Epic 80%**, **Epic → Legendary 50%**, **Legendary → Secret 10%**. Een portaal is op als je hem opent, ook als je verliest.
+- **Nieuwe Secret-helden**, alleen uit portalen: **The Devil** (Underworld) en **Moon Empress** (Lunar). Kans per gewonnen portaal: Rare 0,5%, Epic 2%, Legendary 6%, **Secret gegarandeerd**.
+  - *The Devil*: hellevuur dat ontploft en laat branden; elke kill geeft een ziel (+0,4% schade, tot +50%) en zwakke vijanden maakt hij meteen af. Ability *Hellepoort*: zware schade op de hele map en bijna-dode vijanden worden geoogst (ULTIMATE *Apocalyps*: ook het hele pad in brand).
+  - *Moon Empress*: maanstralen op 3 vijanden die vertragen; alles wat ze raakt krijgt 20% extra schade van iedereen. Ability *Eclips*: alle vijanden staan stil en krijgen 50% extra schade (ULTIMATE *Volle Maan*).
+- **Eigen maps met meerdere routes**: in **De Onderwereld** komen vijanden van **2 kanten**, op **De Maan** van **3 kanten** (links, rechts en boven); de routes komen samen en lopen dan door naar je basis. Portaal-potjes hebben 20 golven: Rare = Moeilijk, Epic = Nachtmerrie, Legendary = Waanzin, Secret = Hel.
+- **Samen spelen**: bij Modi → Portalen kies je *Met vriend*. De host gebruikt zijn portaal; als jullie winnen krijgen jullie **allebei** de beloning en allebei de kansen op de held en het volgende portaal.
+- Nieuw tabblad **Modi → Portalen** met je portalen, kansen en beloningen.
+- Test: `tests/portals.js` (+ portaal-co-op in de browsertest met twee spelers).
+
 ## Heldenwacht 1.30.0 (2026-10-06)
 - **Boss Rush: 23 bazen in plaats van 12** (alle gewone en event-bazen, zonder raidbazen), met De Chaoskoning als eindbaas. Even lastig: de moeilijkheid loopt geleidelijker op, zodat de laatste baas en zijn escorte precies zo sterk zijn als de oude laatste fase.
 - **Veel meer Boss Rush-beloningen**: per verslagen baas extra munten (oplopend), 6 gems per baas, Reroll Tokens en elke 6 bazen een Kosmisch Ticket. Alles verslagen: +150 gems, +10 Reroll Tokens en +2 Kosmische Tickets extra. Een volledige run levert ruim 7× zoveel munten op als voorheen.

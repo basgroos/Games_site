@@ -280,6 +280,45 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     ok(g1.gems - g0.gems >= 400 && g1.tokens - g0.tokens >= 25 && g1.pity >= 49, JSON.stringify([g0, g1]));
     return { gems: g1.gems - g0.gems, tokens: g1.tokens - g0.tokens };
   });
+  await step('portaal: uitnodigen vanuit Modi → Portalen, accepteren, beide op de Maan', async () => {
+    for (const P of [A, B]) await P.evaluate(() => { closeOverlay(); if (App.game) exitGame('friends'); MP.leave(); });
+    await A.waitForTimeout(500);
+    const pb0 = await B.evaluate(() => { Store.data.portals = { 'lunar:rare': 1 }; return portalCount('lunar', 'rare'); });
+    await A.evaluate(() => { Store.data.portals = { 'lunar:rare': 1 }; Store.data.team = ['omega', 'nul', 'genesis']; App.modeTab = 'portals'; nav('modes'); });
+    await A.click('[data-act="portal-friend"][data-w="lunar"][data-t="rare"]'); await A.waitForSelector('[data-act="portal-invite-send"]', { timeout: 5000 });
+    await A.click('[data-act="portal-invite-send"]'); await A.waitForTimeout(500);
+    const stored = DB.invites[DB.invites.length - 1]; ok(stored.kind === 'coop' && stored.map === 'pt:maanbasis' && stored.diff === 2, 'opgeslagen als ' + JSON.stringify(stored));
+    await B.evaluate(() => SOC.refresh()); await B.waitForSelector('.mp-invite', { timeout: 5000 });
+    const lbl = await B.$eval('.mp-invite .mi-kind', el => el.textContent); ok(lbl === 'Portaal', 'label ' + lbl);
+    await B.click('.mp-invite [data-act="inv-accept"]');
+    await A.waitForFunction(() => App.game && App.game.opts.portal, null, { timeout: 15000 }); await B.waitForFunction(() => App.game && App.game.opts.portal, null, { timeout: 15000 });
+    const ra = await A.evaluate(() => ({ map: App.game.map.id, lanes: App.game.lanes.length, waves: App.game.totalWaves, label: modeLabel(App.game), left: portalCount('lunar', 'rare') }));
+    const rb = await B.evaluate(() => ({ map: App.game.map.id, lanes: App.game.lanes.length, left: portalCount('lunar', 'rare') }));
+    ok(ra.map === 'maanbasis' && rb.map === 'maanbasis' && ra.lanes === 2 && rb.lanes === 2 && ra.waves === 20, JSON.stringify([ra, rb]));
+    ok(ra.left === 0 && rb.left === pb0, 'portaal gebruikt: host ' + ra.left + ' gast ' + rb.left);
+    return { host: ra, gast: rb };
+  });
+  await step('portaal: vijanden van 3 kanten, gast ziet ze op de juiste route', async () => {
+    await A.evaluate(() => { const g = App.game; g.cash = 1e6; g.startWave(); });
+    await A.waitForTimeout(3500);
+    const ha = await A.evaluate(() => App.game.enemies.filter(e => !e.dead).map(e => ({ id: e.id, lane: e.lane || 0, x: Math.round(e.x), y: Math.round(e.y) })));
+    const hb = await B.evaluate(() => App.game.enemies.filter(e => !e.dead).map(e => ({ id: e.id, lane: e.lane || 0, x: Math.round(e.x), y: Math.round(e.y) })));
+    ok(new Set(ha.map(e => e.lane)).size === 3, 'routes host ' + JSON.stringify(ha.map(e => e.lane)));
+    const m = new Map(hb.map(e => [e.id, e])); let same = 0; for (const e of ha) { const o = m.get(e.id); if (o && o.lane === e.lane && Math.hypot(o.x - e.x, o.y - e.y) < 60) same++; }
+    ok(same >= Math.min(ha.length, hb.length) - 1 && same > 0, 'gast ziet andere posities: ' + same + ' van ' + ha.length);
+    await B.screenshot({ path: SHOTS + '/mp_portal_guest.png' });
+    return { vijanden: ha.length, gelijk: same };
+  });
+  await step('portaal: gewonnen → allebei de portaal-beloning', async () => {
+    const c0 = await B.evaluate(() => Store.data.coins);
+    await A.evaluate(() => { const g = App.game; for (const e of g.enemies) e.dead = true; g.queue = []; g.wave = g.totalWaves; g.cleared = g.totalWaves; g.win(); });
+    await A.waitForTimeout(400); await B.waitForTimeout(2800);
+    const ta = await A.evaluate(() => (document.querySelector('.results-card') || {}).textContent || ''), tb = await B.evaluate(() => (document.querySelector('.results-card') || {}).textContent || '');
+    const c1 = await B.evaluate(() => Store.data.coins);
+    ok(/Lunar Portal \(Rare\) gehaald/.test(ta) && /Lunar Portal \(Rare\) gehaald/.test(tb), 'geen portaal-regel: ' + tb.slice(0, 200));
+    ok(c1 - c0 >= 2400, 'gast munten ' + (c1 - c0));
+    return { gastMunten: c1 - c0 };
+  });
   for (const P of [A, B]) out.push(`errors ${P.__name}: ${JSON.stringify(P.errs.slice(0, 5))}`);
   console.log(out.join('\n')); await browser.close(); process.exit(0);
 })();

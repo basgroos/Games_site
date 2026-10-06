@@ -259,7 +259,7 @@ Game.prototype.updateEnemy = function (e, dt) {
   else if (e.revT > 0) { e.revT -= dt; if (moved > 0) { e.d = Math.max(-20, d0 - moved * 0.9); fix = true; } }
   if (e.allyBlock > 0) { e.allyBlock -= dt; if (!e.boss && e.d > d0) { e.d = d0; fix = true; } }
   // lastD bijwerken: anders ziet het 'zware vijanden'-systeem dit als terugduwen en versterkt het elkaar
-  if (fix) { const p = this.posAt(e.d); e.x = p.x; e.y = p.y; e.ay = p.y - (e.flying ? 16 : 0); e.dir = e.revT > 0 ? p.ang + Math.PI : p.ang; if (e.lastD != null) e.lastD = e.d; }
+  if (fix) { const p = this.posAtL(e.lane, e.d); e.x = p.x; e.y = p.y; e.ay = p.y - (e.flying ? 16 : 0); e.dir = e.revT > 0 ? p.ang + Math.PI : p.ang; if (e.lastD != null) e.lastD = e.d; }
 };
 
 /* ---------- bondgenoten en putten bijwerken ---------- */

@@ -53,6 +53,7 @@ class Game {
     for (const s of this.segs) if (d <= s.start + s.len) { const f = (d - s.start) / s.len; return { x: lerp(s.a.x, s.b.x, f), y: lerp(s.a.y, s.b.y, f), ang: s.ang }; }
     const s = this.segs[this.segs.length - 1]; return { x: s.b.x, y: s.b.y, ang: s.ang };
   }
+  posAtL(l, d) { return this.posAt(d); } // meerdere routes: zie p33_portals.js
   nearestD(x, y) { let best = 0, bd = 1e9; for (let d = 0; d <= this.pathLen; d += 8) { const p = this.posAt(d); const dd = (p.x - x) ** 2 + (p.y - y) ** 2; if (dd < bd) { bd = dd; best = d; } } return best; }
 
   /* ---------- waves ---------- */
@@ -382,7 +383,7 @@ class Game {
       if (e.dashT > 0) { e.dashT -= dt; sp *= 3.2; }
       e.d += sp * TILE * dt;
     }
-    const p = this.posAt(e.d); e.x = p.x; e.y = p.y; e.ay = p.y - (e.flying ? 16 : 0); e.dir = p.ang;
+    const p = this.posAtL(e.lane, e.d); e.x = p.x; e.y = p.y; e.ay = p.y - (e.flying ? 16 : 0); e.dir = p.ang;
     if (e.dmgAcc > 0) { e.accT -= dt; if (e.accT <= 0) { this.dmgText(e, e.dmgAcc, e.accColor, false); e.dmgAcc = 0; e.accT = 0.35; } }
     if (e.E.heal) {
       e.abilT -= dt;

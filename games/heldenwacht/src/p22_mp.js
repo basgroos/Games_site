@@ -471,7 +471,7 @@ function coopGuestUpdate(g, dtRaw) {
   for (const e of g.enemies) {
     e.t += dt; e.flash = Math.max(0, e.flash - dt * 6); if (e.spawnA > 0) e.spawnA -= dt; if (e.hitJ > 0) e.hitJ = Math.max(0, e.hitJ - dt * 8);
     if (e.vd) e.d += e.vd * dt;
-    const pp = g.posAt(e.d); e.x = pp.x; e.y = pp.y; e.ay = pp.y - (e.flying ? 16 : 0); e.dir = pp.ang;
+    const pp = g.posAtL(e.lane, e.d); e.x = pp.x; e.y = pp.y; e.ay = pp.y - (e.flying ? 16 : 0); e.dir = pp.ang;
   }
   for (const h of g.heroes) {
     h.t += dt; h.atk = Math.max(0, h.atk - dt * 4); h.pulse = Math.max(0, h.pulse - dt * 2.5); if (h.abilCd > 0) h.abilCd = Math.max(0, h.abilCd - dt);

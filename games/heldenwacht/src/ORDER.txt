@@ -33,3 +33,4 @@ p29_godly.js
 p30_prismatic.js
 p31_bossrush.js
 p32_balance.js
+p33_portals.js
