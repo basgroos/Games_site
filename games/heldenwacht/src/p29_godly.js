@@ -184,6 +184,8 @@ doPull = function (gid, n, ticket) {
     res.push(pick.skin ? grantSkinPull(pick.skin) : grantHero(pick.id));
   }
   D.stats.pulls += 100; Meta.checkAchievements(); Store.save(); updateCoins();
+  // geen zeldzame-held-animaties bij 100×: wachtrij leegmaken (anders speelden ze pas bij de volgende trekking)
+  if (typeof RareQ !== 'undefined') RareQ.length = 0;
   showReveal(res, g);
 };
 // overzicht in plaats van 100 losse kaarten

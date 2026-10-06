@@ -62,12 +62,13 @@ setTimeout(() => {
   })()`));
   run('gif doet schade per seconde', () => E(`(() => { const { g } = solo('venoma'); const e = g.spawnEnemy('tank', 30, 5); e.hp = e.maxHp = 1e6; e.speed = 0; g.applyStatus(e, Object.assign({}, STAT_DEFAULTS, { poison: 1000, poisonDur: 3 })); const h0 = e.hp; for (let i = 0; i < 20; i++) g.updateEnemy(e, 0.05); ok(h0 - e.hp > 500, 'gif ' + (h0 - e.hp)); return Math.round(h0 - e.hp); })()`));
   run('100× openen: kost 90×, 100 helden, garantie per 10, overzicht', () => E(`(() => {
-    closeOverlay(); const D = Store.data; D.coins = 1e7; const c0 = D.coins, p0 = D.stats.pulls; App.gachaSel = 'basic'; nav('gacha');
+    closeOverlay(); const D = Store.data; D.settings.rareAnim = 'common'; D.coins = 1e7; const c0 = D.coins, p0 = D.stats.pulls; App.gachaSel = 'basic'; nav('gacha');
     const btn = document.querySelector('#scr-gacha [data-act="pull"][data-n="100"]'); ok(btn && !btn.disabled, 'geen 100×-knop');
     btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     const g = GACHAS.find(x => x.id === 'basic'); const back = App.reveal.res.reduce((a, r) => a + (r.coins || 0), 0); ok(c0 - D.coins + back === g.price * 90, 'kosten ' + (c0 - D.coins + back)); ok(D.stats.pulls - p0 === 100, 'pulls ' + (D.stats.pulls - p0));
     const res = App.reveal.res; ok(res.length === 100, 'resultaten ' + res.length);
     for (let b = 0; b < 10; b++) ok(res.slice(b * 10, b * 10 + 10).some(r => r.id && rarOrd(HERO[r.id].rarity) >= rarOrd(g.guarantee10)), 'garantie mist in blok ' + b);
+    ok(typeof RareQ === 'undefined' || RareQ.length === 0, 'animaties blijven in de wachtrij: ' + RareQ.length);
     const items = document.querySelectorAll('#reveal .p100-it').length; ok(items > 0 && items <= 100, 'overzicht ' + items);
     for (const x of GACHAS.filter(x => !x.limited)) { App.gachaSel = x.id; renderGacha(); }
     return { soorten: items, prijs: g.price * 90 };

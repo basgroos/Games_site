@@ -6,6 +6,7 @@
 - **Godly-helden zitten nu in de Kosmische Gacha** (0,01% per held) in plaats van de Basic Gacha.
 - **Nieuwe Exotic: Stormram** — weinig schade, maar zijn windballen duwen vijanden ver terug (bazen minder, onstuitbare vijanden niet). Ability *Orkaanstoot*: alles in bereik 4 vakjes terug (ULTIMATE 7).
 - **Endless: hooguit 100.000 munten per potje.** Je kunt verder spelen, maar je krijgt niet meer munten dan dat (zichtbaar als regel bij de beloningen).
+- **100× openen zonder animaties**: de zeldzame-held-animaties bleven in de wachtrij staan en speelden pas bij je volgende trekking. Bij 100× is er nu geen animatie meer.
 - Test: `tests/prismatic.js`.
 
 ## Heldenwacht 1.28.0 (2026-10-05)
