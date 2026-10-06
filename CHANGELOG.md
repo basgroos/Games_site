@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## Heldenwacht 1.29.0 (2026-10-06)
+- **Nieuwe rarity: Prismatic** (boven Godly). Eén held: **Aurora Prismatica**, alleen in de **Basic Gacha** met **0,002%** kans. Mega sterk (ruim 2× de totale schade van De Koning der Elementen): prisma-schoten op 4 vijanden met grote explosies, en alles in haar regenbooggloed loopt 70% vertraagd. Ability *Regenboogstilte*: de hele map 90% vertraagd (ULTIMATE: 10 seconden).
+- **Tweede Godly: De Eindrechter** — één doel tegelijk met enorme schade (≈ 7.600 per seconde op één vijand, bijna 5× zoveel per doel als de Koning), kritieke treffers en +50% tegen bazen. Ability *Vonnis*: één schot van 40× op de sterkste vijand (ULTIMATE: 100× op de 3 sterkste).
+- **Godly-helden zitten nu in de Kosmische Gacha** (0,01% per held) in plaats van de Basic Gacha.
+- **Nieuwe Exotic: Stormram** — weinig schade, maar zijn windballen duwen vijanden ver terug (bazen minder, onstuitbare vijanden niet). Ability *Orkaanstoot*: alles in bereik 4 vakjes terug (ULTIMATE 7).
+- **Endless: hooguit 100.000 munten per potje.** Je kunt verder spelen, maar je krijgt niet meer munten dan dat (zichtbaar als regel bij de beloningen).
+- Test: `tests/prismatic.js`.
+
 ## Heldenwacht 1.28.0 (2026-10-05)
 - **Nieuwe rarity: Godly** (boven Secret). Er is er één: **De Koning der Elementen**, alleen te krijgen in de **Basic Gacha** met **0,01%** kans. Elk schot is om de beurt vuur (brand), ijs (vertraagt en bevriest) of gif, op 3 vijanden tegelijk met explosies; ongeveer 7× zo sterk als een Ultra. Ability *Elementenstorm*, ULTIMATE *Kroon der Elementen* (vuur, ijs en gif over de hele map).
 - **Vier element-helden in Ultra**: *Pyra* (vuur: brandende explosies, *Vuurregen*), *Glaciëra* (ijs: vertraagt en bevriest, *IJstijd*), *Venoma* (gif: schade per seconde en pantser weg, *Gifwolk*) en *Voltara* (bliksem: springt van vijand naar vijand, *Donderslag*).

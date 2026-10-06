@@ -10,9 +10,9 @@ on:
   workflow_dispatch:
     inputs:
       versie:
-        description: 'Naar welke versie terug? (bv. live-v1.26.0)'
+        description: 'Naar welke versie terug? (bv. live-v1.28.0)'
         required: true
-        default: 'live-v1.26.0'
+        default: 'live-v1.28.0'
 
 permissions:
   contents: write

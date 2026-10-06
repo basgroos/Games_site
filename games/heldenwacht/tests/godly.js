@@ -31,11 +31,11 @@ setTimeout(() => {
     const shopTxt = Shop.items('tickets').concat(Shop.items('deals'), Shop.items('rot')).map(x => x.text).join(' | '); ok(!/(Legendary|Epic|Mythic) Ticket/.test(shopTxt), shopTxt);
     return { tickets: D.tickets, tekst: txt };
   })()`));
-  run('Godly bestaat boven Secret; Koning der Elementen alleen in Basic, 0,01%', () => E(`(() => {
-    ok(RARITY_ORDER[RARITY_ORDER.length - 1] === 'godly' && rarOrd('godly') > rarOrd('secret'), RARITY_ORDER.join());
-    const b = GACHAS.find(g => g.id === 'basic'), pool = gachaPool(b), k = pool.find(p => p.id === 'elementkoning');
-    ok(k && Math.abs(k.rate - 0.01) < 1e-9, 'kans ' + (k && k.rate)); ok(Math.abs(Object.values(b.rates).reduce((a, c) => a + c, 0) - 100) < 1e-6, 'kansen tellen niet op tot 100');
-    for (const g of GACHAS.filter(g => g.id !== 'basic')) ok(!gachaPool(g).some(p => p.id === 'elementkoning'), 'ook in ' + g.id);
+  run('Godly bestaat boven Secret; Godly-helden alleen in de Kosmische Gacha, 0,01% per held', () => E(`(() => {
+    ok(rarOrd('godly') > rarOrd('secret') && rarOrd('prismatic') > rarOrd('godly'), RARITY_ORDER.join());
+    const b = GACHAS.find(g => g.id === 'cosmic'), pool = gachaPool(b), k = pool.find(p => p.id === 'elementkoning'), k2 = pool.find(p => p.id === 'eindrechter');
+    ok(k && k2 && Math.abs(k.rate - 0.01) < 1e-9 && Math.abs(k2.rate - 0.01) < 1e-9, 'kans ' + (k && k.rate) + ' / ' + (k2 && k2.rate)); ok(Math.abs(Object.values(b.rates).reduce((a, c) => a + c, 0) - 100) < 1e-6, 'kansen tellen niet op tot 100');
+    for (const g of GACHAS.filter(g => g.id !== 'cosmic')) ok(!gachaPool(g).some(p => p.id === 'elementkoning' || p.id === 'eindrechter'), 'ook in ' + g.id);
     ok(!Shop.heroPool(['godly']).length, 'in de winkel');
     let n = 0; const N = 400000; for (let i = 0; i < N; i++) if (rollFrom(pool).id === 'elementkoning') n++; ok(n >= 12 && n <= 75, 'getrokken ' + n + ' van ' + N);
     return { kans: k.rate + '%', getrokkenIn400k: n };
