@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## Heldenwacht 1.30.0 (2026-10-06)
+- **Boss Rush: 23 bazen in plaats van 12** (alle gewone en event-bazen, zonder raidbazen), met De Chaoskoning als eindbaas. Even lastig: de moeilijkheid loopt geleidelijker op, zodat de laatste baas en zijn escorte precies zo sterk zijn als de oude laatste fase.
+- **Veel meer Boss Rush-beloningen**: per verslagen baas extra munten (oplopend), 6 gems per baas, Reroll Tokens en elke 6 bazen een Kosmisch Ticket. Alles verslagen: +150 gems, +10 Reroll Tokens en +2 Kosmische Tickets extra. Een volledige run levert ruim 7× zoveel munten op als voorheen.
+- **Trekken gebruikt eerst je tickets**: heb je tickets van die gacha, dan worden die bij 1×, 10× en 100× openen automatisch eerst gebruikt en betaal je alleen voor de rest. In het gacha-scherm staat hoeveel tickets er meegaan.
+- **Nieuwe Mystery-held: Rafael Verbrand** (Limited Gacha). Vuurballen die ontploffen en vijanden laten branden, ongeveer zo sterk als een Exotic. Ability *Brandbom*: het hele pad staat 8 seconden in brand met zware vuurschade (cooldown 60 s; ULTIMATE *Inferno*: 12 seconden en heter).
+- **Balans: alle helden van Legendary en hoger** (Legendary, Mystery, Mythic, Exotic, Ultra, Secret, Godly en Prismatic) doen **30% minder schade** (ook brand en gif) en **vallen 30% langzamer aan**. Lagere rarities blijven gelijk.
+- Test: `tests/bossrush.js`.
+
 ## Heldenwacht 1.29.0 (2026-10-06)
 - **Nieuwe rarity: Prismatic** (boven Godly). Eén held: **Aurora Prismatica**, alleen in de **Basic Gacha** met **0,002%** kans. Mega sterk (ruim 2× de totale schade van De Koning der Elementen): prisma-schoten op 4 vijanden met grote explosies, en alles in haar regenbooggloed loopt 70% vertraagd. Ability *Regenboogstilte*: de hele map 90% vertraagd (ULTIMATE: 10 seconden).
 - **Tweede Godly: De Eindrechter** — één doel tegelijk met enorme schade (≈ 7.600 per seconde op één vijand, bijna 5× zoveel per doel als de Koning), kritieke treffers en +50% tegen bazen. Ability *Vonnis*: één schot van 40× op de sterkste vijand (ULTIMATE: 100× op de 3 sterkste).

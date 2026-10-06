@@ -31,3 +31,5 @@ p27_gems.js
 p28_endless.js
 p29_godly.js
 p30_prismatic.js
+p31_bossrush.js
+p32_balance.js
