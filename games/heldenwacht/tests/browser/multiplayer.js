@@ -284,7 +284,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     for (const P of [A, B]) await P.evaluate(() => { closeOverlay(); if (App.game) exitGame('friends'); MP.leave(); });
     await A.waitForTimeout(500);
     const pb0 = await B.evaluate(() => { Store.data.portals = { 'lunar:rare': 1 }; return portalCount('lunar', 'rare'); });
-    await A.evaluate(() => { Store.data.portals = { 'lunar:rare': 1 }; Store.data.team = ['omega', 'nul', 'genesis']; App.modeTab = 'portals'; nav('modes'); });
+    await A.evaluate(() => { Store.data.portals = { 'lunar:rare': 1 }; Store.data.team = ['omega', 'nul', 'genesis']; nav('portals'); });
     await A.click('[data-act="portal-friend"][data-w="lunar"][data-t="rare"]'); await A.waitForSelector('[data-act="portal-invite-send"]', { timeout: 5000 });
     await A.click('[data-act="portal-invite-send"]'); await A.waitForTimeout(500);
     const stored = DB.invites[DB.invites.length - 1]; ok(stored.kind === 'coop' && stored.map === 'pt:maanbasis' && stored.diff === 2, 'opgeslagen als ' + JSON.stringify(stored));

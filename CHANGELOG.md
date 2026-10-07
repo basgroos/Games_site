@@ -1,5 +1,14 @@
 # Wijzigingen
 
+## Heldenwacht 1.32.0 (2026-10-07)
+- **Eigen knop Portalen** in het hoofdmenu (met teller) en op het startscherm, met een eigen scherm in plaats van een tabblad bij Modi. Bovenaan staat in drie stappen hoe portalen werken.
+- **Duidelijk wat je kunt krijgen**:
+  - bij Spelen staat onder de moeilijkheid de *Portaal-kans* (bv. "0,6% kans op een Rare Underworld Portal");
+  - na elk gewoon potje toont de uitslag een blok: "RARE … PORTAL GEVONDEN!" met de kans, of "niet dit keer", of bij verlies "win dit potje voor …% kans".
+- **Uit potjes krijg je alleen Rare portalen.** Alleen als je een portaal *haalt*, heb je kans op het volgende (Rare → Epic 80%, Epic → Legendary 50%, Legendary → Secret 10%); de uitslag laat zien of het gelukt is.
+- **The Devil en Moon Empress krijg je alleen uit het Secret portaal** (daar altijd). Rare, Epic en Legendary geven geen held meer, wel munten, gems en de kans op het volgende portaal.
+- Test: `tests/portals.js` uitgebreid.
+
 ## Heldenwacht 1.31.0 (2026-10-06)
 - **Portalen!** Win je een gewoon potje (alleen of in co-op) in wereld 1, dan heb je kans op een **Underworld Portal**; in wereld 2 een **Lunar Portal**. De kans loopt van **0,5%** op de eerste map tot **3%** op de laatste map van die wereld, en gaat **×1,2 omhoog per moeilijkheid** (op Afgrond bijna 9% op de laatste map).
 - Een gevonden portaal is altijd **Rare**. Win je een portaal, dan krijg je munten en gems en heb je kans op het volgende portaal: **Rare → Epic 80%**, **Epic → Legendary 50%**, **Legendary → Secret 10%**. Een portaal is op als je hem opent, ook als je verliest.

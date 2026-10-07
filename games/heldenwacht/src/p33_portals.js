@@ -174,7 +174,7 @@ const PORTAL = {
   diff: { rare: 2, epic: 3, legendary: 4, secret: 5 },        // moeilijkheid van het portaal-potje
   waves: 20,
   next: { rare: 0.8, epic: 0.5, legendary: 0.1 },               // kans op het volgende portaal
-  hero: { rare: 0.005, epic: 0.02, legendary: 0.06, secret: 1 }, // kans op The Devil / Moon Empress
+  hero: { rare: 0, epic: 0, legendary: 0, secret: 1 },          // The Devil / Moon Empress: alleen (en altijd) uit een Secret portaal
   coins: { rare: 1500, epic: 3000, legendary: 6000, secret: 12000 },
   gems: { rare: 20, epic: 40, legendary: 80, secret: 150 },
   dropMin: 0.005, dropMax: 0.03, dropDiff: 1.2,
@@ -199,12 +199,12 @@ const portalPct = p => { const v = p * 100; let t = v >= 10 ? v.toFixed(0) : v >
 /* ---------- helden: The Devil en Moon Empress ---------- */
 const PORTAL_HEROES = [
   { id: 'duivel', name: 'The Devil', rarity: 'secret', role: 'Area damage', exclusive: 'portal', portal: 'underworld', cap: 1, title: 'Heerser van de Onderwereld', style: 'projectile', proj: 'fire', cost: 2100,
-    desc: 'Hellevuur dat ontploft en alles laat branden. Elke vijand die hij doodt geeft hem een ziel: +0,4% schade per ziel (tot +50%). Zwakke vijanden maakt hij meteen af. Ability *Hellepoort*: alle vijanden op de map krijgen zware schade en branden; bijna-dode gewone vijanden worden geoogst. Alleen uit de Underworld Portal.',
+    desc: 'Hellevuur dat ontploft en alles laat branden. Elke vijand die hij doodt geeft hem een ziel: +0,4% schade per ziel (tot +50%). Zwakke vijanden maakt hij meteen af. Ability *Hellepoort*: alle vijanden op de map krijgen zware schade en branden; bijna-dode gewone vijanden worden geoogst. Alleen uit het Secret Underworld-portaal.',
     base: { dmg: 330, splash: 1.4, burn: 120, burnDur: 4, range: 4.4, rate: 1.0, multi: 2, air: true, projSpeed: 12, shred: 6, execute: 0.06 },
     look: { skin: '#b91c1c', suit: '#1c0606', suit2: '#ef4444', cape: '#450a0a', hair: 'spiky', hairC: '#0a0a0a', horns: '#1f1f1f', emblem: 'flame', weapon: 'staff', glow: '#ef4444', big: true }, fx: 'ember', ability: 'hellepoort',
     upgrades: [U('Zwavel', 3000, '+180 schade, +60 brand', { dmg: 180, burn: 60 }, false, true), U('Drietand', 4000, '+1 vuurbal, +0,4 bereik', { multi: 1, range: 0.4 }), U('Hellevuur', 7000, 'Grotere explosies, breekt 8 pantser', { splash: 0.5, shred: 8 }, true, true), U('Zielenhonger', 9000, '+350 schade, maakt vijanden onder 10% meteen af', { dmg: 350, execute: 0.04 }), U('Vorst der Hel', 17000, '+600 schade, +0,3 snelheid. ULTIMATE: Apocalyps', { dmg: 600, rate: 0.3 }, true, true)] },
   { id: 'maankeizerin', name: 'Moon Empress', rarity: 'secret', role: 'Controle', exclusive: 'portal', portal: 'lunar', cap: 1, title: 'Keizerin van de Maan', style: 'projectile', proj: 'star', cost: 2100,
-    desc: 'Maanstralen op 3 vijanden die vertragen. Alles wat ze raakt, krijgt 2 seconden 20% extra schade van iedereen (Maanlicht). Ability *Eclips*: alle vijanden staan even stil (bazen korter) en krijgen 50% extra schade. Alleen uit de Lunar Portal.',
+    desc: 'Maanstralen op 3 vijanden die vertragen. Alles wat ze raakt, krijgt 2 seconden 20% extra schade van iedereen (Maanlicht). Ability *Eclips*: alle vijanden staan even stil (bazen korter) en krijgen 50% extra schade. Alleen uit het Secret Lunar-portaal.',
     base: { dmg: 250, splash: 1.1, range: 4.8, rate: 1.1, multi: 3, slow: 0.35, slowDur: 2, air: true, projSpeed: 14, crit: 0.15, critMult: 2.5 },
     look: { skin: '#f1f5f9', suit: '#1e1b4b', suit2: '#e0e7ff', cape: '#312e81', hair: 'crown', hairC: '#e5e7eb', emblem: 'moon', weapon: 'orb', orb: '#e0e7ff', halo: true, wings: true, big: true }, fx: 'star', ability: 'eclips',
     upgrades: [U('Maanstof', 3000, '+150 schade', { dmg: 150 }, false, true), U('Getijden', 4000, '+1 straal, sterkere vertraging', { multi: 1, slow: 0.1 }), U('Zilverlicht', 7000, '+0,5 bereik, +0,3 snelheid', { range: 0.5, rate: 0.3 }, true, true), U('Nachtkroon', 9000, '+320 schade, +10% kritiek', { dmg: 320, crit: 0.1 }), U('Volle Maan', 17000, '+550 schade, +1 straal. ULTIMATE: Volle Maan', { dmg: 550, multi: 1 }, true, true)] },
@@ -295,12 +295,12 @@ startMatch = function (o) {
     if (!PORTAL.worlds[w] || !PORTAL.tiers.includes(t)) return;
     if (portalCount(w, t) < 1) {
       toast(`Je hebt geen ${portalLabel(w, t)} meer.`, 'bad'); Sfx.play('error');
-      if (!App.game) { $('#topbar').hidden = false; $('#main').hidden = false; $('#scr-game').hidden = true; App.modeTab = 'portals'; nav('modes'); }
+      if (!App.game) { $('#topbar').hidden = false; $('#main').hidden = false; $('#scr-game').hidden = true; nav('portals'); }
       return;
     }
     if (!Store.data.team.length) return _startMatch33.apply(this, arguments);
     portalAdd(w, t, -1); Store.save();
-    o = Object.assign({}, o, { map: PORTAL.worlds[w].map, diffIdx: PORTAL.diff[t], back: 'modes' });
+    o = Object.assign({}, o, { map: PORTAL.worlds[w].map, diffIdx: PORTAL.diff[t], back: 'portals' });
   }
   return _startMatch33.call(this, o);
 };
@@ -326,22 +326,23 @@ Meta.finishMatch = function (g) {
   if (!g || g._portal33) return R; g._portal33 = true;
   const win = !!(g.result && g.result.win);
   if (P) {
-    if (!win) { R.rows.push([`${portalLabel(P.w, P.t)} niet gehaald`, 'Het portaal is gesloten']); Store.save(); return R; }
+    if (!win) { R.rows.push([`${portalLabel(P.w, P.t)} niet gehaald`, 'Het portaal is gesloten']); g.portalInfo = { kind: 'portal-lost', w: P.w, t: P.t }; Store.save(); return R; }
     const roll = portalRoll(P.w, P.t), pm = this.prestigeMult() * this.collMult(), coins = Math.round(roll.coins * pm);
     this.grant({ coins, gems: roll.gems }); R.coins += coins;
     R.rows.push([`${portalLabel(P.w, P.t)} gehaald!`, coins]); R.rows.push(['Gems', `+${roll.gems}`]);
     if (roll.hero) { const res = grantHero(roll.hero); const H = HERO[roll.hero]; R.rows.push([`${H.name}!`, res.isNew ? 'Nieuwe Secret-held!' : 'Extra exemplaar']); R.lines.push(`${H.name} gevonden!`); g.portalHero = roll.hero; }
-    else R.rows.push([`${HERO[PORTAL.worlds[P.w].hero].name}`, `Niet dit keer (${portalPct(PORTAL.hero[P.t])} kans)`]);
-    if (roll.next) { portalAdd(P.w, roll.next); R.rows.push(['Nieuw portaal!', portalLabel(P.w, roll.next)]); R.lines.push(`Je kreeg een ${portalLabel(P.w, roll.next)}!`); g.portalNext = roll.next; }
-    else if (PORTAL.next[P.t]) R.rows.push(['Volgend portaal', `Niet dit keer (${portalPct(PORTAL.next[P.t])} kans)`]);
+    if (roll.next) { portalAdd(P.w, roll.next); g.portalNext = roll.next; }
+    g.portalInfo = { kind: 'portal', w: P.w, t: P.t, next: roll.next, chance: PORTAL.next[P.t] || 0, hero: roll.hero };
     const S = Store.data.stats; S.portalWins = (S.portalWins || 0) + 1;
     Store.save(); return R;
   }
   // gewone potjes in wereld 1 en 2: kans op een portaal
   const normal = g.mode === 'campaign' || (g.mode === 'coop2' && !(g.opts && g.opts.mega));
-  if (win && normal) {
-    const w = portalWorldOfMap(g.map), ch = portalDropChance(g.map, g.diffIdx);
-    if (w && Math.random() < ch) { portalAdd(w, 'rare'); g.portalDrop = w; R.rows.push(['Portaal gevonden!', portalLabel(w, 'rare')]); R.lines.push(`Je vond een ${portalLabel(w, 'rare')}! Open hem bij Modi → Portalen.`); Store.save(); }
+  const w = normal ? portalWorldOfMap(g.map) : null;
+  if (w) {
+    const ch = portalDropChance(g.map, g.diffIdx), got = win && Math.random() < ch;
+    if (got) { portalAdd(w, 'rare'); g.portalDrop = w; Store.save(); }
+    g.portalInfo = { kind: 'drop', w, chance: ch, win, got };
   }
   return R;
 };
@@ -382,7 +383,7 @@ function portalsBody() {
     return `<div class="row-card portal-row" style="--rc:${rarColor(t)}">
       <div style="min-width:0"><div class="rc-title"><span style="color:${rarColor(t)}">${RARITIES[t].label}</span> · ${esc(W.name)} <span class="num muted">×${n}</span></div>
         <div class="rc-sub">${DIFFS[PORTAL.diff[t]].name} · ${PORTAL.waves} golven · ${fmt(Math.round(PORTAL.coins[t] * (w === 'lunar' ? 1.6 : 1)))} munten + ${PORTAL.gems[t]} gems</div>
-        <div class="rc-sub">${esc(HERO[W.hero].name)}: <b>${t === 'secret' ? 'gegarandeerd' : portalPct(hc) + ' kans'}</b>${nx ? ` · ${RARITIES[PORTAL.tiers[PORTAL.tiers.indexOf(t) + 1]].label} portaal: <b>${portalPct(nx)}</b>` : ''}</div></div>
+        <div class="rc-sub">${t === 'secret' ? `Geeft altijd <b style="color:${rarColor('secret')}">${esc(HERO[W.hero].name)}</b>` : `Haal je hem: <b>${portalPct(nx)}</b> kans op een <b style="color:${rarColor(PORTAL.tiers[PORTAL.tiers.indexOf(t) + 1])}">${RARITIES[PORTAL.tiers[PORTAL.tiers.indexOf(t) + 1]].label}</b> portaal`}</div></div>
       <div class="btn-row" style="flex-wrap:nowrap"><button class="btn btn-sm btn-pow" data-act="portal-open" data-w="${w}" data-t="${t}" ${n ? '' : 'disabled'}>Openen</button><button class="btn btn-sm btn-sky" data-act="portal-friend" data-w="${w}" data-t="${t}" ${n ? '' : 'disabled'}>Met vriend</button></div></div>`;
   };
   const card = w => {
@@ -392,33 +393,86 @@ function portalsBody() {
       <canvas data-map="${m.id}" style="width:100%;aspect-ratio:24/15;border:2px solid var(--edge);border-radius:4px;max-width:100%"></canvas>
       <span class="kicker">Wereld ${W.world} · vijanden van ${W.sides} kanten</span><h3>${esc(W.name)}</h3>
       <p class="muted" style="margin:0">${esc(m.desc)}</p>
-      <div style="display:flex;gap:10px;align-items:center"><div style="width:56px;height:56px;flex:none;overflow:hidden;border-radius:6px">${portrait(H.id).replace('<canvas ', '<canvas style="width:56px;height:56px;display:block" ')}</div><div><b style="color:${rarColor(H.rarity)}">${esc(H.name)}</b> <span class="muted">(Secret)${own ? ' · in bezit' : ''}</span><div class="rc-sub">${esc(H.title)}</div></div></div>
+      <div style="display:flex;gap:10px;align-items:center"><div style="width:56px;height:56px;flex:none;overflow:hidden;border-radius:6px">${portrait(H.id).replace('<canvas ', '<canvas style="width:56px;height:56px;display:block" ')}</div><div><b style="color:${rarColor(H.rarity)}">${esc(H.name)}</b> <span class="muted">(Secret, alleen uit het Secret portaal)${own ? ' · in bezit' : ''}</span><div class="rc-sub">${esc(H.title)}</div></div></div>
       <p class="muted" style="font-size:13px;margin:0">Vinden: win een gewoon potje in wereld ${W.world}. Kans ${portalPct(portalDropChance(first, 0))} op ${esc(first.name)} tot ${portalPct(portalDropChance(last, 0))} op ${esc(last.name)} (Makkelijk), ×1,2 per moeilijkheid hoger.</p>
       <div class="row-list">${PORTAL.tiers.map(t => tierRow(w, t)).join('')}</div>
     </div>`;
   };
-  return `<p class="muted" style="margin-top:0">Een gevonden portaal is altijd <b style="color:${rarColor('rare')}">Rare</b>. Win je een portaal, dan heb je kans op het volgende: Rare → Epic 80%, Epic → Legendary 50%, Legendary → Secret 10%. Een portaal is op als je hem opent, ook als je verliest.</p>
+  return `<div class="panel card" style="margin-bottom:14px"><span class="kicker">Zo werkt het</span>
+      <p style="margin:0">1. Win een gewoon potje in wereld 1 of 2 → kans op een <b style="color:${rarColor('rare')}">Rare</b> portaal (wereld 1: Underworld, wereld 2: Lunar). Uit potjes krijg je <b>alleen Rare</b> portalen. De kans staat bij Spelen onder de moeilijkheid: ${portalPct(PORTAL.dropMin)} op de eerste map tot ${portalPct(PORTAL.dropMax)} op de laatste, ×1,2 per moeilijkheid.</p>
+      <p style="margin:0">2. Haal je een portaal, dan heb je kans op het volgende: <b style="color:${rarColor('rare')}">Rare</b> → <b style="color:${rarColor('epic')}">Epic</b> ${portalPct(PORTAL.next.rare)} · <b style="color:${rarColor('epic')}">Epic</b> → <b style="color:${rarColor('legendary')}">Legendary</b> ${portalPct(PORTAL.next.epic)} · <b style="color:${rarColor('legendary')}">Legendary</b> → <b style="color:${rarColor('secret')}">Secret</b> ${portalPct(PORTAL.next.legendary)}. Verlies je, dan is het portaal weg.</p>
+      <p style="margin:0">3. Alleen het <b style="color:${rarColor('secret')}">Secret</b> portaal geeft de held: The Devil (Underworld) of Moon Empress (Lunar).</p></div>
     <div class="two-col">${card('underworld')}${card('lunar')}</div>`;
 }
-const _renderModes33 = renderModes;
-renderModes = function () {
-  const mine = App.modeTab === 'portals';
-  const r = _renderModes33.apply(this, arguments);
-  const tabs = document.querySelector('#scr-modes .tabs');
-  if (tabs && !tabs.querySelector('[data-tab="portals"]')) {
-    const n = portalTotal(); const b = document.createElement('button'); b.dataset.act = 'mode-tab'; b.dataset.tab = 'portals'; b.setAttribute('aria-pressed', String(mine));
-    b.innerHTML = `Portalen${n ? `<span class="ndot">${n}</span>` : ''}`; tabs.appendChild(b);
-  }
-  if (mine) {
-    const box = document.createElement('div'); box.id = 'portals-body'; box.innerHTML = portalsBody();
-    tabs ? tabs.after(box) : $('#scr-modes').appendChild(box);
-    $$('#scr-modes canvas[data-map]').forEach(cv => drawMapThumb(cv, mapById(cv.dataset.map)));
-    hydratePortraits($('#scr-modes'));
+// eigen knop in het hoofdmenu en een eigen scherm
+(function () {
+  const main = document.getElementById('main'), navEl = document.querySelector('.nav');
+  if (main && !document.getElementById('scr-portals')) { const sec = document.createElement('section'); sec.id = 'scr-portals'; sec.className = 'screen'; sec.hidden = true; main.appendChild(sec); }
+  const modes = navEl && navEl.querySelector('[data-to="modes"]');
+  if (modes && !navEl.querySelector('[data-to="portals"]')) { const b = document.createElement('button'); b.dataset.act = 'nav'; b.dataset.to = 'portals'; b.innerHTML = 'Portalen<span class="ndot" id="dot-portals" hidden></span>'; modes.after(b); }
+})();
+function updatePortalDot() { const d = document.getElementById('dot-portals'); if (!d) return; const n = portalTotal(); d.hidden = !n; d.textContent = n ? String(n) : ''; }
+function renderPortals() {
+  $('#scr-portals').innerHTML = `<div class="screen-head"><div><span class="kicker">Underworld &amp; Lunar</span><h2>Portalen</h2></div></div><div id="portals-body">${portalsBody()}</div>`;
+  $$('#scr-portals canvas[data-map]').forEach(cv => drawMapThumb(cv, mapById(cv.dataset.map)));
+  hydratePortraits($('#scr-portals'));
+}
+const _nav33 = nav;
+nav = function (to) {
+  if (to === 'modes' && App.modeTab === 'portals') App.modeTab = 'endless';
+  if (to !== 'portals') { const r = _nav33.apply(this, arguments); updatePortalDot(); return r; }
+  App.screen = to;
+  $$('#main > section').forEach(s => { s.hidden = s.id !== 'scr-portals'; });
+  $$('.nav button').forEach(b => b.setAttribute('aria-current', b.dataset.to === to ? 'page' : 'false'));
+  renderPortals(); updateCoins(); flushNotes(); updatePortalDot(); try { window.scrollTo(0, 0); } catch (e) { }
+};
+const _mtab33 = ACTIONS['mode-tab'];
+ACTIONS['mode-tab'] = b => b.dataset.tab === 'portals' ? nav('portals') : _mtab33(b);
+// startscherm: knop naar Portalen naast Spelen en Modi
+const _renderHome33 = renderHome;
+renderHome = function () {
+  const r = _renderHome33.apply(this, arguments);
+  const m = document.querySelector('#scr-home [data-act="nav"][data-to="modes"]');
+  if (m && !document.querySelector('#scr-home [data-to="portals"]')) { const n = portalTotal(); m.insertAdjacentHTML('afterend', `<button class="btn" data-act="nav" data-to="portals">Portalen${n ? ` (${n})` : ''}</button>`); }
+  return r;
+};
+// mapscherm: laat zien welke portaal-kans je hebt bij winst
+const _renderMaps33 = renderMaps;
+renderMaps = function () {
+  const r = _renderMaps33.apply(this, arguments);
+  const m = MAPS[App.mapSel], w = portalWorldOfMap(m), btn = document.querySelector('#scr-maps [data-act="start-game"]');
+  if (w && btn && !document.querySelector('#scr-maps .portal-hint')) {
+    const ch = portalDropChance(m, App.diffSel);
+    btn.insertAdjacentHTML('beforebegin', `<div class="portal-hint" style="border:2px solid ${rarColor('rare')};border-radius:6px;padding:8px 10px;margin:8px 0;font-size:14px;background:rgba(56,189,248,.08)">
+      <b style="color:${rarColor('rare')}">Portaal-kans: ${portalPct(ch)}</b> · win je dit potje, dan heb je ${portalPct(ch)} kans op een <b>Rare ${esc(PORTAL.worlds[w].name)}</b>.
+      <span class="muted">Hoe moeilijker, hoe groter de kans (×1,2 per moeilijkheid). Bekijk je portalen bij <button class="btn btn-sm" data-act="nav" data-to="portals">Portalen</button></span></div>`);
   }
   return r;
 };
+// uitslag: duidelijk blok met de portaal-kans en of je hem kreeg
+const _showResults33 = showResults;
+showResults = function () {
+  const g = App.game, r = _showResults33.apply(this, arguments);
+  const I = g && g.portalInfo, card = document.querySelector('.results-card'); if (!I || !card || card.querySelector('.portal-res')) return r;
+  const W = PORTAL.worlds[I.w], rc = rarColor('rare'); let html = '';
+  if (I.kind === 'drop') {
+    html = I.got ? `<div class="portal-res got" style="border:3px solid ${rc};border-radius:8px;padding:12px;text-align:center;background:rgba(56,189,248,.15)"><div style="font-family:var(--f-display);font-size:22px;color:${rc}">RARE ${esc(W.name.toUpperCase())} GEVONDEN!</div><div>Je had ${portalPct(I.chance)} kans en je hebt hem! Open hem bij Portalen.</div><button class="btn btn-sm btn-sky" data-act="res-portals" style="margin-top:6px">Naar Portalen</button></div>`
+      : I.win ? `<div class="portal-res" style="border:2px dashed ${rc};border-radius:8px;padding:8px;text-align:center">Kans op een <b style="color:${rc}">Rare ${esc(W.name)}</b>: ${portalPct(I.chance)} · niet dit keer.</div>`
+      : `<div class="portal-res" style="border:2px dashed ${rc};border-radius:8px;padding:8px;text-align:center">Win dit potje voor ${portalPct(I.chance)} kans op een <b style="color:${rc}">Rare ${esc(W.name)}</b>.</div>`;
+  } else if (I.kind === 'portal') {
+    const nt = PORTAL.tiers[PORTAL.tiers.indexOf(I.t) + 1], nc = nt && rarColor(nt);
+    html = `<div class="portal-res${I.next ? ' got' : ''}" style="border:3px solid ${I.next ? nc : 'var(--line)'};border-radius:8px;padding:12px;text-align:center">`
+      + (I.hero ? `<div style="font-family:var(--f-display);font-size:22px;color:${rarColor('secret')}">${esc(HERO[I.hero].name.toUpperCase())}!</div><div>De Secret-held van de ${esc(W.name)} is van jou.</div>` : '')
+      + (nt ? (I.next ? `<div style="font-family:var(--f-display);font-size:20px;color:${nc}">${esc(RARITIES[nt].label.toUpperCase())} PORTAAL!</div><div>Je had ${portalPct(I.chance)} kans op een ${esc(portalLabel(I.w, nt))} en je hebt hem!</div><button class="btn btn-sm btn-sky" data-act="res-portals" style="margin-top:6px">Naar Portalen</button>`
+        : `<div>Kans op een <b style="color:${nc}">${esc(portalLabel(I.w, nt))}</b>: ${portalPct(I.chance)} · niet dit keer.</div>`) : '') + `</div>`;
+  } else if (I.kind === 'portal-lost') html = `<div class="portal-res" style="border:2px dashed var(--line);border-radius:8px;padding:8px;text-align:center">Het portaal is gesloten. Alleen als je een portaal haalt, heb je kans op het volgende.</div>`;
+  const rows = card.querySelector('.rw-total'); if (rows) rows.insertAdjacentHTML('afterend', html); else card.insertAdjacentHTML('beforeend', html);
+  updatePortalDot();
+  return r;
+};
 Object.assign(ACTIONS, {
-  'portal-open': b => { Sfx.play('click'); startMatch({ mode: 'portal', portal: { w: b.dataset.w, t: b.dataset.t }, map: PORTAL.worlds[b.dataset.w].map, diffIdx: PORTAL.diff[b.dataset.t], back: 'modes' }); },
+  'portal-open': b => { Sfx.play('click'); startMatch({ mode: 'portal', portal: { w: b.dataset.w, t: b.dataset.t }, map: PORTAL.worlds[b.dataset.w].map, diffIdx: PORTAL.diff[b.dataset.t], back: 'portals' }); },
+  'res-portals': () => exitGame('portals'),
   'portal-friend': b => { Sfx.play('click'); if (!SOC.data && SOC.refresh) SOC.refresh(); openPortalInvite(b.dataset.w, b.dataset.t); },
   'portal-invite-send': async b => {
     const I = App.portalInv; if (!I) return; const f = ((SOC.data && SOC.data.friends) || []).find(x => x.id === b.dataset.id);

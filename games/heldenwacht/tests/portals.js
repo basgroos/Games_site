@@ -78,12 +78,11 @@ setTimeout(() => {
     closeOverlay(); startMatch({ mode: 'portal', portal: { w: 'underworld', t: 'rare' } }); let g = App.game, c0 = D.coins, gm0 = D.gems;
     let R = withRandom(0.5, () => fakeEnd(g, true)); ok(!D.heroes.duivel, 'held bij 50%'); ok(portalCount('underworld', 'epic') === 1, 'geen epic bij 50% (kans 80%)'); ok(D.coins > c0 && D.gems >= gm0 + 20, 'beloning ' + (D.coins-c0) + ' ' + (D.gems-gm0) + JSON.stringify(R.rows));
     closeOverlay(); startMatch({ mode: 'portal', portal: { w: 'underworld', t: 'legendary' } }); g = App.game; withRandom(0.2, () => fakeEnd(g, true)); ok(portalCount('underworld', 'secret') === 1, 'secret bij 20% (kans 10%)');
-    closeOverlay(); startMatch({ mode: 'portal', portal: { w: 'underworld', t: 'legendary' } }); g = App.game; withRandom(0.05, () => fakeEnd(g, true)); ok(portalCount('underworld', 'secret') === 2 && D.heroes.duivel, 'legendary 5%: secret + held');
-    delete D.heroes.duivel;
-    closeOverlay(); startMatch({ mode: 'portal', portal: { w: 'underworld', t: 'secret' } }); g = App.game; R = withRandom(0.999, () => fakeEnd(g, true)); ok(D.heroes.duivel, 'secret portaal: The Devil niet gegarandeerd'); ok(R.rows.some(r => /The Devil/.test(r[0])), 'rij');
+    closeOverlay(); startMatch({ mode: 'portal', portal: { w: 'underworld', t: 'legendary' } }); g = App.game; withRandom(0.0001, () => fakeEnd(g, true)); ok(portalCount('underworld', 'secret') === 2 && !D.heroes.duivel, 'legendary: held mag alleen uit secret');
+    closeOverlay(); startMatch({ mode: 'portal', portal: { w: 'underworld', t: 'secret' } }); g = App.game; R = withRandom(0.999, () => fakeEnd(g, true)); ok(D.heroes.duivel, 'secret portaal: The Devil niet gegarandeerd'); ok(g.portalInfo && g.portalInfo.hero === 'duivel', 'info');
     closeOverlay(); startMatch({ mode: 'portal', portal: { w: 'lunar', t: 'epic' } }); g = App.game; withRandom(0.6, () => fakeEnd(g, false)); ok(portalCount('lunar', 'epic') === 0 && portalCount('lunar', 'legendary') === 0 && !D.heroes.maankeizerin, 'verlies gaf iets');
-    const s = { r: 0, e: 0 }; for (let i = 0; i < 20000; i++) { const x = portalRoll('lunar', 'rare'); if (x.next) s.e++; if (x.hero) s.r++; } ok(s.e > 15500 && s.e < 16500, 'rare→epic ' + s.e); ok(s.r > 50 && s.r < 170, 'held uit rare ' + s.r);
-    return { epicUitRare: s.e / 20000, heldUitRare: s.r / 20000 };
+    const s = { r: 0, e: 0 }; for (const t of ['rare', 'epic', 'legendary']) for (let i = 0; i < 5000; i++) { const x = portalRoll('lunar', t); if (x.hero) s.r++; } for (let i = 0; i < 20000; i++) { if (portalRoll('lunar', 'rare').next) s.e++; } ok(s.e > 15500 && s.e < 16500, 'rare→epic ' + s.e); ok(s.r === 0, 'held uit lagere portalen ' + s.r);
+    return { epicUitRare: s.e / 20000, heldUitLager: s.r };
   })()`));
   run('samen spelen: host gebruikt het portaal, gast niet; uitnodiging past in de database', () => E(`(() => {
     const D = Store.data; D.portals = { 'lunar:rare': 1 };
@@ -117,17 +116,36 @@ setTimeout(() => {
     }
     return out;
   })()`));
-  run('Modi → Portalen toont beide portalen, aantallen en knoppen', () => E(`(() => {
-    closeOverlay(); App.game = null; Store.data.portals = { 'underworld:rare': 2, 'lunar:secret': 1 }; App.modeTab = 'portals'; nav('modes');
-    const tab = document.querySelector('#scr-modes [data-tab="portals"]'); ok(tab && tab.getAttribute('aria-pressed') === 'true', 'tab');
-    ok(document.querySelectorAll('#scr-modes .portal-card').length === 2, 'kaarten'); ok(document.querySelectorAll('#scr-modes [data-act="portal-open"]:not([disabled])').length === 2, 'knoppen');
-    const txt = document.querySelector('#scr-modes').textContent; ok(/Epic portaal: 80%/.test(txt) && /Legendary portaal: 50%/.test(txt) && /Secret portaal: 10%/.test(txt) && /0,5% kans/.test(txt), 'kansen in beeld'); ok(document.querySelectorAll('#scr-modes .portal-card canvas[data-portrait]').length >= 2, 'portret');
-    ok(/The Devil/.test(document.querySelector('#scr-modes').textContent) && /Moon Empress/.test(document.querySelector('#scr-modes').textContent), 'helden');
-    App.modeTab = 'endless'; renderModes(); ok(!document.querySelector('#portals-body'), 'blijft staan'); ok(document.querySelectorAll('#scr-modes [data-tab="portals"]').length === 1, 'dubbele tab');
-    document.querySelector('#scr-modes [data-tab="portals"]').dispatchEvent(new w.MouseEvent('click', { bubbles: true })); ok(document.querySelector('#portals-body'), 'tab klikken');
-    document.querySelector('#scr-modes [data-act="portal-open"][data-w="lunar"][data-t="secret"]').dispatchEvent(new w.MouseEvent('click', { bubbles: true })); ok(App.game && App.game.map.id === 'maanbasis' && portalCount('lunar', 'secret') === 0, 'openen via knop ' + (App.game && App.game.map.id) + ' ' + portalCount('lunar','secret') + ' ' + document.querySelectorAll('#scr-modes [data-act="portal-open"]').length);
+  run('eigen knop Portalen: scherm met beide portalen, uitleg, kansen en knoppen', () => E(`(() => {
+    closeOverlay(); App.game = null; Store.data.portals = { 'underworld:rare': 2, 'lunar:secret': 1 }; nav('home');
+    const nb = document.querySelector('.nav [data-to="portals"]'); ok(nb, 'geen knop in het menu'); ok(!document.getElementById('dot-portals').hidden && document.getElementById('dot-portals').textContent === '3', 'teller');
+    ok(document.querySelector('#scr-home [data-to="portals"]'), 'geen knop op start');
+    nb.dispatchEvent(new MouseEvent('click', { bubbles: true })); ok(App.screen === 'portals' && !document.getElementById('scr-portals').hidden && document.getElementById('scr-modes').hidden, 'scherm');
+    const txt = document.getElementById('scr-portals').textContent;
+    ok(/alleen Rare/.test(txt) && /Epic 80%/.test(txt) && /Legendary 50%/.test(txt) && /Secret 10%/.test(txt), 'uitleg');
+    ok(/Geeft altijd The Devil/.test(txt) && /Geeft altijd Moon Empress/.test(txt) && !/0,5% kans op een/.test(txt.replace(/0,5% op de eerste/, '')), 'held-tekst');
+    ok(document.querySelectorAll('#scr-portals .portal-card').length === 2 && document.querySelectorAll('#scr-portals .portal-card canvas[data-portrait]').length === 2, 'kaarten');
+    nav('modes'); ok(!document.querySelector('#scr-modes [data-tab="portals"]'), 'nog een Modi-tab');
+    nav('portals'); document.querySelector('#scr-portals [data-act="portal-open"][data-w="lunar"][data-t="secret"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    ok(App.game && App.game.map.id === 'maanbasis' && portalCount('lunar', 'secret') === 0 && App.lastMatch.back === 'portals', 'openen via knop');
     return true;
-  })()`.replace('new w.MouseEvent', 'new MouseEvent').replace('new w.MouseEvent', 'new MouseEvent')));
+  })()`));
+  run('Spelen: portaal-kans onder de moeilijkheid; uitslag toont kans en of je hem kreeg', () => E(`(() => {
+    closeOverlay(); App.game = null; App.mapSel = 0; App.diffSel = 1; nav('maps');
+    const h = document.querySelector('#scr-maps .portal-hint'); ok(h && /Portaal-kans: 0,6%/.test(h.textContent) && /Rare Underworld Portal/.test(h.textContent), 'hint ' + (h && h.textContent));
+    Store.data.portals = {}; Store.data.team = ['vuist'];
+    startMatch({ map: MAPS[0].id, diffIdx: 1, mode: 'campaign' }); let g = App.game; g.result = { win: true }; g.cleared = g.totalWaves; withRandom(0.001, () => showResults());
+    let box = document.querySelector('.results-card .portal-res'); ok(box && /RARE UNDERWORLD PORTAL GEVONDEN/.test(box.textContent) && /0,6% kans/.test(box.textContent), 'gevonden-blok ' + (box && box.textContent));
+    ok(portalCount('underworld', 'rare') === 1, 'niet gekregen');
+    closeOverlay(); startMatch({ map: MAPS[0].id, diffIdx: 1, mode: 'campaign' }); g = App.game; g.result = { win: true }; g.cleared = g.totalWaves; withRandom(0.99, () => showResults());
+    box = document.querySelector('.results-card .portal-res'); ok(box && /niet dit keer/.test(box.textContent), 'niet-blok');
+    closeOverlay(); startMatch({ map: MAPS[0].id, diffIdx: 1, mode: 'campaign' }); g = App.game; g.result = { win: false }; g.cleared = 3; showResults();
+    box = document.querySelector('.results-card .portal-res'); ok(box && /Win dit potje/.test(box.textContent), 'verlies-blok');
+    Store.data.portals = { 'underworld:rare': 1 }; closeOverlay(); startMatch({ mode: 'portal', portal: { w: 'underworld', t: 'rare' } }); g = App.game; g.result = { win: true }; g.cleared = 20; withRandom(0.1, () => showResults());
+    box = document.querySelector('.results-card .portal-res'); ok(box && /EPIC PORTAAL/.test(box.textContent) && /80% kans/.test(box.textContent), 'portaal-blok ' + (box && box.textContent));
+    document.querySelector('.results-card [data-act="res-portals"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); ok(App.screen === 'portals', 'naar portalen');
+    return true;
+  })()`));
   console.log(errors.length ? 'ERRORS: ' + errors.join(', ') : 'ALL PASSED');
   process.exitCode = errors.length ? 1 : 0;
   setTimeout(() => process.exit(process.exitCode), 50);
