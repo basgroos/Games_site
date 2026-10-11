@@ -14,6 +14,7 @@ bosses/seraph.js
 bosses/offbeat.js
 bosses/survival.js
 tutorial.js
+net.js
 hud.js
 game.js
 menus.js

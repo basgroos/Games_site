@@ -53,6 +53,12 @@
       this.carryHp = null;
       this.carryRes = 0;
       this.stats = this.newStats();
+      // one seed per run decides every attack; co-op players share it so they see the same patterns
+      this.baseSeed = opts && opts.seed !== undefined ? opts.seed : (Math.random() * 2147483647) | 0;
+      // your best progress so far ("% of best")
+      const rec = PS.Profile.data.records[this.recordKey()];
+      this.bestPct = rec ? (rec.bestPct !== undefined ? rec.bestPct : rec.cleared ? 100 : 0) : 0;
+      this.bestTime = rec ? rec.bestTime || rec.time || 0 : 0;
       PS.Profile.data.lifetime.runs++;
       this.beginEncounter();
     }
@@ -66,7 +72,7 @@
       if (o.mode === 'rush') return C.bossOrder[this.rushIndex];
       if (o.mode === 'survival') return 'survival';
       if (o.mode === 'tutorial') return 'dummy';
-      return o.boss;
+      return o.boss; // practice and co-op
     }
 
     beginEncounter() {
@@ -79,6 +85,11 @@
       for (const k in this.mods) if (this.mods[k] && C.modifiers[k]) this.scoreMult *= C.modifiers[k].scoreMult;
 
       this.epoch++;
+      PS.seed(this.baseSeed + this.rushIndex * 7919);
+      this.aimN = 0;
+      this.coop = o.mode === 'coop';
+      this.deathlinked = false;
+      this.remoteWin = false;
       this.hazards.list = [];
       this.fx.reset();
       this.cores = [];
@@ -90,7 +101,8 @@
       this.announcement = null;
 
       const maxHp = this.mods.glass ? 1 : this.diff.playerHp;
-      this.player = new PS.Player(this, this.W / 2, this.H * 0.8, maxHp);
+      const startX = this.coop ? this.W / 2 + (PS.Net.role === 'host' ? -90 : 90) : this.W / 2;
+      this.player = new PS.Player(this, startX, this.H * 0.8, maxHp);
       if (this.carryHp !== null) this.player.hp = Math.min(maxHp, this.carryHp);
 
       this.bossId = this.bossIdForEncounter();
@@ -115,11 +127,12 @@
 
     recordKey() {
       const o = this.opts;
-      return o.mode + ':' + (o.mode === 'practice' ? o.boss : o.mode) + ':' + o.difficulty;
+      return o.mode + ':' + (o.mode === 'practice' || o.mode === 'coop' ? o.boss : o.mode) + ':' + o.difficulty;
     }
 
     pause() {
       if (this.state !== 'playing') return;
+      if (this.coop) { PS.Menus.show('pause'); return; } // co-op can't freeze your partner: the game keeps running
       this.state = 'paused';
       this.clock.running = false;
       this.setMuffle(1);
@@ -127,6 +140,7 @@
       PS.Menus.show('pause');
     }
     resume() {
+      if (this.coop && this.state === 'playing') { PS.Menus.hide(); PS.Input.clear(); return; }
       if (this.state !== 'paused') return;
       this.state = 'playing';
       this.clock.running = true;
@@ -136,7 +150,59 @@
       PS.Menus.hide();
     }
     restart() { PS.Menus.hide(); this.start(this.opts); }
-    quit() { this.enterMenu(); PS.Menus.show('title'); }
+    quit() {
+      if (this.coop) { PS.Net.leave(); this.coop = false; }
+      this.enterMenu(); PS.Menus.show('title');
+    }
+
+    // ================= AIMING & CO-OP =================
+    // Where aimed attacks go. Solo: you. Co-op: alternates between host and guest,
+    // in the same order on both computers, so both see the same attack.
+    aimPoint() {
+      const n = this.aimN++;
+      const me = this.player, R = PS.Net.remote;
+      if (!this.coop || !R || !R.alive || !me) return me;
+      if (!me.alive) return R;
+      const wantHost = n % 2 === 0, iAmHost = PS.Net.role === 'host';
+      return wantHost === iAmHost ? me : R;
+    }
+
+    // all player damage to the boss goes through here (co-op shares it)
+    damageBoss(amount, x, y) {
+      const b = this.boss;
+      if (!b) return false;
+      const hit = b.takeDamage(amount, x, y);
+      if (hit && this.coop && !b.isSurvival) PS.Net.send('dmg', { a: amount });
+      return hit;
+    }
+    onRemoteDmg(a) {
+      if (this.state === 'playing' && this.boss && !this.seq) this.boss.takeDamage(a);
+    }
+    // the host's boss HP is the truth; the guest corrects small differences
+    onRemoteHp(hp, phase) {
+      const b = this.boss;
+      if (this.state !== 'playing' || !b || b.defeated || this.seq) return;
+      if (phase > b.phase && b.pendingPhase < 0) {
+        b.pendingPhase = phase; b.shielded = true; b.hp = Math.min(b.hp, b.thresholds[phase - 1] * b.maxHp);
+      } else if (phase === b.phase && b.pendingPhase < 0 && Math.abs(hp - b.hp) > 1) b.hp = hp;
+    }
+    // DEATHLINK: your partner went down, so you go down too
+    onRemoteDead(name) {
+      if (this.state !== 'playing' || !this.player || !this.player.alive || this.seq) return;
+      this.deathlinked = true;
+      this.die();
+      this.announce('DEATHLINK', (name || 'Your partner') + ' went down', 2.2);
+    }
+    onRemoteWin() {
+      const b = this.boss;
+      if (this.state !== 'playing' || !b || b.defeated || this.seq) return;
+      this.remoteWin = true;
+      b.hp = 0; b.defeat();
+    }
+    onPartnerLeft(name) {
+      if (!this.coop || this.state !== 'playing') return;
+      this.fx.text(this.W / 2, 128, (name || 'Your partner') + ' left — playing solo', '#ffe27a', 22, 2.5);
+    }
 
     setMuffle(v) {
       if (this._muffle === v) return;
@@ -230,13 +296,13 @@
       const A = this.arena;
       let best = null;
       for (let i = 0; i < 24 && x === undefined; i++) {
-        const px = U.rand(A.x0 + 70, A.x1 - 70), py = U.rand(A.y0 + 70, A.y1 - 70);
+        const px = A.x0 + 70 + Math.random() * (A.x1 - A.x0 - 140), py = A.y0 + 70 + Math.random() * (A.y1 - A.y0 - 140);
         const db = this.boss ? U.dist(px, py, this.boss.x, this.boss.y) : 999;
         const dp = U.dist(px, py, this.player.x, this.player.y);
         if (db > 200 && dp > 140 && dp < 520) { best = { x: px, y: py }; break; }
       }
       if (x !== undefined) best = { x, y };
-      if (!best) best = { x: U.rand(A.x0 + 80, A.x1 - 80), y: A.y1 - 100 };
+      if (!best) best = { x: A.x0 + 80 + Math.random() * (A.x1 - A.x0 - 160), y: A.y1 - 100 };
       this.cores.push({ x: best.x, y: best.y, age: 0, life: this.beats(C.cores.lifeBars * 4), r: C.cores.radius });
       this.fx.ring(best.x, best.y, '#ffe27a', 60, 10, 0.4, 2, 'hex');
     }
@@ -263,7 +329,7 @@
       if (b && !b.defeated) {
         const tp = b.targetPoint(c.x, c.y);
         this.fx.bolt(c.x, c.y, tp.x, tp.y, '#ffe27a', 0.35);
-        b.takeDamage(C.bossDamage.core, tp.x, tp.y);
+        this.damageBoss(C.bossDamage.core, tp.x, tp.y);
       }
       if (this.tutorial) this.tutorial.notify('core');
     }
@@ -288,6 +354,15 @@
     }
 
     // ================= SCORING =================
+    // how far you got: % of boss HP removed (Boss Rush: across all three bosses)
+    progressPct() {
+      const b = this.boss;
+      if (!b || b.isSurvival || b.isDummy) return 0;
+      const bp = U.clamp(1 - b.hp / b.maxHp, 0, 1);
+      if (this.opts.mode === 'rush') return Math.floor(((this.rushIndex + bp) / C.bossOrder.length) * 100);
+      return Math.floor(bp * 100);
+    }
+
     comboMult() {
       const cc = C.combo;
       return 1 + Math.min(Math.floor(this.stats.combo / cc.perStep) * cc.multPerStep, cc.maxMult - 1);
@@ -351,7 +426,7 @@
       if (b && !b.isSurvival && !b.isDummy && !b.defeated) {
         const tp = b.targetPoint(p.x, p.y);
         this.fx.bolt(p.x, p.y, tp.x, tp.y, pal.accent, 0.3);
-        b.takeDamage(C.bossDamage.perfectEcho, tp.x, tp.y);
+        this.damageBoss(C.bossDamage.perfectEcho, tp.x, tp.y);
       }
       if (this.tutorial) this.tutorial.notify('perfect');
     }
@@ -424,7 +499,7 @@
       this.addScore(120);
       this.fx.spark(h.x, h.y, C.hazardColors.friendly, 10, 300, 0.4, 3);
       this.fx.shake(2, 0.08);
-      this.boss.takeDamage(C.bossDamage.reflected, h.x, h.y);
+      this.damageBoss(C.bossDamage.reflected, h.x, h.y);
     }
 
     hurt() {
@@ -458,6 +533,7 @@
       this.musicOff = true;
       this.stopCustomAudio();
       this.announce('SIGNAL LOST', '', 2);
+      if (this.coop && !this.deathlinked) PS.Net.send('dead', {}); // deathlink: take your partner with you
     }
 
     onBossDefeated(boss) {
@@ -481,6 +557,7 @@
       this.musicOff = true;
       this.stopCustomAudio();
       this.announce('RESOLVED', boss.name + ' falls silent', 2.6);
+      if (this.coop && !this.remoteWin) PS.Net.send('win', {});
     }
 
     // ================= COLLISIONS =================
@@ -557,6 +634,7 @@
       this.collide();
       this.fx.update(sdt, dt);
       if (this.tutorial) this.tutorial.update(dt);
+      if (this.coop) PS.Net.update(dt);
       if (this.announcement) { this.announcement.t += dt; if (this.announcement.t > this.announcement.life) this.announcement = null; }
 
       // record a ghost of this run (20 samples per second)
@@ -618,7 +696,9 @@
         hits: st.hits, breaks: st.breaks, breakHits: st.breakHits, maxCombo: st.maxCombo, cores: st.cores,
         level: this.boss && this.boss.isSurvival ? this.boss.level : 0,
         progress: this.boss && !this.boss.isSurvival ? Math.round((1 - this.boss.hp / this.boss.maxHp) * 100) : 0,
-        bossesCleared: st.bossesCleared, unlocks: [], newBest: false, prevBest: null
+        bossesCleared: st.bossesCleared, unlocks: [], newBest: false, prevBest: null,
+        pct: cleared && o.mode !== 'survival' ? 100 : this.progressPct(), bestPct: this.bestPct, bestTime: this.bestTime,
+        partner: this.coop && PS.Net.partnerName ? PS.Net.partnerName() : null, deathlinked: this.deathlinked
       };
     }
 
@@ -651,6 +731,14 @@
       } else if (res.time >= 120) F.survive120 = true;
       if (prof.lifetime.perfects >= 30) F.perfects30 = true;
       res.unlocks = PS.Game.newUnlocks(before, F);
+      // % of best
+      const rec = prof.records[key];
+      res.newBestPct = res.mode !== 'survival' && res.mode !== 'tutorial' && res.pct > (res.bestPct || 0);
+      res.newBestTime = res.mode === 'survival' && res.time > (res.bestTime || 0);
+      if (rec) {
+        rec.bestPct = Math.max(rec.bestPct || 0, res.pct || 0, res.bestPct || 0);
+        rec.bestTime = Math.max(rec.bestTime || 0, res.mode === 'survival' ? res.time : 0, res.bestTime || 0);
+      }
       PS.Profile.save();
     }
 
@@ -673,6 +761,7 @@
         this.boss.draw(ctx);
         this.hazards.draw(ctx);
         this.drawGhost(ctx);
+        if (this.coop) PS.Net.drawRemote(ctx, this);
         this.player.draw(ctx);
       } else {
         this.drawMenuBackdrop(ctx, pal);

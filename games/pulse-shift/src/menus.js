@@ -67,6 +67,9 @@ PS.Menus = {
 
   onKey(e) {
     if (!this.current) return;
+    const typing = e.target && e.target.tagName === 'INPUT';
+    if (typing && e.code === 'Enter' && e.target.dataset.enter) { e.preventDefault(); this.act(e.target.dataset.enter, {}); return; }
+    if (typing && e.code !== 'Escape') return;
     const btns = this.buttons();
     const i = btns.indexOf(document.activeElement);
     if (['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft', 'KeyS', 'KeyW', 'KeyA', 'KeyD'].includes(e.code)) {
@@ -83,6 +86,7 @@ PS.Menus = {
   },
 
   back() {
+    if (this.current === 'coop') { PS.Net.leave(); this.show('modes'); return; }
     const map = { modes: 'title', setup: 'modes', customize: 'title', records: 'title', settings: this.settingsBack };
     const to = map[this.current];
     if (to) this.show(to);
@@ -119,8 +123,26 @@ PS.Menus = {
       case 'resume': g.resume(); break;
       case 'restart': g.restart(); break;
       case 'quit': g.quit(); break;
-      case 'retry': g.restart(); break;
+      case 'retry': if (g.opts && g.opts.mode === 'coop' && PS.Net.status !== 'idle') { g.enterMenu(); this.show('coop'); } else g.restart(); break;
       case 'menu': g.quit(); break;
+      // ---------- co-op ----------
+      case 'coop': this.show('coop'); break;
+      case 'coop-host': case 'coop-join': {
+        const nameEl = document.getElementById('coop-name');
+        const name = nameEl ? nameEl.value.trim() : PS.Net.me().name;
+        if (!name) { this.toast('Type your name first.'); if (nameEl) nameEl.focus(); break; }
+        PS.Net.setName(name);
+        if (a === 'coop-host') { PS.Net.open(PS.Net.newCode(), 'host'); break; }
+        const codeEl = document.getElementById('coop-code');
+        const code = codeEl ? codeEl.value.trim().toUpperCase() : '';
+        if (code.length !== 4) { this.toast('Room codes have 4 letters.'); if (codeEl) codeEl.focus(); break; }
+        PS.Net.open(code, 'guest');
+        break;
+      }
+      case 'coop-boss': PS.Net.lobby.boss = d.id; PS.Net.sendLobby(); this.refresh(); break;
+      case 'coop-diff': PS.Net.lobby.difficulty = d.id; PS.Net.sendLobby(); this.refresh(); break;
+      case 'coop-start': PS.Net.hostStart(); break;
+      case 'coop-leave': PS.Net.leave().then(() => this.show('coop')); break;
       case 'reset':
         if (!this.confirmReset) { this.confirmReset = true; this.refresh(); break; }
         this.confirmReset = false;
@@ -168,6 +190,7 @@ PS.Menus = {
         ${card('practice', 'Practice', 'Fight one boss. Choose difficulty and modifiers. Race the ghost of your best run.')}
         ${card('survival', 'Survival', 'Endless waves from THE GRID. The tempo rises every 8 bars. How long can you last?')}
         ${card('rush', 'Boss Rush', 'All three bosses back to back. Health and Resonance carry over (+1 HP between fights).')}
+        <button class="card" data-act="coop"><h3>Co-op · Deathlink</h3><p>Play online with a friend against the same boss. Damage is shared. If one of you goes down, you both do.</p></button>
       </div>
       <button class="back" data-act="back">← Back</button>`;
   },
@@ -255,8 +278,49 @@ PS.Menus = {
       <button class="back" data-act="back" data-focus>← Back</button>`;
   },
 
+  screen_coop() {
+    const N = PS.Net, C = PS.CONFIG, esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const intro = '<h2>Co-op · Deathlink</h2><p class="modedesc">Two players, one boss. You see each other live, damage to the boss is shared, and if one of you goes down, you <b>both</b> do.</p>';
+    if (!N.available()) return intro + '<p class="smallnote">Online play is not set up on this version of the game.</p><button class="back" data-act="back">← Back</button>';
+    if (N.status === 'idle' || N.status === 'error') {
+      return intro + `
+        ${N.status === 'error' ? '<p class="err">' + esc(N.error) + '</p>' : ''}
+        <div class="coopform">
+          <label for="coop-name">Your name</label>
+          <input id="coop-name" maxlength="16" autocomplete="off" value="${esc(N.me().name)}" placeholder="Name">
+          <button class="big" data-act="coop-host" data-focus>Create a room</button>
+          <div class="or">or join a friend</div>
+          <label for="coop-code">Room code</label>
+          <div class="row"><input id="coop-code" maxlength="4" autocomplete="off" placeholder="ABCD" data-enter="coop-join" class="code"><button class="pill" data-act="coop-join">Join</button></div>
+        </div>
+        <button class="back" data-act="back">← Back</button>`;
+    }
+    const host = N.role === 'host', L = N.lobby;
+    const who = N.status === 'connecting' ? 'Connecting…' : N.partner ? '✓ ' + esc(N.partner.name) + ' is in the room' : host ? 'Waiting for your friend… share the code' : 'Waiting for the host…';
+    let body;
+    if (host) {
+      const bosses = C.bossOrder.map((id) => `<button class="pill ${L.boss === id ? 'on' : ''}" data-act="coop-boss" data-id="${id}">${this.BOSS_INFO[id].name}</button>`).join('');
+      const diffs = Object.keys(C.difficulty).map((id) => `<button class="pill ${L.difficulty === id ? 'on' : ''}" data-act="coop-diff" data-id="${id}">${C.difficulty[id].label}</button>`).join('');
+      body = `<h4>Boss</h4><div class="row">${bosses}</div><h4>Difficulty</h4><div class="row">${diffs}</div>
+        <div class="row"><button class="big" data-act="coop-start" ${N.partner ? 'data-focus' : 'disabled'}>Start ▶</button></div>`;
+    } else {
+      body = `<p class="modedesc">${N.partner ? esc(N.partner.name) + ' picks the boss: <b>' + (this.BOSS_INFO[L.boss] || {}).name + '</b> · ' + (C.difficulty[L.difficulty] || {}).label + '. The fight starts when they press Start.' : ''}</p>`;
+    }
+    return intro + `
+      <div class="roomcode">${esc(N.code || '')}</div>
+      <div class="sub">${who}</div>
+      ${body}
+      <button class="back" data-act="coop-leave" ${host ? '' : 'data-focus'}>Leave the room</button>`;
+  },
+
   screen_pause() {
     const g = PS.game;
+    if (g.coop) return `<h2>Menu</h2>
+      <div class="sub">Co-op with ${PS.Net.partnerName()} — the fight keeps running!</div>
+      <div class="menu-col">
+        <button data-act="resume" data-focus>Back to the fight</button>
+        <button data-act="quit">Leave the match</button>
+      </div>`;
     return `<h2>Paused</h2>
       <div class="sub">${g.boss ? g.boss.name : ''} · ${g.diff.label}</div>
       <div class="menu-col">
@@ -281,6 +345,10 @@ PS.Menus = {
     const stat = (label, val) => `<div class="stat"><span>${label}</span><b>${val}</b></div>`;
     const acc = r.dashes ? Math.round(r.accuracy * 100) + '%' : '—';
     const best = r.newBest ? '<div class="newbest">NEW PERSONAL BEST</div>' : r.prevBest !== null ? '<div class="prev">Best: ' + r.prevBest.toLocaleString() + '</div>' : '';
+    const pctLine = r.mode === 'survival'
+      ? (r.newBestTime ? '<div class="pct new">NEW BEST TIME · ' + U.formatTime(r.time) + '</div>' : r.bestTime ? '<div class="pct">' + Math.floor((r.time / r.bestTime) * 100) + '% of your best time (' + U.formatTime(r.bestTime) + ')</div>' : '')
+      : '<div class="pct' + (r.newBestPct ? ' new' : '') + '"><b>' + r.pct + '%</b>' + (r.newBestPct ? ' · NEW BEST %' : r.bestPct ? ' · best ' + r.bestPct + '%' : '') + '</div>';
+    const coopLine = r.partner ? '<div class="prev">Co-op with ' + r.partner + (r.deathlinked ? ' · taken down by DEATHLINK' : '') + '</div>' : '';
     const unl = r.unlocks.length ? '<div class="unlocks">Unlocked: ' + r.unlocks.join(' · ') + '</div>' : '';
     const extra = r.mode === 'survival' ? stat('Level reached', r.level)
       : !r.cleared ? stat(r.mode === 'rush' ? 'Bosses cleared' : 'Boss damage', r.mode === 'rush' ? r.bossesCleared + '/3' : r.progress + '%') : stat('Rank points', r.points + '/110');
@@ -289,7 +357,7 @@ PS.Menus = {
       <div class="status ${r.cleared || r.mode === 'survival' ? 'ok' : 'bad'}">${status}</div>
       <div class="rank rank-${rank.replace('+', 'p')}">${rank}</div>
       <div class="score">${r.score.toLocaleString()}</div>
-      ${best}${unl}
+      ${pctLine}${best}${coopLine}${unl}
       <div class="stats">
         ${stat('Perfect Shift accuracy', acc + ' <small>(' + r.perfects + '/' + r.dashes + ' dashes)</small>')}
         ${stat('Perfect Hops', r.perfectHops)}
@@ -301,7 +369,7 @@ PS.Menus = {
         ${stat('Difficulty', r.difficulty + (r.mods.length ? ' + ' + r.mods.join(', ') : ''))}
       </div>
       <div class="row">
-        <button class="big" data-act="retry" data-focus>Retry (R)</button>
+        <button class="big" data-act="retry" data-focus>${r.mode === 'coop' ? 'Back to the room' : 'Retry (R)'}</button>
         <button class="big alt" data-act="menu">Menu</button>
       </div>`;
   }

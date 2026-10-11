@@ -39,6 +39,8 @@
       this.orbit = o.orbit ? Object.assign({}, o.orbit) : null; // {cx,cy,ang,rad,angVel,radVel}
       this.blink = o.blink ? Object.assign({ done: 0, count: 1, warn: 0.3 }, o.blink) : null; // {at, dist, every, count}
       this.redirect = o.redirect ? Object.assign({ done: false }, o.redirect) : null; // {at, speed}
+      this.bounce = o.bounce || 0;          // how many times it bounces off the arena walls
+      this.reverseAt = o.reverseAt || 0;    // seconds after which it turns around (REWIND)
       this.age = 0;
       this.dead = false;
       this.friendly = false;
@@ -99,7 +101,13 @@
           this.vx = Math.cos(a) * this.redirect.speed; this.vy = Math.sin(a) * this.redirect.speed;
           this.accel = 0;
         }
+        if (this.reverseAt && t >= this.reverseAt) { this.reverseAt = 0; this.vx = -this.vx; this.vy = -this.vy; }
         this.x += this.vx * dt; this.y += this.vy * dt;
+        if (this.bounce > 0) {
+          const A = g.arena;
+          if ((this.x < A.x0 + this.r && this.vx < 0) || (this.x > A.x1 - this.r && this.vx > 0)) { this.vx = -this.vx; this.bounce--; g.fx.ring(this.x, this.y, HC().danger, 4, 26, 0.2, 2); }
+          else if ((this.y < A.y0 + this.r && this.vy < 0) || (this.y > A.y1 - this.r && this.vy > 0)) { this.vy = -this.vy; this.bounce--; g.fx.ring(this.x, this.y, HC().danger, 4, 26, 0.2, 2); }
+        }
       }
 
       // blink = teleport forward along the travel direction
@@ -165,7 +173,8 @@
       // warning flicker before acceleration / redirect
       const t = this.age - this.delay;
       const soon = (this.accel > 0 && this.accelAt > 0 && t < this.accelAt && t > this.accelAt - 0.35) ||
-        (this.redirect && !this.redirect.done && t > this.redirect.at - 0.35);
+        (this.redirect && !this.redirect.done && t > this.redirect.at - 0.35) ||
+        (this.reverseAt && t > this.reverseAt - 0.35);
       if (soon) {
         ctx.strokeStyle = U.rgba('#ffffff', 0.5 + 0.5 * Math.sin(g.realTime * 50));
         ctx.lineWidth = 2;
@@ -182,6 +191,7 @@
         ctx.fillRect(-2, -2, 4, 4);
         ctx.restore();
       } else {
+        if (this.bounce > 0) { ctx.strokeStyle = U.rgba(col, 0.7); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(this.x, this.y, this.r + 5, 0, U.TAU); ctx.stroke(); }
         ctx.fillStyle = col;
         ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, U.TAU); ctx.fill();
         ctx.fillStyle = hc.dangerCore;

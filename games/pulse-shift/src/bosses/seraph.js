@@ -33,9 +33,9 @@ PS.Bosses.seraph = class extends PS.Boss {
 
   sequences() {
     return [
-      [this.p_gridV, this.p_blinkRing, this.p_tenGates, this.p_gridCross, this.p_teleportBurst, this.p_gridH, this.p_tenGates, this.p_blinkSpiral],
-      [this.p_safeZone, this.p_cage, this.p_fakeGrid, this.p_teleportBurst, this.p_tenGates, this.p_fakeGrid, this.p_cage, this.p_blinkRing],
-      [this.p_starSweep, this.p_cage, this.p_wingStorm, this.p_crossSweep, this.p_fakeGrid, this.p_tenGates, this.p_gridBlink, this.p_safeZone]
+      [this.p_gridV, this.p_blinkRing, this.p_tenGates, this.p_mirrorShards, this.p_gridCross, this.p_teleportBurst, this.p_gridH, this.p_blinkSpiral],
+      [this.p_safeZone, this.p_cage, this.p_haloRain, this.p_fakeGrid, this.p_teleportBurst, this.p_tenGates, this.p_mirrorShards, this.p_fakeGrid],
+      [this.p_starSweep, this.p_cage, this.p_wingStorm, this.p_haloRain, this.p_fakeGrid, this.p_tenGates, this.p_mirrorShards, this.p_gridBlink, this.p_safeZone]
     ];
   }
 
@@ -45,7 +45,8 @@ PS.Bosses.seraph = class extends PS.Boss {
     const anchors = [[320, 200], [640, 170], [960, 200], [320, 520], [960, 520], [640, 550], [640, 360], [200, 360], [1080, 360]];
     let dest = forced;
     if (!dest) {
-      const ok = anchors.filter(([x, y]) => PS.U.dist(x, y, g.player.x, g.player.y) > 300 && PS.U.dist(x, y, this.x, this.y) > 60);
+      const tg = g.aimPoint();
+      const ok = anchors.filter(([x, y]) => PS.U.dist(x, y, tg.x, tg.y) > 300 && PS.U.dist(x, y, this.x, this.y) > 60);
       const pick = PS.U.choose(ok.length ? ok : anchors);
       dest = { x: pick[0], y: pick[1] };
     }
@@ -131,7 +132,7 @@ PS.Bosses.seraph = class extends PS.Boss {
       ghosts.push(P.laser(g, A.x0 - 40, y, 0, { fake: true, len: A.x1 - A.x0 + 80 }));
     }
     g.later(1, () => {
-      ghosts.sort(() => Math.random() - 0.5);
+      ghosts.sort(() => PS.rng() - 0.5);
       const n = g.mods.remix ? 4 : 3;
       ghosts.forEach((l, i) => (i < n ? l.makeReal(g.beats(1), g.beats(0.75)) : l.dissolve()));
       PS.Audio.sfx('warn');
@@ -150,8 +151,8 @@ PS.Bosses.seraph = class extends PS.Boss {
   p_starSweep() {
     const g = this.g, P = PS.Patterns;
     this.teleport(1, { x: 640, y: 360 });
-    const dir = Math.random() < 0.5 ? 1 : -1;
-    const base = Math.random() * Math.PI;
+    const dir = PS.rng() < 0.5 ? 1 : -1;
+    const base = PS.rng() * Math.PI;
     const beams = [];
     g.later(1, () => {
       for (let k = 0; k < 4; k++) beams.push(P.laser(g, this.x, this.y, base + (k * Math.PI) / 2, { warnBeats: 1, activeBeats: 6, width: 22, rot: 0.45 * dir, follow: () => this }));
@@ -252,7 +253,7 @@ PS.Bosses.seraph = class extends PS.Boss {
     // static glitch lines
     if (Math.random() < 0.3) {
       ctx.fillStyle = U.rgba(main, 0.5);
-      for (let i = 0; i < 3; i++) ctx.fillRect(U.rand(-60, 30), U.rand(-80, 80), U.rand(20, 60), 2);
+      for (let i = 0; i < 3; i++) ctx.fillRect(-60 + Math.random() * 90, -80 + Math.random() * 160, 20 + Math.random() * 40, 2);
     }
     ctx.restore();
     this.drawShield(ctx, this.x, this.y, 95);
@@ -278,12 +279,21 @@ PS.Bosses.seraph = class extends PS.Boss {
     return 2;
   }
 
-  // CROSS SWEEP (DASH CHECK x2): a vertical wall, then a horizontal one
-  p_crossSweep() {
+  // MIRROR SHARDS: a ring of bullets that bounce off the arena walls (ringed = bounces)
+  p_mirrorShards() {
     const g = this.g;
     this.tell();
-    PS.Patterns.sweepWall(g, { vertical: true, warnBeats: 1.5, sweepBeats: 2.5 });
-    g.later(2.5, () => PS.Patterns.sweepWall(g, { vertical: false, warnBeats: 1.5, sweepBeats: 2 }));
+    PS.Patterns.ring(g, this.x, this.y, { count: 12, speed: 210, breakEvery: 3, bounce: 1 });
+    g.later(2, () => PS.Patterns.ring(g, this.x, this.y, { count: 10, speed: 190, breakEvery: 2, bounce: 1, offset: 0.3 }));
+    return 1;
+  }
+
+  // HALO RAIN: light falls from above in rows; follow the drifting gap (or dash through)
+  p_haloRain() {
+    const g = this.g;
+    this.tell();
+    g.fx.text(g.W / 2, 128, 'FOLLOW THE GAP', '#dff8ff', 30, 1.1);
+    PS.Patterns.rain(g, { rows: 8, every: 0.5, speed: 230, spacing: 42, gap: g.diff.id === 'easy' ? 230 : 180, breakEvery: 5 });
     return 2;
   }
 };

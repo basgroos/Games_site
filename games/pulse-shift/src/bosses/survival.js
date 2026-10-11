@@ -31,7 +31,7 @@ PS.Bosses.survival = class extends PS.Boss {
     if (--this.barsLeft <= 0) {
       this.barsLeft = this.runPattern();
       // from level 4, sometimes layer a second short attack
-      if (this.level >= 4 && Math.random() < 0.45) this.runPattern(true);
+      if (this.level >= 4 && PS.rng() < 0.45) this.runPattern(true);
     }
   }
 
@@ -56,14 +56,19 @@ PS.Bosses.survival = class extends PS.Boss {
       { lvl: 1, bars: 1, fn: () => [0, 1, 2, 3].forEach((b) => g.later(b, () => P.aimed(g, edge(), { count: 3, speed: 280, breakMiddle: b % 2 === 0 }))) },
       { lvl: 2, bars: 1, fn: () => P.lineWall(g, U.choose(['left', 'right', 'top', 'bottom']), { speed: 200, gapSize: 140, breakEvery: 6 }) },
       { lvl: 2, bars: 1, fn: () => P.grid(g, { dir: U.choose(['v', 'h']), count: U.choose([3, 4]), warnBeats: 2, activeBeats: 1 }) },
-      { lvl: 3, bars: 1, fn: () => [0, 1, 2].forEach((b) => g.later(b, () => P.bombs(g, [{ x: g.player.x, y: g.player.y }], { warnBeats: 1, r: 60 }))) },
+      { lvl: 3, bars: 1, fn: () => [0, 1, 2].forEach((b) => g.later(b, () => P.bombs(g, [g.aimPoint()], { warnBeats: 1, r: 60 }))) },
       { lvl: 3, bars: 1, fn: () => P.orbitArms(g, this.x, this.y, { arms: 3, perArm: 6, angVel: U.choose([-1, 1]) * 0.9, lifeBeats: 5, breakTips: true }) },
       { lvl: 3, bars: 1, fn: () => P.shockwave(g, this.x, this.y, { warnBeats: 1, speed: 340, gaps: [] }) },
       { lvl: 4, bars: 2, fn: () => { for (let k = 0; k < 4; k++) g.later(k * 2, () => P.checker(g, { parity: k % 2, warnBeats: 1, activeBeats: 0.35 })); } },
       { lvl: 4, bars: 1, fn: () => P.ring(g, this.x, this.y, { count: 12, speed: 50, accel: 650, accelAt: g.beats(1), maxSpeed: 420, breakEvery: 4 }) },
       { lvl: 5, bars: 1, fn: () => P.ring(g, this.x, this.y, { count: 12, speed: 150, breakEvery: 2, blink: { at: g.beats(1), dist: 140, warn: g.beats(0.5), count: 2, every: g.beats(1) } }) },
       { lvl: 5, bars: 1, fn: () => P.ring(g, this.x, this.y, { count: 14, speed: 520, accel: -760, minSpeed: 0, breakEvery: 2, redirect: { at: g.beats(2), speed: 320 } }) },
-      { lvl: 6, bars: 2, fn: () => P.safeZone(g, { radius: 160, drift: 90, warnBeats: 2, activeBeats: 4 }) }
+      { lvl: 6, bars: 2, fn: () => P.safeZone(g, { radius: 160, drift: 90, warnBeats: 2, activeBeats: 4 }) },
+      { lvl: 2, bars: 2, fn: () => { for (let k = 0; k < 4; k++) g.later(k, () => P.bombGrid(g, { parity: k % 2, r: 70 })); } },
+      { lvl: 3, bars: 1, fn: () => P.ring(g, this.x, this.y, { count: 10, speed: 200, breakEvery: 3, bounce: 1 }) },
+      { lvl: 4, bars: 2, fn: () => P.rain(g, { rows: 8, every: 0.5, speed: 230, spacing: 44, gap: 190 }) },
+      { lvl: 5, bars: 1, fn: () => P.ring(g, this.x, this.y, { count: 14, speed: 240, breakEvery: 3, reverseAt: g.beats(2) }) },
+      { lvl: 6, bars: 1, fn: () => P.radialLasers(g, this, { count: 8, warnBeats: 2, activeBeats: 3, rot: 0.3 }) }
     ].filter((p) => p.lvl <= L);
   }
 
@@ -71,7 +76,7 @@ PS.Bosses.survival = class extends PS.Boss {
     let list = this.pool();
     if (shortOnly) list = list.filter((p) => p.bars === 1);
     // newest patterns are a bit more likely
-    const pick = Math.random() < 0.35 ? list[list.length - 1 - Math.floor(Math.random() * Math.min(3, list.length))] : PS.U.choose(list);
+    const pick = PS.rng() < 0.35 ? list[list.length - 1 - Math.floor(PS.rng() * Math.min(3, list.length))] : PS.U.choose(list);
     this.tell();
     pick.fn();
     return pick.bars;

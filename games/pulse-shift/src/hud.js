@@ -23,6 +23,14 @@ PS.HUD = {
       ctx.restore();
     }
 
+    // ---- co-op partner ----
+    if (g.coop && PS.Net.remote) {
+      const Rm = PS.Net.remote;
+      ctx.font = '700 11px ' + PS.FONT; ctx.textAlign = 'left';
+      ctx.fillStyle = pal.accent;
+      ctx.fillText((Rm.alive === false ? '✕ ' : '') + PS.Net.partnerName().toUpperCase() + '  ' + (Rm.hp || 0) + '/' + (Rm.maxHp || 0) + '  ·  DEATHLINK', 42, 112);
+    }
+
     // ---- Resonance ----
     const R = C.resonance, bx = 42, by = 70, bw = 230, bh = 10;
     const ready = g.res >= R.breakCost;
@@ -49,6 +57,12 @@ PS.HUD = {
       ctx.fillText('SURVIVAL — LEVEL ' + b.level, cx, 36);
       ctx.font = '700 22px ' + PS.MONO;
       ctx.fillText(U.formatTime(g.stats.time), cx, 62);
+      if (g.bestTime > 0) {
+        const beat = g.stats.time > g.bestTime;
+        ctx.font = '700 12px ' + PS.FONT;
+        ctx.fillStyle = beat ? '#ffe27a' : 'rgba(255,255,255,0.5)';
+        ctx.fillText(beat ? 'NEW BEST TIME!' : 'BEST ' + U.formatTime(g.bestTime) + '  ·  ' + Math.floor((g.stats.time / g.bestTime) * 100) + '% of best', cx, 84);
+      }
     } else {
       ctx.fillText(b.name, cx, 34);
       const w = 520, x0 = cx - w / 2, y0 = 48;
@@ -60,6 +74,25 @@ PS.HUD = {
       for (const t of b.thresholds) ctx.fillRect(x0 + w * t - 1, y0 - 3, 3, 16);
       ctx.strokeStyle = 'rgba(255,255,255,0.3)';
       ctx.strokeRect(x0, y0, w, 10);
+      // gold mark = how far your best attempt got
+      if (!b.isDummy && g.bestPct > 0 && g.bestPct < 100 && g.opts.mode !== 'rush') {
+        const bx2 = x0 + w * (1 - g.bestPct / 100);
+        ctx.fillStyle = '#ffe27a';
+        ctx.beginPath(); ctx.moveTo(bx2, y0 - 2); ctx.lineTo(bx2 - 5, y0 - 9); ctx.lineTo(bx2 + 5, y0 - 9); ctx.closePath(); ctx.fill();
+        ctx.fillRect(bx2 - 1, y0 - 2, 2, 14);
+      }
+      if (!b.isDummy) { // % done and % of best
+        const pct = g.progressPct(), best = g.bestPct || 0, newBest = pct > best && best > 0;
+        ctx.textAlign = 'right';
+        ctx.font = '800 14px ' + PS.MONO;
+        ctx.fillStyle = pal.ui;
+        ctx.fillText(pct + '%', x0 - 12, y0 + 5);
+        ctx.textAlign = 'left';
+        ctx.font = '700 12px ' + PS.FONT;
+        ctx.fillStyle = newBest ? '#ffe27a' : 'rgba(255,255,255,0.5)';
+        ctx.fillText(newBest ? 'NEW BEST!' : best > 0 ? 'BEST ' + best + '%' : 'FIRST TRY', x0 + w + 12, y0 + 5);
+        ctx.textAlign = 'center';
+      }
       if (b.shielded) {
         ctx.fillStyle = 'rgba(255,255,255,' + (0.5 + 0.3 * Math.sin(g.realTime * 10)).toFixed(2) + ')';
         ctx.font = '700 11px ' + PS.FONT;

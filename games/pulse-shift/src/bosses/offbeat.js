@@ -34,13 +34,18 @@ PS.Bosses.offbeat = class extends PS.Boss {
   }
 
   get bpms() { return [100, 104, 108]; }
+
+  // pick a new spot to drift to every 2 bars (on the beat, so co-op stays in sync)
+  onAnyBeat(s) {
+    if (s.beatInBar === 0 && s.bar % 2 === 0) this.wander = { x: PS.U.rand(420, 860), y: PS.U.rand(230, 470) };
+  }
   phaseSubtitle(n) { return ['', 'it hesitates… then it doesn\'t', 'don\'t trust the beat — trust the markers'][n]; }
 
   sequences() {
     return [
-      [this.p_lateWave, this.p_stutterSpokes, this.p_accelBurst, this.p_stutterShock, this.p_swingRings, this.p_stutterSpokes, this.p_lateWave],
-      [this.p_decelSpray, this.p_wrongWalls, this.p_falseCue, this.p_bombsOffgrid, this.p_stutterSpokes, this.p_decelSpray, this.p_stutterShock],
-      [this.p_desyncWaves, this.p_wrongWalls, this.p_bombsOffgrid, this.p_lateRing, this.p_decelSpray, this.p_stutterSpokes, this.p_falseCue, this.p_accelBurst]
+      [this.p_lateWave, this.p_stutterSpokes, this.p_bouncers, this.p_accelBurst, this.p_stutterShock, this.p_swingRings, this.p_lateWave],
+      [this.p_decelSpray, this.p_wrongWalls, this.p_rewind, this.p_falseCue, this.p_bombsOffgrid, this.p_stutterSpokes, this.p_bouncers, this.p_stutterShock],
+      [this.p_desyncWaves, this.p_wrongWalls, this.p_rewind, this.p_bombsOffgrid, this.p_lateRing, this.p_decelSpray, this.p_stutterSpokes, this.p_falseCue]
     ];
   }
 
@@ -118,8 +123,8 @@ PS.Bosses.offbeat = class extends PS.Boss {
     const g = this.g, U = PS.U;
     const times = g.mods.remix ? [0, 0.5, 1, 1.25, 1.5, 2.25, 2.75] : [0, 0.5, 1.25, 1.5, 2.75];
     times.forEach((t) => g.later(t, () => {
-      const A = g.arena, a = Math.random() * U.TAU, r = U.rand(0, 70);
-      PS.Patterns.bombs(g, [{ x: U.clamp(g.player.x + Math.cos(a) * r, A.x0 + 40, A.x1 - 40), y: U.clamp(g.player.y + Math.sin(a) * r, A.y0 + 40, A.y1 - 40) }], { warnBeats: 1, r: 62 });
+      const A = g.arena, a = PS.rng() * U.TAU, r = U.rand(0, 70), tg = g.aimPoint();
+      PS.Patterns.bombs(g, [{ x: U.clamp(tg.x + Math.cos(a) * r, A.x0 + 40, A.x1 - 40), y: U.clamp(tg.y + Math.sin(a) * r, A.y0 + 40, A.y1 - 40) }], { warnBeats: 1, r: 62 });
     }));
     g.later(2, () => PS.Patterns.ring(g, this.x, this.y, { count: 10, speed: 150, breakEvery: 2 }));
     return 1;
@@ -131,7 +136,7 @@ PS.Bosses.offbeat = class extends PS.Boss {
   }
 
   p_desyncWaves() {
-    const offs = [0.33, 0.9, 1.6, 2.2, 2.9].sort(() => Math.random() - 0.5).slice(0, 3).sort((a, b) => a - b);
+    const offs = [0.33, 0.9, 1.6, 2.2, 2.9].sort(() => PS.rng() - 0.5).slice(0, 3).sort((a, b) => a - b);
     offs.forEach((t, i) => this.markedRing(t, { count: 13, speed: 190, breakEvery: 3, offset: i * 0.3 }));
     this.g.later(1, () => PS.Patterns.aimed(this.g, this, { count: 3, speed: 60, spread: 0.35 }));
     return 1;
@@ -144,13 +149,8 @@ PS.Bosses.offbeat = class extends PS.Boss {
     this.fakeTell = Math.max(0, this.fakeTell - dt * 2);
     // glitch jitter
     this.glitchT -= dt;
-    if (this.glitchT <= 0) { this.glitch = Math.random() < 0.4 ? U.rand(3, 9) : 0; this.glitchT = U.rand(0.05, 0.25); }
+    if (this.glitchT <= 0) { this.glitch = Math.random() < 0.4 ? 3 + Math.random() * 6 : 0; this.glitchT = 0.05 + Math.random() * 0.2; } // cosmetic only
     // wander slowly around the middle of the arena
-    this.wanderT -= dt;
-    if (this.wanderT <= 0) {
-      this.wanderT = U.rand(2, 4);
-      this.wander = { x: U.rand(420, 860), y: U.rand(230, 470) };
-    }
     if (!this.defeated) {
       this.x += (this.wander.x - this.x) * Math.min(1, dt * 0.5);
       this.y += (this.wander.y - this.y) * Math.min(1, dt * 0.5);
@@ -224,8 +224,8 @@ PS.Bosses.offbeat = class extends PS.Boss {
   p_stutterSpokes() {
     const g = this.g;
     const n = { easy: 7, normal: 10, hard: 12 }[g.diff.id] || 10;
-    const base = Math.random() * PS.U.TAU;
-    const order = [...Array(n).keys()].sort(() => Math.random() - 0.5);
+    const base = PS.rng() * PS.U.TAU;
+    const order = [...Array(n).keys()].sort(() => PS.rng() - 0.5);
     const times = [0, 0.5, 0.75, 1.25, 1.5, 2, 2.25, 2.75, 3, 3.25, 3.5, 3.75];
     order.forEach((k, i) => g.later(times[i], () => {
       this.tell(0.4);
@@ -238,7 +238,7 @@ PS.Bosses.offbeat = class extends PS.Boss {
   // different speeds, speeding up. No gaps — dash through each one.
   p_wrongWalls() {
     const g = this.g, P = PS.Patterns;
-    const sides = Math.random() < 0.5 ? ['left', 'right'] : ['top', 'bottom'];
+    const sides = PS.rng() < 0.5 ? ['left', 'right'] : ['top', 'bottom'];
     P.callout(g, 'DASH THROUGH!');
     P.lineWall(g, sides[0], { speed: 110, accel: 160, maxSpeed: 360, spacing: 24, gapSize: 0, delayBeats: 1 });
     g.later(0.75, () => P.lineWall(g, sides[1], { speed: 80, accel: 220, maxSpeed: 420, spacing: 24, gapSize: 0, delayBeats: 1 }));
@@ -249,6 +249,29 @@ PS.Bosses.offbeat = class extends PS.Boss {
   p_lateRing() {
     const g = this.g;
     g.later(0.5, () => { this.tell(); PS.Patterns.closingRing(g, { radius: 280, spacing: 24, speed: 230, warnBeats: 1.25 }); });
+    return 1;
+  }
+
+  // REWIND: bullets fly out, freeze-flicker, then all come back the way they came
+  p_rewind() {
+    const g = this.g;
+    g.fx.text(g.W / 2, 128, '◀◀ REWIND', '#00e5ff', 32, 1.1);
+    PS.Audio.sfx('warn');
+    [0, 1].forEach((k) => g.later(k * 0.75, () => {
+      this.tell();
+      PS.Patterns.ring(g, this.x, this.y, { count: 14, speed: 240, breakEvery: 3, offset: k * 0.22, reverseAt: g.beats(2 - k * 0.75) });
+    }));
+    return 2;
+  }
+
+  // BOUNCERS: big slow bullets that ricochet around the arena a few times
+  p_bouncers() {
+    const g = this.g;
+    this.tell();
+    const n = { easy: 3, normal: 5, hard: 6 }[g.diff.id] || 5, base = PS.rng() * PS.U.TAU;
+    for (let i = 0; i < n; i++) g.later(i * 0.5 + 0.25, () => {
+      g.hazards.orb({ x: this.x, y: this.y, angle: base + (i / n) * PS.U.TAU, speed: 210 * g.diff.speed, r: 15, bounce: 3, breakable: i === 0, life: 9 });
+    });
     return 1;
   }
 };

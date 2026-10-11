@@ -108,7 +108,7 @@
       if (hit('x..x..x...x..x..', i)) A.bass(t, r - 12 + (i === 10 ? 12 : 0), s.beatDur * 0.3, 0.8);
       if (L >= 1 && hit('...x.....x....x.', i)) A.pluck(t, r + 24 + [0, 1, 7, 3][(i >> 2)], s.beatDur * 0.25, 0.7, 'sawtooth');
       if (L >= 2 && i === 2) A.pad(t, [r + 12, r + 13, r + 19], s.beatDur * 3, 0.7);
-      if (L >= 3 && Math.random() < 0.12) A.pluck(t, r + 36 + PS.U.choose([0, 1, 5, 7]), 0.05, 0.6, 'square'); // glitches
+      if (L >= 3 && Math.random() < 0.12) A.pluck(t, r + 36 + [0, 1, 5, 7][Math.floor(Math.random() * 4)], 0.05, 0.6, 'square'); // glitches
     }
   };
 

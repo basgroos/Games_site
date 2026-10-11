@@ -26,9 +26,10 @@ PS.Bosses.metronome = class extends PS.Boss {
     this.orbitAng = 0;
     this.slowTempo = false;
     this.phaseNames = ['PHASE I — TICK', 'PHASE II — TOCK', 'PHASE III — FRACTURE'];
+    this.vulnerability = 1.35; // the first boss: a shorter, gentler fight
   }
 
-  get bpms() { return [124, 136, 148]; }
+  get bpms() { return [116, 126, 136]; }
 
   phaseSubtitle(n) {
     return ['', 'the walls begin to turn', 'it breaks apart — watch every side'][n];
@@ -36,9 +37,9 @@ PS.Bosses.metronome = class extends PS.Boss {
 
   sequences() {
     return [
-      [this.p_shockTick, this.p_spiral, this.p_needle, this.p_pendulumWall, this.p_tickRain, this.p_spiral, this.p_shockSpiral],
-      [this.p_orbitWalls, this.p_clockHands, this.p_checker, this.p_spiralFast, this.p_pendulumWall, this.p_needleDouble, this.p_aimedShock],
-      [this.p_fragRings, this.p_alarm, this.p_crossLasers, this.p_fragSpiral, this.p_coreHands, this.p_fragShock, this.p_alarm, this.p_fragAimed]
+      [this.p_shockTick, this.p_spiral, this.p_tickTock, this.p_needle, this.p_tickRain, this.p_gearTeeth, this.p_spiral, this.p_shockSpiral],
+      [this.p_orbitWalls, this.p_clockHands, this.p_checker, this.p_gearTeeth, this.p_tickTock, this.p_spiralFast, this.p_needleDouble, this.p_aimedShock],
+      [this.p_fragRings, this.p_alarm, this.p_crossLasers, this.p_fragSpiral, this.p_coreHands, this.p_tickTock, this.p_fragShock, this.p_fragAimed]
     ];
   }
 
@@ -52,7 +53,7 @@ PS.Bosses.metronome = class extends PS.Boss {
     const g = this.g, P = PS.Patterns;
     [0, 2].forEach((b) => g.later(b, () => {
       this.tell();
-      P.shockwave(g, this.x, this.y, { warnBeats: 1, speed: 330, gaps: P.gaps(2, 0.4) });
+      P.shockwave(g, this.x, this.y, { warnBeats: 1, speed: 280, gaps: P.gaps(2, 0.55) });
     }));
     if (g.mods.remix) [1, 3].forEach((b) => g.later(b, () => P.aimed(g, this, { count: 3, speed: 300 })));
     return 1;
@@ -61,8 +62,8 @@ PS.Bosses.metronome = class extends PS.Boss {
   p_spiral() {
     const g = this.g;
     this.tell();
-    // 6 arms: every other arm is breakable (cyan) — perfect BREAK fodder
-    PS.Patterns.spiral(g, this, { arms: 6, breakArms: 2, perBeat: 2, beats: 3.5, speed: 165, step: 0.22 });
+    // 4 arms: every other arm is breakable (cyan) — perfect BREAK fodder
+    PS.Patterns.spiral(g, this, { arms: 4, breakArms: 2, perBeat: 2, beats: 3, speed: 140, step: 0.25 });
     return 1;
   }
 
@@ -70,7 +71,7 @@ PS.Bosses.metronome = class extends PS.Boss {
     const g = this.g, P = PS.Patterns;
     this.tell();
     const make = (off) => P.laser(g, 0, 0, 0, {
-      warnBeats: 1, activeBeats: 2.5, width: 26, len: 1400,
+      warnBeats: 1.5, activeBeats: 2, width: 22, len: 1400,
       follow: () => this.pivot(), angFn: () => this.needleAngle() + off
     });
     make(0);
@@ -81,16 +82,16 @@ PS.Bosses.metronome = class extends PS.Boss {
 
   p_tickRain() {
     const g = this.g, P = PS.Patterns;
-    for (let b = 0; b < 4; b++) g.later(b, () => { this.tell(0.5); P.aimed(g, this, { count: b % 2 ? 3 : 5, spread: 0.24, speed: 300 }); });
-    g.later(2, () => P.ring(g, this.x, this.y, { count: 12, speed: 160, breakEvery: 3 }));
+    for (let b = 0; b < 4; b++) g.later(b, () => { this.tell(0.5); P.aimed(g, this, { count: b % 2 ? 2 : 3, spread: 0.3, speed: 250 }); });
+    g.later(2, () => P.ring(g, this.x, this.y, { count: 10, speed: 140, breakEvery: 2 }));
     return 1;
   }
 
   p_shockSpiral() {
     const g = this.g, P = PS.Patterns;
     this.tell();
-    P.shockwave(g, this.x, this.y, { warnBeats: 1, speed: 300, gaps: [] }); // no gaps: you must HOP
-    g.later(1, () => P.spiral(g, this, { arms: 2, perBeat: 4, beats: 2.5, speed: 210, step: 0.34 }));
+    P.shockwave(g, this.x, this.y, { warnBeats: 1.5, speed: 250, gaps: [] }); // no gaps: hop or dash
+    g.later(1.5, () => P.spiral(g, this, { arms: 2, perBeat: 3, beats: 2, speed: 170, step: 0.34 }));
     return 1;
   }
 
@@ -98,21 +99,21 @@ PS.Bosses.metronome = class extends PS.Boss {
   p_orbitWalls() {
     const g = this.g, P = PS.Patterns, pal = PS.Profile.palette();
     this.tell();
-    const dir = Math.random() < 0.5 ? 1 : -1;
+    const dir = PS.rng() < 0.5 ? 1 : -1;
     const orbs = P.orbitArms(g, this.x, this.y, {
-      arms: 3, perArm: g.mods.remix ? 8 : 7, spacing: 34, r0: 145,
-      angVel: 0.85 * dir, delayBeats: 1, lifeBeats: 9, breakTips: true
+      arms: 3, perArm: g.mods.remix ? 7 : 5, spacing: 36, r0: 145,
+      angVel: 0.6 * dir, delayBeats: 1, lifeBeats: 9, breakTips: true
     });
     // rhythm change: the walls reverse halfway through
     g.later(4, () => {
       this.tell();
       g.fx.text(this.x, this.y - 150, 'REVERSE', pal.boss, 26, 0.8);
       PS.Audio.sfx('warn');
-      orbs.forEach((o) => { if (o.orbit) o.orbit.angVel = -1.1 * dir; });
+      orbs.forEach((o) => { if (o.orbit) o.orbit.angVel = -0.75 * dir; });
     });
-    g.later(6, () => orbs.forEach((o) => { if (o.orbit) o.orbit.radVel = 110; }));
+    g.later(6, () => orbs.forEach((o) => { if (o.orbit) o.orbit.radVel = 80; }));
     g.later(8, () => orbs.forEach((o) => { if (o.orbit) o.orbit.radVel = 420; }));
-    [2, 4, 6].forEach((b) => g.later(b, () => P.aimed(g, this, { count: 1, speed: 280 })));
+    [3, 6].forEach((b) => g.later(b, () => P.aimed(g, this, { count: 1, speed: 240, breakable: true })));
     return 2;
   }
 
@@ -129,7 +130,7 @@ PS.Bosses.metronome = class extends PS.Boss {
 
   p_spiralFast() {
     this.tell();
-    PS.Patterns.spiral(this.g, this, { arms: 4, breakArms: 2, perBeat: 4, beats: 3, speed: 220, step: 0.25, reverseAt: 6 });
+    PS.Patterns.spiral(this.g, this, { arms: 4, breakArms: 2, perBeat: 3, beats: 3, speed: 175, step: 0.25, reverseAt: 5 });
     return 1;
   }
 
@@ -141,8 +142,8 @@ PS.Bosses.metronome = class extends PS.Boss {
 
   p_aimedShock() {
     const g = this.g, P = PS.Patterns;
-    [0, 1, 2].forEach((b) => g.later(b, () => { this.tell(0.5); P.aimed(g, this, { count: 3, speed: 330, spread: 0.2 }); }));
-    g.later(2, () => P.shockwave(g, this.x, this.y, { warnBeats: 1, speed: 360, gaps: [] }));
+    [0, 1].forEach((b) => g.later(b, () => { this.tell(0.5); P.aimed(g, this, { count: 3, speed: 270, spread: 0.25 }); }));
+    g.later(2, () => P.shockwave(g, this.x, this.y, { warnBeats: 1.5, speed: 280, gaps: [] }));
     return 1;
   }
 
@@ -164,7 +165,7 @@ PS.Bosses.metronome = class extends PS.Boss {
     }
     if (this.phaseBar > 0 && this.phaseBar % 8 === 0) {
       this.slowTempo = !this.slowTempo;
-      g.setBpm(this.slowTempo ? 112 : this.bpms[2]);
+      g.setBpm(this.slowTempo ? 108 : this.bpms[2]);
       g.fx.flash(PS.Profile.palette().accent, 0.3);
     }
   }
@@ -173,7 +174,7 @@ PS.Bosses.metronome = class extends PS.Boss {
     const g = this.g;
     for (let i = 0; i < 4; i++) g.later(i, () => {
       const f = this.frag(i); f.flash = 1;
-      PS.Patterns.ring(g, f.x, f.y, { count: 9, speed: 180, breakEvery: 3 });
+      PS.Patterns.ring(g, f.x, f.y, { count: 7, speed: 155, breakEvery: 2 });
     });
     return 1;
   }
@@ -196,23 +197,23 @@ PS.Bosses.metronome = class extends PS.Boss {
     const g = this.g;
     for (let i = 0; i < 4; i++) {
       this.frag(i).flash = 1;
-      PS.Patterns.spiral(g, this.frag(i), { arms: 1, perBeat: 3, beats: 2.5, speed: 170, step: 0.5, breakable: i % 2 === 0 });
+      PS.Patterns.spiral(g, this.frag(i), { arms: 1, perBeat: 2, beats: 2.5, speed: 150, step: 0.5, breakable: i % 2 === 0 });
     }
     return 1;
   }
 
   p_fragShock() {
     const g = this.g, P = PS.Patterns;
-    g.later(0, () => [0, 2].forEach((i) => { this.frag(i).flash = 1; P.shockwave(g, this.frag(i).x, this.frag(i).y, { warnBeats: 1, speed: 300, gaps: P.gaps(1, 0.45) }); }));
-    g.later(2, () => [1, 3].forEach((i) => { this.frag(i).flash = 1; P.shockwave(g, this.frag(i).x, this.frag(i).y, { warnBeats: 1, speed: 300, gaps: P.gaps(1, 0.45) }); }));
+    g.later(0, () => [0, 2].forEach((i) => { this.frag(i).flash = 1; P.shockwave(g, this.frag(i).x, this.frag(i).y, { warnBeats: 1, speed: 260, gaps: P.gaps(1, 0.6) }); }));
+    g.later(2, () => [1, 3].forEach((i) => { this.frag(i).flash = 1; P.shockwave(g, this.frag(i).x, this.frag(i).y, { warnBeats: 1, speed: 260, gaps: P.gaps(1, 0.6) }); }));
     g.later(3, () => P.aimed(g, this, { count: 3, speed: 260, breakMiddle: true }));
     return 1;
   }
 
   p_fragAimed() {
     const g = this.g, P = PS.Patterns;
-    for (let b = 0; b < 4; b++) g.later(b, () => { const f = this.frag(b); f.flash = 1; P.aimed(g, f, { count: 3, speed: 290, spread: 0.25, breakMiddle: b % 2 === 0 }); });
-    g.later(1, () => P.lineWall(g, PS.U.choose(['left', 'right', 'top', 'bottom']), { speed: 190, gapSize: 140 }));
+    for (let b = 0; b < 4; b++) g.later(b, () => { const f = this.frag(b); f.flash = 1; P.aimed(g, f, { count: 2, speed: 250, spread: 0.3, breakable: b % 2 === 0 }); });
+    g.later(1, () => P.lineWall(g, PS.U.choose(['left', 'right', 'top', 'bottom']), { speed: 160, gapSize: 190 }));
     return 1;
   }
 
@@ -351,42 +352,57 @@ PS.Bosses.metronome = class extends PS.Boss {
   }
 
   // =================== SIGNATURE ATTACKS ===================
-  // DASH CHECK: a full-height laser wall swings across the arena like the needle
-  p_pendulumWall() {
-    const g = this.g;
-    this.tell();
-    this.wallFromLeft = !this.wallFromLeft;
-    PS.Patterns.sweepWall(g, { fromLeft: this.wallFromLeft, warnBeats: 1.5, sweepBeats: 2.5 });
-    g.later(4.5, () => PS.Patterns.ring(g, this.x, this.y, { count: 10, speed: 150, breakable: true }));
+  // TICK / TOCK: a grid of bombs where the two halves explode on alternating beats.
+  // Stand where the last ones just went off.
+  p_tickTock() {
+    const g = this.g, pal = PS.Profile.palette();
+    g.fx.text(g.W / 2, 128, 'TICK · TOCK', pal.accent, 34, 1.1);
+    PS.Audio.sfx('warn');
+    const n = g.diff.id === 'hard' ? 6 : 4;
+    for (let k = 0; k < n; k++) g.later(k, () => { this.tell(0.6); PS.Patterns.bombGrid(g, { parity: k % 2, cols: 6, rows: 3, r: g.diff.id === 'easy' ? 62 : 72, warnBeats: 1 }); });
     return 2;
   }
 
-  // CLOCK HANDS: 10 lasers (7 on Easy, 12 on Hard) turn around the gear, then reverse
+  // GEAR TEETH: the 16 teeth fly off one by one around the circle, then back the other way
+  p_gearTeeth() {
+    const g = this.g;
+    this.tell();
+    const per = g.diff.id === 'easy' ? 12 : 16;
+    const base = this.ringSpin;
+    for (let i = 0; i < per * 2; i++) g.later(i / 4, () => {
+      const k = i < per ? i : per * 2 - 1 - i; // second lap runs backwards
+      const a = base + (k / per) * PS.U.TAU + (i < per ? 0 : Math.PI / per);
+      g.hazards.orb({ x: this.x + Math.cos(a) * 125, y: this.y + Math.sin(a) * 125, angle: a, speed: 170 * g.diff.speed, r: 9, breakable: k % 4 === 0 });
+    });
+    return 2;
+  }
+
+  // CLOCK HANDS: rotating lasers (6 on Easy, 8 on Normal, 10 on Hard), then they reverse
   p_clockHands() {
     const g = this.g;
     this.tell();
-    const dir = Math.random() < 0.5 ? 1 : -1;
-    const beams = PS.Patterns.radialLasers(g, this, { count: { easy: 7, normal: 10, hard: 12 }[g.diff.id] || 10, warnBeats: 2, activeBeats: 5.5, rot: 0.32 * dir, width: 18 });
+    const dir = PS.rng() < 0.5 ? 1 : -1;
+    const beams = PS.Patterns.radialLasers(g, this, { count: { easy: 6, normal: 8, hard: 10 }[g.diff.id] || 8, warnBeats: 2, activeBeats: 5, rot: 0.26 * dir, width: 16 });
     g.later(4.5, () => { beams.forEach((b) => (b.rot *= -1)); this.tell(); PS.Audio.sfx('warn'); });
-    g.later(3, () => PS.Patterns.aimed(g, this, { count: 1, speed: 220, breakable: true }));
+    g.later(3, () => PS.Patterns.aimed(g, this, { count: 1, speed: 200, breakable: true }));
     return 2;
   }
 
-  // ALARM: a solid ring of bullets closes in on you. Only a dash gets you out.
+  // ALARM (DASH CHECK): a solid ring of bullets closes in. Dash out through it.
   p_alarm() {
     const g = this.g;
     this.fragments.forEach((f) => (f.flash = 1));
-    PS.Patterns.closingRing(g, { radius: 290, spacing: 24, speed: 250, warnBeats: 1.5 });
-    g.later(3, () => PS.Patterns.ring(g, this.x, this.y, { count: 12, speed: 160, breakEvery: 2 }));
-    return 1;
+    PS.Patterns.closingRing(g, { radius: 290, spacing: 26, speed: 200, warnBeats: 2 });
+    g.later(3.5, () => PS.Patterns.ring(g, this.x, this.y, { count: 10, speed: 140, breakEvery: 2 }));
+    return 2;
   }
 
   // the cracked core spins its clock hands while the fragments keep firing
   p_coreHands() {
     const g = this.g;
-    const beams = PS.Patterns.radialLasers(g, this, { count: { easy: 7, normal: 10, hard: 12 }[g.diff.id] || 10, warnBeats: 2, activeBeats: 5, rot: 0.4, width: 16 });
+    const beams = PS.Patterns.radialLasers(g, this, { count: { easy: 5, normal: 7, hard: 9 }[g.diff.id] || 7, warnBeats: 2, activeBeats: 5, rot: 0.3, width: 15 });
     g.later(4, () => beams.forEach((b) => (b.rot *= -1)));
-    [2, 4, 6].forEach((b) => g.later(b, () => { const f = this.frag(b); f.flash = 1; PS.Patterns.aimed(g, f, { count: 1, speed: 260, breakable: true }); }));
+    [3, 6].forEach((b) => g.later(b, () => { const f = this.frag(b); f.flash = 1; PS.Patterns.aimed(g, f, { count: 1, speed: 220, breakable: true }); }));
     return 2;
   }
 };

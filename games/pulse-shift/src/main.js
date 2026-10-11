@@ -13,15 +13,18 @@ function boot() {
 
   // global shortcuts
   PS.Input.onAction = (a) => {
+    const el = document.activeElement;
+    if (el && el.tagName === 'INPUT') return; // typing a name or room code
     if (a === 'pause') {
-      if (game.state === 'playing') game.pause();
+      if (game.state === 'playing' && game.coop && PS.Menus.current === 'pause') game.resume();
+      else if (game.state === 'playing') game.pause();
       else if (game.state === 'paused' && PS.Menus.current === 'pause') game.resume();
     }
     if (a === 'retry' && game.state === 'results') game.restart();
   };
 
   // auto-pause when the tab is hidden
-  document.addEventListener('visibilitychange', () => { if (document.hidden) game.pause(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && !game.coop) game.pause(); });
 
   // keep a 16:9 canvas that fills the window, sharp on high-DPI screens
   function resize() {

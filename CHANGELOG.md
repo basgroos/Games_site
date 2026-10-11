@@ -1,5 +1,18 @@
 # Wijzigingen
 
+## PULSE//SHIFT 1.1.0 (2026-10-11)
+- **Co-op met deathlink (online, via Supabase)**: Modi → *Co-op · Deathlink*. Maak een kamer en geef de code van 4 letters aan een vriend, of doe mee met een code. De host kiest baas en moeilijkheid. Jullie zien elkaar live, schade aan de baas telt voor allebei en **gaat één van jullie neer, dan zijn jullie allebei af**. Allebei dezelfde aanvallen (zelfde seed); gerichte aanvallen gaan om de beurt op jou en op je vriend. In co-op kun je niet pauzeren (Esc opent een menu, het gevecht loopt door).
+  - Kamer = Realtime-kanaal `bg-room-ps-<env>-<CODE>`; er zijn geen nieuwe tabellen nodig. Je naam komt uit het gedeelde Bas Games-profiel.
+- **% van je beste**: tijdens het gevecht staat links van de levensbalk hoe ver je bent (% van de baas weg) en rechts je beste %, met een gouden streepje op de balk waar je beste poging eindigde. "NEW BEST!" als je verder komt. Ook in de uitslag. In Survival: je beste tijd en % daarvan.
+- **The Metronome is een stuk makkelijker**: lager tempo (116/126/136 bpm), minder en langzamere kogels, bredere gaten in de schokgolven, langzamer draaiende muren, en hij krijgt 35% meer schade (korter gevecht).
+- **Weg: de laserwanden die snel van de ene kant van het scherm naar de andere gingen** (Pendulum Wall en Cross Sweep).
+- **Nieuwe speciale aanvallen**:
+  - Metronome: *Tick · Tock* (een raster bommen waarvan de helften om de beurt ontploffen) en *Gear Teeth* (de 16 tanden vliegen er één voor één af, rondje heen en terug).
+  - Static Seraph: *Mirror Shards* (kogels die één keer tegen de muur kaatsen; met een ring eromheen) en *Halo Rain* (rijen vallende kogels met een opening die heen en weer schuift).
+  - The Offbeat: *Rewind* (kogels vliegen weg, knipperen en komen precies terug) en *Bouncers* (grote kogels die 3 keer kaatsen).
+  - Survival kreeg ze er ook bij.
+- Test: `tests/coop.js` (twee spelers in één test, met een nep-verbinding in plaats van Supabase).
+
 ## PULSE//SHIFT 1.0.0 (2026-10-11)
 - **Nieuw spel: PULSE//SHIFT**, een ritme-actie bullet hell. Alles (aanvallen, muziek, beeld) loopt op één gedeelde beat.
 - **Bewegen**: dash (Spatie/J/Z) door alles heen, met een **Perfect Shift** als je op het laatste moment door een roze aanval dasht (tijd vertraagt, dash laadt meteen op, Resonance). **Hop** (K/X/Shift) over paarse golven op de vloer voor een **Perfect Hop**.

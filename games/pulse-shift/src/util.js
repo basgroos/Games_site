@@ -1,13 +1,27 @@
 // =============================================================
 //  Small helpers: math, saving, player profile
 // =============================================================
+// Seeded random numbers for everything that decides attacks.
+// Same seed = same patterns, which keeps co-op players in sync.
+// (Pure visuals like particles use Math.random instead.)
+PS.rngState = 1;
+PS.seed = function (s) { PS.rngState = (s >>> 0) || 1; };
+PS.rng = function () { // mulberry32
+  let t = (PS.rngState = (PS.rngState + 0x6D2B79F5) >>> 0);
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+PS.seed(Date.now());
+
 PS.U = {
   TAU: Math.PI * 2,
   clamp: (v, a, b) => (v < a ? a : v > b ? b : v),
   lerp: (a, b, t) => a + (b - a) * t,
-  rand: (a, b) => a + Math.random() * (b - a),
-  randInt: (a, b) => Math.floor(a + Math.random() * (b - a + 1)),
-  choose: (arr) => arr[Math.floor(Math.random() * arr.length)],
+  // these use the SEEDED generator (PS.rng) so both co-op players get the same attacks
+  rand: (a, b) => a + PS.rng() * (b - a),
+  randInt: (a, b) => Math.floor(a + PS.rng() * (b - a + 1)),
+  choose: (arr) => arr[Math.floor(PS.rng() * arr.length)],
   dist: (ax, ay, bx, by) => Math.hypot(bx - ax, by - ay),
   angle: (ax, ay, bx, by) => Math.atan2(by - ay, bx - ax),
   // smallest signed difference between two angles

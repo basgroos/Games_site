@@ -19,7 +19,7 @@
   // Ring of orbs flying outward from (x, y)
   P.ring = function (g, x, y, o = {}) {
     const n = o.exact ? o.count : count(g, o.count || 12);
-    const off = o.offset !== undefined ? o.offset : Math.random() * U.TAU;
+    const off = o.offset !== undefined ? o.offset : PS.rng() * U.TAU;
     for (let i = 0; i < n; i++) {
       const a = off + (i / n) * U.TAU;
       if (o.gap && Math.abs(U.angDiff(a, o.gap.a)) < o.gap.w) continue;
@@ -28,7 +28,7 @@
         x, y, angle: a, speed: spd(g, o.speed || 220), r: o.r || 8, breakable: brk,
         delay: o.delayBeats ? g.beats(o.delayBeats) : 0,
         accel: o.accel, accelAt: o.accelAt, minSpeed: o.minSpeed, maxSpeed: o.maxSpeed, turn: o.turn,
-        blink: o.blink, redirect: o.redirect
+        blink: o.blink, redirect: o.redirect, bounce: o.bounce, reverseAt: o.reverseAt
       });
     }
   };
@@ -36,8 +36,8 @@
   // Rotating spiral: `arms` streams, `perBeat` shots per beat for `beats` beats
   P.spiral = function (g, src, o = {}) {
     const perBeat = o.perBeat || 4, beats = o.beats || 2, arms = o.arms || 2;
-    const base = o.angle !== undefined ? o.angle : Math.random() * U.TAU;
-    const dir = o.dir || (Math.random() < 0.5 ? 1 : -1);
+    const base = o.angle !== undefined ? o.angle : PS.rng() * U.TAU;
+    const dir = o.dir || (PS.rng() < 0.5 ? 1 : -1);
     const shots = Math.round(beats * perBeat);
     for (let i = 0; i < shots; i++) {
       g.later(i / perBeat, () => {
@@ -59,7 +59,8 @@
     for (let v = 0; v < volleys; v++) {
       g.later(v * (o.interval || 1), () => {
         const p = pos(src);
-        const a0 = U.angle(p.x, p.y, g.player.x, g.player.y);
+        const tg = g.aimPoint(); // in co-op this alternates between the two players
+        const a0 = U.angle(p.x, p.y, tg.x, tg.y);
         const n = o.count || 3, spread = o.spread || 0.22;
         for (let i = 0; i < n; i++) {
           const a = a0 + (n === 1 ? 0 : (i / (n - 1) - 0.5) * spread * (n - 1));
@@ -79,7 +80,7 @@
 
   // n random gaps for a shockwave, spread around the circle
   P.gaps = function (n, width = 0.36) {
-    const out = [], off = Math.random() * U.TAU;
+    const out = [], off = PS.rng() * U.TAU;
     for (let i = 0; i < n; i++) out.push({ a: U.mod(off + (i / n) * U.TAU + U.rand(-0.4, 0.4), U.TAU), w: width });
     return out;
   };
@@ -124,11 +125,11 @@
 
   // n points scattered around the player (kept inside the arena)
   P.aroundPlayer = function (g, n, radius, jitter = 40) {
-    const A = g.arena, pts = [], off = Math.random() * U.TAU;
+    const A = g.arena, pts = [], off = PS.rng() * U.TAU, tg = g.aimPoint();
     for (let i = 0; i < n; i++) {
       const a = off + (i / n) * U.TAU;
       const r = i === 0 ? 0 : radius + U.rand(-jitter, jitter);
-      pts.push({ x: U.clamp(g.player.x + Math.cos(a) * r, A.x0 + 30, A.x1 - 30), y: U.clamp(g.player.y + Math.sin(a) * r, A.y0 + 30, A.y1 - 30) });
+      pts.push({ x: U.clamp(tg.x + Math.cos(a) * r, A.x0 + 30, A.x1 - 30), y: U.clamp(tg.y + Math.sin(a) * r, A.y0 + 30, A.y1 - 30) });
     }
     return pts;
   };
@@ -136,7 +137,7 @@
   // Rotating arms of orbs around a centre ("rotating walls")
   P.orbitArms = function (g, cx, cy, o = {}) {
     const orbs = [];
-    const arms = o.arms || 3, per = o.perArm || 6, base = o.angle !== undefined ? o.angle : Math.random() * U.TAU;
+    const arms = o.arms || 3, per = o.perArm || 6, base = o.angle !== undefined ? o.angle : PS.rng() * U.TAU;
     for (let a = 0; a < arms; a++) {
       for (let j = 0; j < per; j++) {
         orbs.push(g.hazards.orb({
@@ -194,28 +195,10 @@
     PS.Audio.sfx('warn');
   };
 
-  // DASH CHECK: a full-height laser wall sweeps across the whole arena,
-  // faster than you can run. warnBeats of telegraph, then crosses in sweepBeats.
-  P.sweepWall = function (g, o = {}) {
-    const A = g.arena;
-    const fromLeft = o.fromLeft !== undefined ? o.fromLeft : Math.random() < 0.5;
-    const vertical = o.vertical !== false;
-    const warn = o.warnBeats || 1.5, sweep = o.sweepBeats || 3;
-    const b0 = g.clock.beat;
-    const prog = () => U.clamp((g.clock.beat - b0 - warn) / sweep, 0, 1);
-    P.callout(g, 'DASH!');
-    if (vertical) {
-      const x0 = fromLeft ? A.x0 + 8 : A.x1 - 8, x1 = fromLeft ? A.x1 - 8 : A.x0 + 8;
-      return P.laser(g, x0, A.y0 - 40, Math.PI / 2, { warnBeats: warn, activeBeats: sweep, width: 30, len: A.y1 - A.y0 + 80, follow: () => ({ x: U.lerp(x0, x1, prog()), y: A.y0 - 40 }) });
-    }
-    const y0 = fromLeft ? A.y0 + 8 : A.y1 - 8, y1 = fromLeft ? A.y1 - 8 : A.y0 + 8;
-    return P.laser(g, A.x0 - 40, y0, 0, { warnBeats: warn, activeBeats: sweep, width: 30, len: A.x1 - A.x0 + 80, follow: () => ({ x: A.x0 - 40, y: U.lerp(y0, y1, prog()) }) });
-  };
-
   // "Clock hands": many lasers from one point (10 by default), slowly rotating.
   P.radialLasers = function (g, src, o = {}) {
     const n = o.count || 10;
-    const base = o.angle !== undefined ? o.angle : Math.random() * U.TAU;
+    const base = o.angle !== undefined ? o.angle : PS.rng() * U.TAU;
     const beams = [];
     for (let k = 0; k < n; k++) {
       beams.push(P.laser(g, 0, 0, base + (k / n) * U.TAU, {
@@ -228,8 +211,8 @@
 
   // DASH CHECK: a solid ring of bullets closes in on you. No gaps — dash out.
   P.closingRing = function (g, o = {}) {
-    const A = g.arena, R = o.radius || 290;
-    const cx = U.clamp(g.player.x, A.x0 + R, A.x1 - R), cy = U.clamp(g.player.y, A.y0 + R * 0.9, A.y1 - R * 0.9);
+    const A = g.arena, R = o.radius || 290, tg = g.aimPoint();
+    const cx = U.clamp(tg.x, A.x0 + R, A.x1 - R), cy = U.clamp(tg.y, A.y0 + R * 0.9, A.y1 - R * 0.9);
     const spacing = o.spacing || 24;
     const n = Math.ceil((U.TAU * R) / spacing);
     const speed = spd(g, o.speed || 240);
@@ -244,8 +227,8 @@
   P.edgeGates = function (g, o = {}) {
     const A = g.arena, n = o.count || 10;
     const W = A.x1 - A.x0, H = A.y1 - A.y0, per = 2 * (W + H);
-    const off = Math.random() * per;
-    const tx = g.player.x, ty = g.player.y;
+    const off = PS.rng() * per;
+    const tg = g.aimPoint(), tx = tg.x, ty = tg.y;
     for (let i = 0; i < n; i++) {
       let d = (off + (i / n) * per) % per, x, y;
       if (d < W) { x = A.x0 + d; y = A.y0; }
@@ -258,8 +241,8 @@
 
   // DASH CHECK: four laser walls box you in and close together.
   P.cage = function (g, o = {}) {
-    const A = g.arena, half = o.half || 170;
-    const cx = U.clamp(g.player.x, A.x0 + half + 10, A.x1 - half - 10), cy = U.clamp(g.player.y, A.y0 + half + 10, A.y1 - half - 10);
+    const A = g.arena, half = o.half || 170, tg = g.aimPoint();
+    const cx = U.clamp(tg.x, A.x0 + half + 10, A.x1 - half - 10), cy = U.clamp(tg.y, A.y0 + half + 10, A.y1 - half - 10);
     const warn = o.warnBeats || 1.5, close = o.closeBeats || 2;
     const b0 = g.clock.beat;
     const h = () => half * (1 - 0.92 * U.clamp((g.clock.beat - b0 - warn) / close, 0, 1));
@@ -274,13 +257,39 @@
   // Everything outside a drifting safe circle becomes dangerous
   P.safeZone = function (g, o = {}) {
     const A = g.arena;
-    const sr = o.radius || 150;
-    const sx = U.clamp(o.x !== undefined ? o.x : g.player.x, A.x0 + sr, A.x1 - sr);
-    const sy = U.clamp(o.y !== undefined ? o.y : g.player.y, A.y0 + sr, A.y1 - sr);
-    const a = Math.random() * U.TAU, sp = o.drift !== undefined ? o.drift : 90;
+    const sr = o.radius || 150, tg = g.aimPoint();
+    const sx = U.clamp(o.x !== undefined ? o.x : tg.x, A.x0 + sr, A.x1 - sr);
+    const sy = U.clamp(o.y !== undefined ? o.y : tg.y, A.y0 + sr, A.y1 - sr);
+    const a = PS.rng() * U.TAU, sp = o.drift !== undefined ? o.drift : 90;
     return g.hazards.add(new PS.Zone({
       shape: 'inverse', sx, sy, sr, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
       warn: g.beats(o.warnBeats || 2), life: g.beats(o.activeBeats || 4)
     }));
+  };
+
+  // TICK / TOCK: a grid of bomb spots. Each call arms one half (parity 0 or 1).
+  P.bombGrid = function (g, o = {}) {
+    const A = g.arena, cols = o.cols || 6, rows = o.rows || 3;
+    const w = (A.x1 - A.x0) / cols, h = (A.y1 - A.y0) / rows, pts = [];
+    for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) {
+      if ((c + r) % 2 === o.parity) pts.push({ x: A.x0 + w * (c + 0.5), y: A.y0 + h * (r + 0.5) });
+    }
+    P.bombs(g, pts, { warnBeats: o.warnBeats || 1, r: o.r || 75 });
+  };
+
+  // HALO RAIN: rows of bullets fall from the top; a safe gap drifts left and right
+  P.rain = function (g, o = {}) {
+    const A = g.arena, spacing = o.spacing || 40, rows = o.rows || 8, gapW = o.gap || 170;
+    const start = PS.rng(), dir = PS.rng() < 0.5 ? 1 : -1;
+    for (let r = 0; r < rows; r++) {
+      g.later(r * (o.every || 0.5), () => {
+        const t = r / Math.max(1, rows - 1);
+        const gx = A.x0 + gapW / 2 + 20 + (A.x1 - A.x0 - gapW - 40) * (0.5 + 0.5 * Math.sin((start + t * dir * 0.6) * U.TAU));
+        for (let x = A.x0 + spacing / 2; x < A.x1; x += spacing) {
+          if (Math.abs(x - gx) < gapW / 2) continue;
+          g.hazards.orb({ x, y: A.y0 + 4, angle: Math.PI / 2, speed: spd(g, o.speed || 240), r: 8, delay: g.beats(0.5), breakable: o.breakEvery ? Math.round(x / spacing) % o.breakEvery === 0 : false });
+        }
+      });
+    }
   };
 })();
