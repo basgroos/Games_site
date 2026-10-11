@@ -1,5 +1,14 @@
 # Wijzigingen
 
+## PULSE//SHIFT 1.0.0 (2026-10-11)
+- **Nieuw spel: PULSE//SHIFT**, een ritme-actie bullet hell. Alles (aanvallen, muziek, beeld) loopt op één gedeelde beat.
+- **Bewegen**: dash (Spatie/J/Z) door alles heen, met een **Perfect Shift** als je op het laatste moment door een roze aanval dasht (tijd vertraagt, dash laadt meteen op, Resonance). **Hop** (K/X/Shift) over paarse golven op de vloer voor een **Perfect Hop**.
+- **Break** (L/C/E): met 50 Resonance kaats je cyaan ruitjes terug naar de baas. Gouden **Beat Cores** raken de baas ook.
+- **Drie bazen met elk drie fases**: The Metronome, Static Seraph en The Offbeat, met dash-checks zoals Pendulum Wall, Clock Hands, Ten Gates, Prism Cage en Wrong Walls.
+- **Modi**: Tutorial, Practice (met ghost van je beste run), Survival en Boss Rush. Easy/Normal/Hard en modifiers (Double Time, Glass Core, Remix). Rangen C t/m S+, records, ontgrendelbare kleuren en dash-sporen.
+- Staging heeft een eigen save (`pulseshift-staging.`).
+- Test: `games/pulse-shift/tests/smoke.js`.
+
 ## Heldenwacht 1.32.0 (2026-10-07)
 - **Eigen knop Portalen** in het hoofdmenu (met teller) en op het startscherm, met een eigen scherm in plaats van een tabblad bij Modi. Bovenaan staat in drie stappen hoe portalen werken.
 - **Duidelijk wat je kunt krijgen**:

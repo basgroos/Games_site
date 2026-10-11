@@ -13,6 +13,7 @@ Een website met browsergames. Alles draait direct in de browser; voortgang wordt
 |---|---|---|
 | Heldenwacht | `games/heldenwacht/` | live |
 | Ashen Depths | `games/ashen-depths/` | live |
+| PULSE//SHIFT | `games/pulse-shift/` | live |
 
 ## Hoe het werkt
 

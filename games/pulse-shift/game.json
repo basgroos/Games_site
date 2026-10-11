@@ -1,0 +1,19 @@
+{
+  "id": "pulse-shift",
+  "name": "PULSE//SHIFT",
+  "tagline": "Ritme-actie",
+  "description": "Een bullet hell op de beat. Dash door roze aanvallen, hop over paarse schokgolven en kaats cyaan kogels terug met BREAK. Drie bazen met elk drie fases, plus Survival, Boss Rush en rangen van C tot S+.",
+  "version": "1.0.0",
+  "status": "live",
+  "color": "#ff4fd8",
+  "tags": [
+    "Ritme",
+    "Bullet hell",
+    "Bazen",
+    "Neon"
+  ],
+  "order": 3,
+  "tests": [
+    "tests/smoke.js"
+  ]
+}
