@@ -1,0 +1,20 @@
+{
+  "id": "tiny-empire",
+  "name": "Tiny Empire",
+  "tagline": "Stad bouwen",
+  "description": "Bouw van een dorpje een bruisende stad aan een rivier. Leg straten, bruggen en buslijnen aan, voorkom files en parkeertekorten, houd de rivier schoon en ontdek 23 slimme combinaties van gebouwen. Je inwoners willen veiligheid, scholen, zorg, parken en werk.",
+  "version": "2.0.0",
+  "status": "live",
+  "color": "#2a9d8f",
+  "tags": [
+    "Stad bouwen",
+    "Economie",
+    "Ontspannen",
+    "Strategie"
+  ],
+  "order": 4,
+  "tests": [
+    "tests/sim.js 3",
+    "tests/smoke.js"
+  ]
+}
