@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## Heldenwacht 1.33.0 (2026-10-12)
+- **Fast Forward 50×** (knop naast 10×, ook via de sneltoets F). Boven 10× rekent het spel met iets grotere stappen (hooguit ~0,035 s), zodat het ook op een telefoon echt 50× zo snel gaat. Op smalle schermen loopt de snelheidsbalk door op een tweede regel.
+- **Prestige 2+: portaal-kans 2× zo groot.** Vanaf je 2e prestige is de kans op een Rare portaal uit gewone potjes verdubbeld. Je ziet het bij Spelen ("×2 door Prestige 2!") en op het Portalen-scherm.
+- Tests: `tests/portals.js` uitgebreid (prestige-kans, 50×).
 ## PULSE//SHIFT 1.1.0 (2026-10-11)
 - **Co-op met deathlink (online, via Supabase)**: Modi → *Co-op · Deathlink*. Maak een kamer en geef de code van 4 letters aan een vriend, of doe mee met een code. De host kiest baas en moeilijkheid. Jullie zien elkaar live, schade aan de baas telt voor allebei en **gaat één van jullie neer, dan zijn jullie allebei af**. Allebei dezelfde aanvallen (zelfde seed); gerichte aanvallen gaan om de beurt op jou en op je vriend. In co-op kun je niet pauzeren (Esc opent een menu, het gevecht loopt door).
   - Kamer = Realtime-kanaal `bg-room-ps-<env>-<CODE>`; er zijn geen nieuwe tabellen nodig. Je naam komt uit het gedeelde Bas Games-profiel.

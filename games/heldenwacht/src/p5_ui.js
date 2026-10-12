@@ -484,7 +484,7 @@ function renderSettings() {
 /* =====================================================================
    Match
    ===================================================================== */
-const GAME_SPEEDS = [1, 2, 3, 5, 7, 10];
+const GAME_SPEEDS = [1, 2, 3, 5, 7, 10, 50];
 function startGame() {
   const mi = App.mapSel, di = App.diffSel;
   if (!Progress.diffUnlocked(mi, di) || !Store.data.team.length) return;
@@ -793,7 +793,8 @@ function frame(ts) {
   const g = App.game;
   if (g) {
     // snelheid = aantal stappen per beeld; bij hoge snelheid stoppen we als een beeld te lang duurt (spel vertraagt dan liever dan dat het hapert)
-    if (!g.paused) { const steps = g.over ? 1 : g.speed, t0 = performance.now(); for (let i = 0; i < steps; i++) { g.update(dt); if (i >= 2 && performance.now() - t0 > 22) break; } }
+    // boven 10× (bv. 50×): iets grotere tijdstappen (hooguit ~0,035 s per stap), zodat het ook op een telefoon bijhoudt
+    if (!g.paused) { const k = !g.over && g.speed > 10 ? Math.max(1, Math.min(g.speed / 10, Math.floor(0.035 / Math.max(dt, 0.001)))) : 1, steps = g.over ? 1 : Math.round(g.speed / k), t0 = performance.now(); for (let i = 0; i < steps; i++) { g.update(dt * k); if (i >= 2 && performance.now() - t0 > 22) break; } }
     const ctx = App.cv && App.cv.getContext('2d'); if (ctx) g.render(ctx, App.k);
     hudUpdate(); handleGameEvents();
     if (g.panelDirty || (ts - lastSide > 1000 && !g.sel)) { lastSide = ts; renderSide(); }

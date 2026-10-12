@@ -146,6 +146,21 @@ setTimeout(() => {
     document.querySelector('.results-card [data-act="res-portals"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); ok(App.screen === 'portals', 'naar portalen');
     return true;
   })()`));
+  run('vanaf Prestige 2 is de portaal-kans 2× zo groot (ook in beeld)', () => E(`(() => {
+    const m = MAPS[MAPS.filter(x => (x.world || 1) === 1).length - 1], D = Store.data, p0 = D.prestige;
+    D.prestige = 1; const c1 = portalDropChance(m, 2); D.prestige = 2; const c2 = portalDropChance(m, 2); D.prestige = 4; const c4 = portalDropChance(m, 2);
+    ok(Math.abs(c2 - 2 * c1) < 1e-12 && c4 === c2, [c1, c2, c4].join());
+    D.prestige = 2; closeOverlay(); App.game = null; App.mapSel = 0; App.diffSel = 1; nav('maps');
+    const h = document.querySelector('#scr-maps .portal-hint'); ok(h && /Portaal-kans: 1,2%/.test(h.textContent) && /×2 door Prestige 2/.test(h.textContent), h && h.textContent);
+    nav('portals'); ok(/heb jij al/.test(document.getElementById('scr-portals').textContent), 'portalen-uitleg');
+    D.prestige = p0; return { p1: c1, p2: c2 };
+  })()`));
+  run('Fast Forward 50×: knop, sneltoets en ~50× zo snel', () => E(`(() => {
+    ok(GAME_SPEEDS.includes(50), 'geen 50×'); closeOverlay(); App.game = null; Store.data.team = ['vuist']; startMatch({ map: MAPS[0].id, diffIdx: 1, mode: 'campaign' });
+    const b = document.querySelector('[data-act="g-speed"][data-s="50"]'); ok(b, 'knop'); b.dispatchEvent(new MouseEvent('click', { bubbles: true })); ok(App.game.speed === 50, 'speed ' + App.game.speed);
+    const g = App.game, t0 = g.time; App.lastTs = 1000; frame(1016); ok(Math.abs((g.time - t0) - 0.016 * 50) < 0.02, 'tijd per beeld ' + (g.time - t0));
+    return { tijdPerBeeld: +(g.time - t0).toFixed(3) };
+  })()`));
   console.log(errors.length ? 'ERRORS: ' + errors.join(', ') : 'ALL PASSED');
   process.exitCode = errors.length ? 1 : 0;
   setTimeout(() => process.exit(process.exitCode), 50);

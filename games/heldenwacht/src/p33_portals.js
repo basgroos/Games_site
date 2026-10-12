@@ -187,11 +187,14 @@ function portalTotal() { return Object.values(portalInv()).reduce((a, b) => a + 
 function portalLabel(w, t) { return `${PORTAL.worlds[w].name} (${RARITIES[t] ? RARITIES[t].label : t})`; }
 function portalWorldOfMap(m) { if (!m || !MAPS.includes(m)) return null; return (m.world || 1) === 2 ? 'lunar' : 'underworld'; }
 // kans op een portaal na een gewonnen potje op deze map/moeilijkheid
+// vanaf Prestige 2: dubbele kans op een portaal uit gewone potjes
+PORTAL.prestigeReq = 2; PORTAL.prestigeMult = 2;
+function portalPrestigeMult() { return (Store.data.prestige || 0) >= PORTAL.prestigeReq ? PORTAL.prestigeMult : 1; }
 function portalDropChance(m, diffIdx) {
   const w = portalWorldOfMap(m); if (!w) return 0;
   const list = MAPS.filter(x => (x.world || 1) === PORTAL.worlds[w].world), i = list.indexOf(m), n = list.length;
   const base = n > 1 ? PORTAL.dropMin + (PORTAL.dropMax - PORTAL.dropMin) * i / (n - 1) : PORTAL.dropMin;
-  return base * Math.pow(PORTAL.dropDiff, diffIdx || 0);
+  return base * Math.pow(PORTAL.dropDiff, diffIdx || 0) * portalPrestigeMult();
 }
 const portalOf = g => (g && g.opts && g.opts.portal) || null;
 const portalPct = p => { const v = p * 100; let t = v >= 10 ? v.toFixed(0) : v >= 1 ? v.toFixed(1) : v.toFixed(2); if (t.includes('.')) t = t.replace(/\.?0+$/, ''); return t.replace('.', ',') + '%'; };
@@ -399,7 +402,7 @@ function portalsBody() {
     </div>`;
   };
   return `<div class="panel card" style="margin-bottom:14px"><span class="kicker">Zo werkt het</span>
-      <p style="margin:0">1. Win een gewoon potje in wereld 1 of 2 → kans op een <b style="color:${rarColor('rare')}">Rare</b> portaal (wereld 1: Underworld, wereld 2: Lunar). Uit potjes krijg je <b>alleen Rare</b> portalen. De kans staat bij Spelen onder de moeilijkheid: ${portalPct(PORTAL.dropMin)} op de eerste map tot ${portalPct(PORTAL.dropMax)} op de laatste, ×1,2 per moeilijkheid.</p>
+      <p style="margin:0">1. Win een gewoon potje in wereld 1 of 2 → kans op een <b style="color:${rarColor('rare')}">Rare</b> portaal (wereld 1: Underworld, wereld 2: Lunar). Uit potjes krijg je <b>alleen Rare</b> portalen. De kans staat bij Spelen onder de moeilijkheid: ${portalPct(PORTAL.dropMin)} op de eerste map tot ${portalPct(PORTAL.dropMax)} op de laatste, ×1,2 per moeilijkheid. <b style="color:#f472b6">Vanaf Prestige ${PORTAL.prestigeReq} is de kans 2× zo groot</b>${portalPrestigeMult() > 1 ? ' (heb jij al!)' : ''}.</p>
       <p style="margin:0">2. Haal je een portaal, dan heb je kans op het volgende: <b style="color:${rarColor('rare')}">Rare</b> → <b style="color:${rarColor('epic')}">Epic</b> ${portalPct(PORTAL.next.rare)} · <b style="color:${rarColor('epic')}">Epic</b> → <b style="color:${rarColor('legendary')}">Legendary</b> ${portalPct(PORTAL.next.epic)} · <b style="color:${rarColor('legendary')}">Legendary</b> → <b style="color:${rarColor('secret')}">Secret</b> ${portalPct(PORTAL.next.legendary)}. Verlies je, dan is het portaal weg.</p>
       <p style="margin:0">3. Alleen het <b style="color:${rarColor('secret')}">Secret</b> portaal geeft de held: The Devil (Underworld) of Moon Empress (Lunar).</p></div>
     <div class="two-col">${card('underworld')}${card('lunar')}</div>`;
@@ -445,7 +448,7 @@ renderMaps = function () {
     const ch = portalDropChance(m, App.diffSel);
     btn.insertAdjacentHTML('beforebegin', `<div class="portal-hint" style="border:2px solid ${rarColor('rare')};border-radius:6px;padding:8px 10px;margin:8px 0;font-size:14px;background:rgba(56,189,248,.08)">
       <b style="color:${rarColor('rare')}">Portaal-kans: ${portalPct(ch)}</b> · win je dit potje, dan heb je ${portalPct(ch)} kans op een <b>Rare ${esc(PORTAL.worlds[w].name)}</b>.
-      <span class="muted">Hoe moeilijker, hoe groter de kans (×1,2 per moeilijkheid). Bekijk je portalen bij <button class="btn btn-sm" data-act="nav" data-to="portals">Portalen</button></span></div>`);
+      ${portalPrestigeMult() > 1 ? `<b style="color:#f472b6">×2 door Prestige ${PORTAL.prestigeReq}!</b> ` : ''}<span class="muted">Hoe moeilijker, hoe groter de kans (×1,2 per moeilijkheid)${portalPrestigeMult() > 1 ? '' : `; vanaf Prestige ${PORTAL.prestigeReq} is de kans 2× zo groot`}. Bekijk je portalen bij <button class="btn btn-sm" data-act="nav" data-to="portals">Portalen</button></span></div>`);
   }
   return r;
 };
