@@ -1,5 +1,10 @@
 # Wijzigingen
 
+## Heldenwacht 1.33.1 (2026-10-13)
+- **Samen spelen werkt weer, ook als Supabase Realtime hapert.** Op 13-10-2026 had Supabase een storing in Realtime: het bijhouden wie er in een kamer is (*presence*) liep in een timeout, waardoor een co-op/race/portaal-potje na het accepteren nooit startte. Spelers melden zich nu ook met een "hi"-bericht (broadcast, elke 3 s); de kamer start zodra je elkaar via presence óf via die berichten ziet, en je vriend telt pas als "weg" als je 12 s niets meer van hem hoort.
+- Niet veroorzaakt door PULSE//SHIFT: dat spel gebruikt eigen kamers (`bg-room-ps-…`) en raakt de Heldenwacht-kamers en de online-lijst niet.
+- Browsertest: co-op met kapotte presence.
+
 ## Tiny Empire 2.0.0 (2026-10-12)
 - **Nieuw spel: Tiny Empire**, een ontspannen stadsbouwer. Begin met $1.000, een gemeentehuis en een kruispunt en bouw een metropool.
 - **Rivier en bruggen**: een kronkelende rivier loopt over de kaart. Steek over met **autobruggen** (ook voor brandweer en politie) of **voetgangersbruggen**. Bouw **promenades**, **parken aan het water** en **jachthavens** op de oever; restaurants, cafés en hotels aan het water verdienen meer.

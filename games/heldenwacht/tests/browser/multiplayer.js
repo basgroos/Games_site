@@ -29,7 +29,7 @@ const RPC = {
   invite_cancel(a) { const me = auth(a); const i = DB.invites.find(x => x.id === a.p_invite && x.from_id === me.id); if (i) i.status = 'cancelled'; return 'cancelled'; },
 };
 /* ---------- nep-realtime ---------- */
-const pages = [], CH = {};
+const pages = [], CH = {}; let NO_PRESENCE = false; // true = presence werkt niet (Supabase-storing nadoen)
 function chan(n) { return CH[n] || (CH[n] = { subs: new Map(), presence: {} }); }
 async function presenceSync(name) { const c = chan(name), keys = Object.keys(c.presence); for (const [pg] of c.subs) await pg.evaluate(([n, k]) => window.__rtPresenceSync && window.__rtPresenceSync(n, k), [name, keys]).catch(() => {}); }
 const FAKE_RT = () => {
@@ -60,7 +60,7 @@ async function player(browser, name) {
   const page = await ctx.newPage(); page.__name = name; pages.push(page);
   const errs = []; page.on('pageerror', e => errs.push(e.message)); page.errs = errs;
   await page.exposeBinding('__rtJoin', async ({ page: pg }, n) => { chan(n).subs.set(pg, true); });
-  await page.exposeBinding('__rtTrack', async ({ page: pg }, n, key, meta) => { chan(n).presence[key] = meta; chan(n).subs.set(pg, true); await presenceSync(n); });
+  await page.exposeBinding('__rtTrack', async ({ page: pg }, n, key, meta) => { if (NO_PRESENCE && /^bg-room-/.test(n)) return; chan(n).presence[key] = meta; chan(n).subs.set(pg, true); await presenceSync(n); });
   await page.exposeBinding('__rtUntrack', async ({ page: pg }, n, key) => { delete chan(n).presence[key]; chan(n).subs.delete(pg); await presenceSync(n); });
   await page.exposeBinding('__rtSend', async ({ page: pg }, n, event, payload) => { for (const [o] of chan(n).subs) if (o !== pg) await o.evaluate(([a, b, c]) => window.__rtDeliver(a, b, c), [n, event, payload]).catch(() => {}); });
   await page.addInitScript(FAKE_RT);
@@ -318,6 +318,22 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     ok(/Lunar Portal \(Rare\) gehaald/.test(ta) && /Lunar Portal \(Rare\) gehaald/.test(tb), 'geen portaal-regel: ' + tb.slice(0, 200));
     ok(c1 - c0 >= 2400, 'gast munten ' + (c1 - c0));
     return { gastMunten: c1 - c0 };
+  });
+  await step('co-op werkt ook als Realtime-presence het niet doet (Supabase-storing)', async () => {
+    for (const P of [A, B]) await P.evaluate(() => { closeOverlay(); if (App.game) exitGame('friends'); MP.leave(); });
+    NO_PRESENCE = true; await A.waitForTimeout(400);
+    const bid = await A.evaluate(() => SOC.data.friends[0].id);
+    await A.evaluate(id => openInviteDialog(id, 'coop'), bid); await A.waitForTimeout(200); await A.click('[data-act="inv-send"]');
+    await B.evaluate(() => SOC.refresh()); await B.waitForSelector('.mp-invite', { timeout: 5000 }); await B.click('.mp-invite [data-act="inv-accept"]');
+    await A.waitForFunction(() => App.game && App.game.mode === 'coop2', null, { timeout: 20000 }); await B.waitForFunction(() => App.game && App.game.mode === 'coop2', null, { timeout: 20000 });
+    await A.evaluate(() => { App.game.cash = 4000; App.game.cash2 = 4000; }); await B.waitForTimeout(500);
+    await B.evaluate(() => { const g = App.game, t = g.freeTiles.find(([x, y]) => g.tileFree(x, y) && x > 8); g.placeHero(g.team[0], t[0], t[1]); });
+    await A.waitForTimeout(800);
+    const r = await A.evaluate(() => ({ gastHelden: App.game.heroes.filter(h => h.owner === 1).length, pres: [...MP.present].length, solo: !!App.game.mpSolo }));
+    await A.waitForTimeout(9000); const r2 = await A.evaluate(() => ({ weg: !!MP.goneT, solo: !!App.game.mpSolo, banners: App.game.banners.map(b => b.text).join('|') }));
+    NO_PRESENCE = false;
+    ok(r.gastHelden === 1 && r.pres === 2 && !r.solo, JSON.stringify(r)); ok(!r2.weg && !r2.solo && !/is weg/.test(r2.banners), 'vriend ten onrechte weg: ' + JSON.stringify(r2));
+    return r;
   });
   for (const P of [A, B]) out.push(`errors ${P.__name}: ${JSON.stringify(P.errs.slice(0, 5))}`);
   console.log(out.join('\n')); await browser.close(); process.exit(0);

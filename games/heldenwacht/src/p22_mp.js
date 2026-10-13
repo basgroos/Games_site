@@ -8,7 +8,13 @@
    ===================================================================== */
 Object.assign(MP, {
   ch: null, kind: null, role: null, opp: null, inv: null, started: false, present: new Set(), pending: null, lastMsg: 0,
-  send(event, payload) { if (this.ch) this.ch.send({ type: 'broadcast', event, payload }); },
+  send(event, payload) { if (this.ch) { const r = this.ch.send({ type: 'broadcast', event, payload }); if (r && r.catch) r.catch(() => {}); } },
+  sayHi() { this.hiSent = Date.now(); this.send('hi', { id: playerId(), role: this.role }); },
+  refreshPresent() {
+    const s = new Set(this.presP || []); if (this.subOk) s.add(playerId());
+    if (this.opp && Date.now() - (this.hiSeen || 0) < 12000) s.add(this.opp.id);
+    this.present = s;
+  },
   /* ---------- wachten op antwoord ---------- */
   waitForAnswer(inv) {
     this.pending = inv;
@@ -36,14 +42,24 @@ Object.assign(MP, {
     await this.leave();
     if (App.game && !App.game.over) { App.game.quit(); }
     if (App.game) exitGame('friends');
-    this.inv = inv; this.kind = inv.kind; this.role = role; this.opp = opp; this.started = false; this.present = new Set(); this.lastMsg = Date.now();
+    this.inv = inv; this.kind = inv.kind; this.role = role; this.opp = opp; this.started = false; this.present = new Set(); this.presP = []; this.hiSeen = 0; this.subOk = false; this.lastMsg = Date.now();
     this.overlay(`Verbinden met ${esc(opp.name)}…`, 'Even geduld, jullie komen in dezelfde kamer.');
     try {
       const rt = await SOC.rtClient(), me = playerId();
       const ch = rt.channel('bg-room-' + inv.id, { config: { presence: { key: me }, broadcast: { self: false, ack: false } } });
-      ch.on('presence', { event: 'sync' }, () => { this.present = new Set(Object.keys(ch.presenceState())); this.onPresence(); });
-      for (const ev of ['start', 'st', 'vw', 'atk', 'end', 'snap', 'cmd', 'msg', 'bye']) ch.on('broadcast', { event: ev }, ({ payload }) => { this.lastMsg = Date.now(); this.onMsg(ev, payload || {}); });
-      ch.subscribe(st => { if (st === 'SUBSCRIBED') ch.track({ name: playerName(), role }); });
+      // Wie is er in de kamer? Via Realtime-presence én via 'hi'-berichten (broadcast), zodat het ook werkt als
+      // presence hapert (zoals bij de Supabase-storing van 13-10-2026: presence liep in een timeout, broadcast werkte nog).
+      ch.on('presence', { event: 'sync' }, () => { this.presP = Object.keys(ch.presenceState()); this.refreshPresent(); this.onPresence(); });
+      for (const ev of ['start', 'st', 'vw', 'atk', 'end', 'snap', 'cmd', 'msg', 'bye', 'hi']) ch.on('broadcast', { event: ev }, ({ payload }) => {
+        this.lastMsg = Date.now(); if (ev !== 'bye') this.hiSeen = Date.now();
+        if (ev === 'hi') { if (Date.now() - (this.hiSent || 0) > 1500) this.sayHi(); this.refreshPresent(); this.onPresence(); return; }
+        this.onMsg(ev, payload || {});
+      });
+      ch.subscribe(st => {
+        if (st !== 'SUBSCRIBED') return;
+        this.subOk = true; try { const t = ch.track({ name: playerName(), role }); if (t && t.catch) t.catch(() => {}); } catch (e) { }
+        this.sayHi(); clearInterval(this.hiT); this.hiT = setInterval(() => { this.sayHi(); this.refreshPresent(); this.onPresence(); }, 3000);
+      });
       this.ch = ch;
       clearTimeout(this.joinTO); this.joinTO = setTimeout(() => { if (!this.started) { toast(`${opp.name} is niet in de kamer gekomen.`, 'bad'); this.leave(); closeOverlay(); } }, 60000);
     } catch (e) { toast('Verbinden lukte niet: ' + e.message, 'bad'); this.leave(); closeOverlay(); }
@@ -79,7 +95,7 @@ Object.assign(MP, {
     this.goneT = setTimeout(() => { this.goneT = null; const g2 = App.game; if (!g2 || g2.over || !g2.mp) return; if (g2.mode === 'race') { g2.mpWinWhy = 'forfeit'; g2.win(); } else if (this.role === 'host') { g2.banner(`${this.opp.name} heeft het spel verlaten`, 'Zijn helden blijven staan; jij speelt verder.', '#f59e0b'); for (const h of g2.heroes) if (h.owner === 1) h.owner = 0; g2.mpSolo = true; } else { g2.mpQuit = true; g2.quit(); } }, 20000);
   },
   async leave() {
-    clearTimeout(this.joinTO); clearInterval(this.waitPoll); clearTimeout(this.goneT); this.goneT = null;
+    clearTimeout(this.joinTO); clearInterval(this.waitPoll); clearInterval(this.hiT); clearTimeout(this.goneT); this.goneT = null; this.subOk = false; this.hiSeen = 0; this.presP = [];
     if (this.ch) { try { this.send('bye', {}); await this.ch.untrack(); SOC.rt && SOC.rt.removeChannel(this.ch); } catch (e) { } }
     this.ch = null; this.started = false; this.inv = null;
   },
