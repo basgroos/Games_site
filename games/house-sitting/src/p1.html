@@ -69,7 +69,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:non
 #cineText.rule{color:#e7dccb}
 #cineText.big{font-family:var(--f-title);font-weight:800;font-size:clamp(36px,7vw,84px);letter-spacing:.06em;line-height:1}
 .skip{position:absolute;bottom:calc(22px + env(safe-area-inset-bottom,0px));right:28px;font-size:12px;letter-spacing:.2em;color:#4f555d}
-.screen{position:fixed;inset:0;overflow-y:auto;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:6vh max(8vw,env(safe-area-inset-left,0px));background:linear-gradient(90deg,rgba(2,3,5,.92) 0%,rgba(2,3,5,.7) 45%,rgba(2,3,5,.15) 100%);gap:18px}
+.screen{position:fixed;inset:0;overflow-y:auto;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;justify-content:safe center;padding:6vh max(8vw,env(safe-area-inset-left,0px));background:linear-gradient(90deg,rgba(2,3,5,.92) 0%,rgba(2,3,5,.7) 45%,rgba(2,3,5,.15) 100%);gap:18px}
 .title{font-family:var(--f-title);font-weight:800;font-size:clamp(64px,12vw,170px);line-height:.82;letter-spacing:.04em;color:#d8d9dc;margin:0;transform:scaleY(1.18);transform-origin:left bottom;animation:tflick 7s infinite}
 .title span{display:block}
 @keyframes tflick{0%,91%,100%{opacity:1}92%{opacity:.35}93%{opacity:1}95.5%{opacity:.6}96%{opacity:1}}
@@ -85,6 +85,20 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:non
 .controls{display:grid;grid-template-columns:auto auto;gap:3px 18px;font-size:13px;color:#7e858e;margin-top:14px}
 .controls b{color:#b9bec5;font-weight:normal}
 .rules{font-family:var(--f-type);font-size:14px;color:#9a9286;line-height:1.6;max-width:460px;border-top:1px solid #23262b;padding-top:12px}
+.mp-h{font-family:var(--f-title);font-weight:800;font-size:clamp(30px,4.6vw,52px);line-height:.95;letter-spacing:.03em;color:#d8d9dc;margin:0}
+.mp-col{display:flex;flex-direction:column;gap:10px}
+.mp-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;font-size:14px;color:#8d939b}
+.mp-row span{min-width:96px;letter-spacing:.12em;text-transform:uppercase;font-size:11px}
+.mp-row input{font-family:var(--f-hud);font-size:20px;background:rgba(255,255,255,.05);color:#e3e5e8;border:1px solid #3a3f47;padding:6px 10px;width:12ch;outline:none}
+.mp-row input:focus-visible{border-color:#9aa0a8}
+#mpCode{width:5.5ch;text-transform:uppercase;letter-spacing:.25em}
+.mp-code-wrap{display:flex;flex-direction:column;gap:2px}
+.mp-code{font-family:var(--f-title);font-weight:800;font-size:64px;letter-spacing:.16em;color:#e8e2d6;line-height:1}
+#mpList{list-style:none;margin:0;padding:0;font-size:16px;color:#b7bcc3}
+#mpList li{padding:3px 0}
+#mpList li::before{content:'';display:inline-block;width:9px;height:9px;margin-right:10px;background:var(--c,#888);vertical-align:1px}
+#mpList li i{font-style:normal;color:#5d636b;font-size:12px;margin-left:8px;letter-spacing:.1em}
+#mpMsg{color:#c9a59f;min-height:1.2em}
 .small{font-size:12px;color:#565c64;max-width:440px;line-height:1.5}
 #dead{background:radial-gradient(ellipse at center,rgba(40,0,0,.75),rgba(0,0,0,.97));align-items:center;text-align:center}
 #dead .title{font-size:clamp(50px,9vw,120px);color:#b21d17;transform:none}
@@ -128,6 +142,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:non
   <div class="menu-btns">
     <button id="bNew">New game</button>
     <button id="bCont" disabled>Continue from checkpoint</button>
+    <button id="bMp" hidden>Play together (online)</button>
     <a id="bHome" class="home" href="../../" hidden>&larr; Back to Bas Games</a>
   </div>
   <div class="controls">
@@ -144,6 +159,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:non
     <button id="bRetry">Restart from checkpoint</button>
     <button id="bQuit">Main menu</button>
   </div>
+  <p class="small" id="pauseNote" hidden>You are playing together: the house does not wait while this menu is open.</p>
   <div class="rules">
     THE RULES<br>
     1. Never open the locked door at the end of the upstairs hallway.<br>
@@ -156,8 +172,26 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:non
   </div>
 </div>
 
+<div id="mp" class="screen" hidden>
+  <div class="lbl">PLAY TOGETHER</div>
+  <h2 class="mp-h">Two to four house-sitters.<br>One house.</h2>
+  <p class="tag">Everyone does the chores together. The host's game runs the story; the thing upstairs hunts whoever is closest. If it catches one of you, you all start over.</p>
+  <label class="mp-row" for="mpName"><span>Your name</span><input id="mpName" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Player"></label>
+  <div id="mpPick" class="mp-col">
+    <div class="menu-btns"><button id="mpCreate">Create a room</button></div>
+    <div class="mp-row"><span>Room code</span><input id="mpCode" maxlength="4" autocomplete="off" spellcheck="false" placeholder="ABCD"><div class="menu-btns"><button id="mpJoin">Join</button></div></div>
+  </div>
+  <div id="mpRoom" class="mp-col" hidden>
+    <div class="mp-code-wrap"><span class="lbl">ROOM CODE</span><span id="mpCodeShow" class="mp-code">----</span></div>
+    <ul id="mpList"></ul>
+    <div class="menu-btns" id="mpHostBtns"><button id="mpGo">Start a new game</button><button id="mpGoCont" hidden>Continue from checkpoint</button></div>
+  </div>
+  <p class="small" id="mpMsg"></p>
+  <div class="menu-btns"><button id="mpBack">Back</button></div>
+</div>
+
 <div id="dead" class="screen" hidden>
-  <h1 class="title">IT FOUND YOU</h1>
+  <h1 class="title" id="deadTitle">IT FOUND YOU</h1>
   <p class="tag" id="deadTip">Close doors behind you. Don't sprint until you need to.</p>
   <div class="menu-btns" style="align-items:center">
     <button id="bDeadRetry">Try again</button>

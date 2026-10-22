@@ -6,7 +6,7 @@ function updateAnims(dt){ for (const a of anims.slice()){ a.t += dt; const k = M
 const ease = k => k * k * (3 - 2 * k);
 const S = { loops: {}, look: {} }; // misc story runtime
 function stopStoryLoops(){ for (const k in S.loops){ if (S.loops[k]) S.loops[k].stop(0.3); } S.loops = {}; }
-function looked(key, cond, dt, need){ S.look[key] = cond ? (S.look[key] || 0) + dt : 0; return S.look[key] >= need; }
+function looked(key, cond, dt, need){ const k = VIEW_ID ? key + '#' + VIEW_ID : key; S.look[k] = cond ? (S.look[k] || 0) + G.dt : 0; return S.look[k] >= need; }
 let OFF1, OFF2, NEIGH; const BATT = [];
 let beam1, beam2;
 
@@ -35,7 +35,7 @@ function storyInit(){
     const g = grp(x, y, z); B(0.05, 0.1, 0.05, std({ color: 0xc5862a, roughness: 0.4 }), 0, 0, 0, { parent: g }); B(0.05, 0.1, 0.05, std({ color: 0x222222, roughness: 0.4 }), 0.06, 0, 0, { parent: g });
     hitbox(0.25, 0.25, 0.25, 0.03, 0.05, 0, g);
     const b = { g, taken: false }; BATT.push(b);
-    addInter(g, 'Take the batteries', () => { b.taken = true; g.visible = false; player.battery = Math.min(100, player.battery + 45); SND.pickup(); think(player.hasFlash ? 'Batteries. The flashlight will last a little longer.' : 'Batteries. Could be useful.', 2.5); }, () => !b.taken);
+    addInter(g, 'Take the batteries', () => { b.taken = true; g.visible = false; player.battery = Math.min(100, player.battery + 45); netFx({ t: 'bat', v: 45 }); SND.pickup(); think(player.hasFlash ? 'Batteries. The flashlight will last a little longer.' : 'Batteries. Could be useful.', 2.5); }, () => !b.taken);
   });
 
   // ---- Chapter 1: key & door ----

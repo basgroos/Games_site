@@ -233,7 +233,7 @@ function storyUpdateC(dt){
     if (f.s_liv && f.s_kit && f.s_up && !f.callArmed){ f.callArmed = true; after(4, neighborCall); }
   }
   if (G.step === 'safe' && !S.neighWalked && Math.hypot(p.x - 4, p.z + 24) < 5) neighborWalkIn();
-  if (S.neighWalk && !S.neighWalk()) S.neighWalk = null;
+  if (!VIEW_ID && S.neighWalk && !S.neighWalk()) S.neighWalk = null;
   if (G.step === 'safe' && inN) ch8();
   if (['n_talk0', 'n_drink', 'n_story', 'n_rest', 'n_ask', 'n_twist'].includes(G.step) && NEIGH.root.visible && !player.frozen){
     if (!S.neighWalk){ const ty = Math.atan2(p.x - NEIGH.root.position.x, p.z - NEIGH.root.position.z); let dy = ty - NEIGH.root.rotation.y; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI; NEIGH.root.rotation.y += dy * Math.min(1, dt * 2); }

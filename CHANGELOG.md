@@ -1,5 +1,17 @@
 # Wijzigingen
 
+## House Sitting 1.1.0 (2026-10-22)
+- **Samen spelen (online co-op, 2–4 spelers, via Supabase)**: hoofdmenu → *Play together (online)*. Maak een kamer en geef de code van 4 letters aan je vrienden, of doe mee met een code. De host start een nieuw spel of gaat verder vanaf zijn checkpoint.
+  - Jullie lopen samen door hetzelfde huis en zien elkaar, met naam en eigen zaklamp. Voetstappen van anderen hoor je uit de goede richting.
+  - Iedereen kan het verhaal verder brengen: het spel kijkt door de ogen van alle spelers ("iemand loopt de keuken in", "iemand kijkt naar het raam"). Druk op E en de host doet het voor je; deuren, lampen, spullen, zakken en taken zijn voor iedereen hetzelfde.
+  - Een briefje dat je leest zie alleen jij. Tussenfilmpjes, ondertitels en geluiden krijgt iedereen; iedereen kan een filmpje doorklikken.
+  - Het monster jaagt op wie het dichtstbij is en volgt die speler precies. **Pakt het één van jullie, dan beginnen jullie allemaal opnieuw** vanaf het checkpoint (de host klikt op Try again).
+  - Het pauzemenu stopt het spel niet als je samen speelt. Gaat de host weg, dan gaan de anderen terug naar het menu; gaat een gast weg, dan speelt de rest door.
+  - Kamer = Realtime-kanaal `bg-room-hs-<env>-<CODE>`; er zijn geen nieuwe tabellen nodig. Je naam komt uit het gedeelde Bas Games-profiel.
+- Muisvergrendeling valt pas na drie mislukte pogingen terug op slepen (eerder al na één keer, bv. direct na Esc).
+- Lange menu's scrollen nu goed op lage schermen.
+- Tests: `tests/smoke.js` speelt het hele verhaal alleen uit, `tests/coop.js` speelt met host en gast via een nep-verbinding. Ze draaien het echte spel in jsdom met Three.js uit `node_modules` (nieuw: devDependency `three@0.128.0`) en een nep-WebGL.
+
 ## House Sitting 1.0.0 (2026-10-22)
 - **Nieuw spel: House Sitting**, een first-person horrorspel in 3D (Three.js r128 via cdnjs). Je past een weekend op het huis van de Hendersons, met drie vreemde regels.
 - Negen hoofdstukken: aankomst, vijf klusjes (vuilnis, afwas, was, stoppen, alles afsluiten), de nacht, de geopende kamer, een achtervolging door het huis, de politie, de agenten, de buurman en een laatste achtervolging met einde.

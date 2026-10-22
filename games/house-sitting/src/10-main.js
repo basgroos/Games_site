@@ -41,9 +41,10 @@ function hudUpdate(){
 function storyUpdate(dt){ storyUpdateA(dt); storyUpdateB(dt); storyUpdateC(dt); }
 
 // ---- screens ----
-function hideScreens(){ ['menu', 'pause', 'dead', 'ending'].forEach(id => $(id).hidden = true); $('note').hidden = true; $('cine').hidden = true; cineData = null; }
+function hideScreens(){ ['menu', 'mp', 'pause', 'dead', 'ending'].forEach(id => $(id).hidden = true); $('note').hidden = true; $('cine').hidden = true; cineData = null; }
 function refreshContinue(){ const s = savedCheckpoint(); const b = $('bCont'); b.disabled = !s || s === 'start'; b.textContent = s && s !== 'start' ? 'Continue (' + ({ night: 'the noise', chase1: 'the open room', police: 'the police', neighbor: 'across the street', chase2: 'the final escape' }[s] || s) + ')' : 'Continue from checkpoint'; }
 function toMenu(){
+  if (MP.status !== 'idle') MP.leave();
   hideScreens(); resetWorld(); G.state = 'menu'; $('menu').hidden = false; $('hud').hidden = true; fade(0, 0.3);
   ['end1', 'end2', 'end3', 'end4'].forEach(id => $(id).classList.remove('on'));
   if (AU.ctx && AU.ctx.state === 'suspended') AU.ctx.resume(); AMB.master = 1; refreshContinue();
@@ -57,26 +58,35 @@ function loadCheckpoint(name){
 }
 function pauseGame(){
   if (G.state !== 'playing') return; G.state = 'paused'; $('pause').hidden = false; for (const k in keys) keys[k] = false;
-  if (AU.ctx) AU.ctx.suspend();
+  // together, the world keeps going while you look at the pause menu
+  $('bRetry').hidden = MP.guest; $('pauseNote').hidden = !MP.started;
+  if (AU.ctx && !MP.started) AU.ctx.suspend();
   if (isLocked()){ G.ignoreUnlock = true; document.exitPointerLock(); }
 }
-function resumeGame(){ $('pause').hidden = true; G.state = 'playing'; if (AU.ctx) AU.ctx.resume(); requestLock(); }
+function resumeGame(){ $('pause').hidden = true; if (G.state === 'paused') G.state = 'playing'; if (AU.ctx) AU.ctx.resume(); requestLock(); }
 const TIPS = ['Close doors behind you. It has to break them down.', 'Save your stamina for the straightaways. Exhausted, you are slow.', 'It speeds up in bursts. Keep moving, never stop to look back for long.', 'Sprinting into clutter in the dark will trip you.', 'It follows the exact path you took. Corners buy you time.'];
-function gameOver(){
-  if (G.state !== 'playing') return; G.state = 'dead'; stopChaseMusic(); for (const k in keys) keys[k] = false;
+// who: null = you were caught; otherwise the id of the player who was caught (co-op)
+function gameOver(who){
+  if (!(G.state === 'playing' || (MP.started && (G.state === 'paused' || G.state === 'note' || G.state === 'cine')))) return;
+  $('pause').hidden = true; $('note').hidden = true; G.state = 'dead';
+  const name = who && who !== MP.me().id ? MP.nameOf(who) : '';
+  $('deadTitle').textContent = name ? 'IT FOUND ' + name.toUpperCase() : 'IT FOUND YOU'; stopChaseMusic(); for (const k in keys) keys[k] = false;
   const f = new V3(); camera.getWorldDirection(f); f.y = 0; f.normalize();
   MON.mode = 'off'; const r = MON.m.root; r.visible = true; r.position.set(camera.position.x + f.x * 0.8, camera.position.y - 2.45, camera.position.z + f.z * 0.8); r.rotation.y = Math.atan2(-f.x, -f.z); MON.m.P.head.rotation.set(0, 0, 0.45);
   flash.intensity = 3; SND.scream(new V3(r.position.x, camera.position.y, r.position.z), false); SND.sting(0.32); SND.bang(null, false); player.shake = 2;
   flashFx('#5a0000', 1.0, 0.55);
   G.ignoreUnlock = true; if (isLocked()) document.exitPointerLock(); else G.ignoreUnlock = false;
-  setTimeout(() => { fade(0.85, 0.4); $('hud').hidden = true; $('deadTip').textContent = TIPS[(Math.random() * TIPS.length) | 0]; $('dead').hidden = false; }, 950);
+  setTimeout(() => { if (G.state !== 'dead') return; fade(0.85, 0.4); $('hud').hidden = true;
+    $('deadTip').textContent = MP.started ? (MP.guest ? 'Together, you all start over from the checkpoint. Waiting for the host...' : 'Together, you all start over from the checkpoint.') : TIPS[(Math.random() * TIPS.length) | 0];
+    $('bDeadRetry').hidden = MP.guest; $('dead').hidden = false; }, 950);
 }
+function restartCheckpoint(){ loadCheckpoint(G.checkpoint); }
 $('bNew').onclick = () => { audioInit(); try { localStorage.removeItem(SAVE_KEY); } catch (e) {} loadCheckpoint('start'); };
 $('bCont').onclick = () => { audioInit(); loadCheckpoint(savedCheckpoint() || 'start'); };
 $('bResume').onclick = resumeGame;
-$('bRetry').onclick = () => { audioInit(); loadCheckpoint(G.checkpoint); };
+$('bRetry').onclick = () => { audioInit(); restartCheckpoint(); };
 $('bQuit').onclick = toMenu;
-$('bDeadRetry').onclick = () => { audioInit(); loadCheckpoint(G.checkpoint); };
+$('bDeadRetry').onclick = () => { audioInit(); restartCheckpoint(); };
 $('bDeadQuit').onclick = toMenu;
 $('bEndMenu').onclick = () => { $('ending').hidden = true; fade(0, 0.5); toMenu(); };
 $('sens').oninput = e => { G.sens = parseFloat(e.target.value); try { localStorage.setItem(SAVE_KEY + '_sens', G.sens); } catch (er) {} };
@@ -115,6 +125,7 @@ function boot(){
   buildHouse(); buildStreet(); buildNeighbor(); monInit(); storyInit(); initRain(); mergeStatic(); refreshRayTargets(); renderInv();
   resetWorld(); setHouseLights(['hall', 'porch']); FX.livLamp.on = true; refreshContinue();
   const home = window.HW_BUILD && window.HW_BUILD.home; if (home){ const a = $('bHome'); a.href = home; a.hidden = false; }
+  netInit();
   lastT = performance.now(); requestAnimationFrame(tick);
 }
 function tick(now){
@@ -122,9 +133,11 @@ function tick(now){
   let dt = Math.min(0.05, Math.max(0, (now - lastT) / 1000)); lastT = now; G.dt = dt;
   if (G.state === 'menu'){
     const t = now / 1000; camera.position.set(-1.5 + Math.sin(t * 0.07) * 1.2, 1.7 + Math.sin(t * 0.13) * 0.08, -17.5); camera.lookAt(9 + Math.sin(t * 0.05) * 1.5, 2.6, 2); flash.intensity = 0;
-  } else if (G.state === 'playing' || G.state === 'cine' || G.state === 'note'){
-    G.time += dt; updateTimers(); updateAnims(dt); updatePlayer(dt); storyUpdate(dt); monUpdate(dt);
+  } else if (G.state === 'playing' || G.state === 'cine' || G.state === 'note' || (MP.started && G.state === 'paused')){
+    G.time += dt; updateTimers(); updateAnims(dt); updatePlayer(dt);
+    if (MP.guest) MP.guestWorld(dt); else { storyUpdate(dt); monUpdate(dt); }
   }
+  MP.update(dt);
   updateInteract(); updateDoors(dt); updateLights(dt); updateRain(dt); envUpdate(dt); audioUpdate(dt); audioListener(camera); hudUpdate();
   renderer.render(scene, camera);
 }

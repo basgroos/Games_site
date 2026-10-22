@@ -7,6 +7,10 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 
 // Staging builds of the Bas Games site keep their own save
 const SAVE_KEY = (window.HW_BUILD && window.HW_BUILD.env === 'staging') ? 'hs_ckpt_staging' : 'hs_ckpt';
+// Co-op hooks (replaced by 11-net.js when playing together)
+let VIEW_ID = '';           // which player's eyes the story checks are looking through ('' = this computer)
+function netFx(e){}         // send a world event to the other players
+function useInter(h){ h.use(); }
 const G = { state: 'menu', time: 0, flags: {}, inv: [], step: '', checkpoint: 'start', power: true, sens: 1, noLock: false, chapter: 0 };
 
 const canvas = $('c');
@@ -264,14 +268,16 @@ function nextCine(){
 
 // ---------- Input ----------
 function isLocked(){ return document.pointerLockElement === canvas; }
-function requestLock(){ if (G.noLock) return; try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => { G.noLock = true; $('lockhint').hidden = true; }); } catch (e) { G.noLock = true; } }
+// Pointer lock can be refused for a moment (e.g. right after Esc). Only fall back to click-and-drag looking after it fails a few times.
+function lockFailed(){ G.lockFails = (G.lockFails || 0) + 1; if (G.lockFails >= 3){ G.noLock = true; $('lockhint').hidden = true; } }
+function requestLock(){ if (G.noLock) return; try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(lockFailed); } catch (e) { G.noLock = true; } }
 addEventListener('keydown', e => {
   keys[e.code] = true;
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
   if (e.code === 'KeyE'){
     if (G.state === 'note'){ closeNote(); return; }
     if (G.state === 'cine'){ nextCine(); return; }
-    if (G.state === 'playing' && hover && !player.frozen){ const h = hover; h.use(); }
+    if (G.state === 'playing' && hover && !player.frozen){ useInter(hover); }
   }
   if (e.code === 'KeyF' && G.state === 'playing'){
     if (!player.hasFlash){ if (!G.power) think("You don't have a flashlight.", 2); return; }
@@ -301,4 +307,4 @@ document.addEventListener('pointerlockchange', () => {
   if (!isLocked() && G.state === 'playing' && !G.ignoreUnlock) pauseGame();
   G.ignoreUnlock = false;
 });
-document.addEventListener('pointerlockerror', () => { G.noLock = true; });
+document.addEventListener('pointerlockerror', lockFailed);

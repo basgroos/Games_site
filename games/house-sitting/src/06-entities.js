@@ -83,30 +83,43 @@ function monStand(x, y, z){ monPlace(x, y, z); monFacePlayer(); MON.mode = 'stan
 function monHide(){ MON.mode = 'off'; MON.m.root.visible = false; MON.speed = 0; stopChaseMusic(); }
 function monChase(P){
   MON.mode = 'chase'; MON.P = Object.assign({ slow: 1.5, walk: 3.9, burst: 7.0, catchup: 5.0, catchupDist: 11, closeCap: 5.0, catch: 0.9, doorStall: 1.4 }, P);
-  MON.path = [{ x: player.pos.x, z: player.pos.z, level: player.level }]; MON.kind = 'walk'; MON.kindT = 1; MON.stall = 0; MON.m.root.visible = true;
+  MON.path = []; MON.tid = null; MON.kind = 'walk'; MON.kindT = 1; MON.stall = 0; MON.m.root.visible = true;
   if (!MON.music){ MON.music = LOOPS.chase(); }
 }
 function stopChaseMusic(){ if (MON.music){ MON.music.stop(0.6); MON.music = null; } $('danger').style.opacity = 0; }
 function ghostShow(x, y, z, faceCam = true, yaw = 0){ GHOST.root.position.set(x, y, z); GHOST.root.rotation.y = faceCam ? Math.atan2(camera.position.x - x, camera.position.z - z) : yaw; GHOST.root.visible = true; }
 function ghostHide(){ GHOST.root.visible = false; }
+// Everyone the monster can hunt. Solo: just you. In co-op 11-net.js adds the other players.
+function monViews(){ return [{ id: '', pos: player.pos, level: player.level, feetY: player.feetY, trail: player.trail, local: true }]; }
+const monDist = v => Math.hypot(v.pos.x - MON.pos.x, v.pos.z - MON.pos.z) + (v.level !== MON.level ? 6 : 0);
+function nearestView(views){ let best = views[0]; for (const v of views) if (monDist(v) < monDist(best)) best = v; return best; }
 
 function monUpdate(dt){
   if (GHOST.root.visible) animMonster(GHOST, dt, 0, Math.sin(G.time * 0.6) * 0.25);
   if (MON.mode === 'off') return;
-  const m = MON.m; const pp = player.pos;
-  const dx = pp.x - MON.pos.x, dz = pp.z - MON.pos.z, d = Math.hypot(dx, dz);
+  const m = MON.m, views = monViews();
+  const dLocal = Math.hypot(player.pos.x - MON.pos.x, player.pos.z - MON.pos.z);
   if (MON.mode === 'stand' || MON.mode === 'watch'){
+    const t = nearestView(views), dx = t.pos.x - MON.pos.x, dz = t.pos.z - MON.pos.z;
     const ty = Math.atan2(dx, dz); let dy = ty - MON.yaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
     MON.yaw += dy * Math.min(1, dt * (MON.mode === 'watch' ? 0.8 : 2)); syncMon();
     animMonster(m, dt, 0, Math.sin(G.time * 0.5) * 0.35 + 0.1);
-    MON.breathT -= dt; if (MON.breathT <= 0 && d < 9){ SND.breath(new V3(MON.pos.x, MON.pos.y + 2.4, MON.pos.z), 0.45); MON.breathT = rnd(2.6, 3.6); }
+    MON.breathT -= dt; if (MON.breathT <= 0 && Math.hypot(dx, dz) < 9){ SND.breath(new V3(MON.pos.x, MON.pos.y + 2.4, MON.pos.z), 0.45); MON.breathT = rnd(2.6, 3.6); }
     return;
   }
-  // ----- chase -----
+  // ----- chase: pick a target (the nearest player, with some stickiness) -----
   const P = MON.P;
+  let tgt = views.find(v => v.id === MON.tid);
+  if (!tgt){ tgt = nearestView(views); MON.path = [{ x: tgt.pos.x, z: tgt.pos.z, level: tgt.level }]; MON.tid = tgt.id; }
+  else { const best = nearestView(views); if (best !== tgt && monDist(best) < monDist(tgt) - 3){
+    // switch: follow the new target's own footsteps from the point closest to the monster
+    const tr = best.trail; let k = tr.length, bd = 1e9;
+    for (let i = 0; i < tr.length; i++){ const t = tr[i], dd = Math.hypot(t.x - MON.pos.x, t.z - MON.pos.z) + (t.level !== MON.level ? 6 : 0); if (dd < bd){ bd = dd; k = i; } }
+    MON.path = tr.slice(k).map(t => ({ x: t.x, z: t.z, level: t.level })); tgt = best; MON.tid = best.id; } }
+  const pp = tgt.pos; const dx = pp.x - MON.pos.x, dz = pp.z - MON.pos.z, d = Math.hypot(dx, dz);
   const last = MON.path[MON.path.length - 1];
-  if (!last || Math.hypot(last.x - pp.x, last.z - pp.z) > 0.45 || last.level !== player.level) MON.path.push({ x: pp.x, z: pp.z, level: player.level });
-  if (MON.stall > 0){ MON.stall -= dt; animMonster(m, dt, 0.4, 0.3); updateChaseFx(d, dt); return; }
+  if (!last || Math.hypot(last.x - pp.x, last.z - pp.z) > 0.45 || last.level !== tgt.level) MON.path.push({ x: pp.x, z: pp.z, level: tgt.level });
+  if (MON.stall > 0){ MON.stall -= dt; animMonster(m, dt, 0.4, 0.3); updateChaseFx(dLocal, dt); return; }
   MON.kindT -= dt;
   if (MON.kindT <= 0){
     if (MON.kind === 'burst'){ MON.kind = 'walk'; MON.kindT = rnd(1.0, 2.0); }
@@ -124,7 +137,7 @@ function monUpdate(dt){
     if (Math.hypot(dr.center.x - MON.pos.x, dr.center.z - MON.pos.z) < 1.05){
       MON.stall = P.doorStall; SND.knock(dr.center, 2, true); player.shake = Math.max(player.shake, 0.3);
       const door = dr; after(P.doorStall * 0.9, () => { if (MON.mode !== 'chase') return; door.locked = false; door.jammed = false; setDoor(door, true, { speed: 16, silent: true }); SND.bang(door.center); });
-      updateChaseFx(d, dt); return;
+      updateChaseFx(dLocal, dt); return;
     }
   }
   // follow the trail
@@ -134,15 +147,17 @@ function monUpdate(dt){
     if (L <= remain){ MON.pos.x = tp.x; MON.pos.z = tp.z; MON.level = tp.level; MON.path.shift(); remain -= L; mvx += vx; mvz += vz; }
     else { MON.pos.x += vx / L * remain; MON.pos.z += vz / L * remain; mvx += vx; mvz += vz; MON.level = tp.level; remain = 0; }
   }
-  if (remain > 0 && MON.level === player.level && d > 0.3){ MON.pos.x += dx / d * Math.min(remain, d); MON.pos.z += dz / d * Math.min(remain, d); mvx += dx; mvz += dz; }
+  if (remain > 0 && MON.level === tgt.level && d > 0.3){ MON.pos.x += dx / d * Math.min(remain, d); MON.pos.z += dz / d * Math.min(remain, d); mvx += dx; mvz += dz; }
   const fl = floorAt(MON.pos.x, MON.pos.z, MON.level); MON.pos.y += (fl.y - MON.pos.y) * Math.min(1, dt * 12);
   if (Math.abs(mvx) + Math.abs(mvz) > 1e-4){ const ty = Math.atan2(mvx, mvz); let dy = ty - MON.yaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI; MON.yaw += dy * Math.min(1, dt * 8); }
   syncMon(); animMonster(m, dt, MON.speed, d < 4 ? 0.35 : 0.1);
   MON.stepAcc += MON.speed * dt; if (MON.stepAcc > 1.15){ MON.stepAcc = 0; SND.mStep(new V3(MON.pos.x, MON.pos.y + 0.1, MON.pos.z), MON.kind === 'burst' ? 1.2 : 0.8); }
   MON.breathT -= dt; if (MON.breathT <= 0){ SND.breath(new V3(MON.pos.x, MON.pos.y + 2.5, MON.pos.z), 0.6); MON.breathT = rnd(1.8, 2.8); }
-  updateChaseFx(d, dt);
-  const dyv = Math.abs(player.feetY - MON.pos.y);
-  if (d < P.catch && dyv < 1.3 && G.state === 'playing') gameOver();
+  updateChaseFx(dLocal, dt);
+  // caught? (in co-op: anyone caught means everyone starts over)
+  for (const v of views){
+    if (Math.hypot(v.pos.x - MON.pos.x, v.pos.z - MON.pos.z) < P.catch && Math.abs(v.feetY - MON.pos.y) < 1.3){ gameOver(v.local ? null : v.id); return; }
+  }
 }
 function updateChaseFx(d, dt){
   const i = clamp(1 - (d - 1.5) / 13, 0, 1); MON.intensity += (i - MON.intensity) * Math.min(1, dt * 3);
