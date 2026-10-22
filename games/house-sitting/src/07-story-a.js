@@ -137,7 +137,7 @@ Nobody who lives in this house is this tall.`, 'inspect', () => {
 // ---------- reset & state builders ----------
 function resetWorld(){
   timers = []; subTimer = null; anims = []; $('sub').classList.remove('on'); S.look = {};
-  Object.assign(S, { cop: null, neighWalk: null, neighWalked: false, dripOn: false, radioOn: false, busy: false, washing: false, pushing: false, revArmed: false, obsNext: 0 });
+  Object.assign(S, { doorShut: false, shutT: 0, askedDoor: false, lawnSeen: false, cop: null, neighWalk: null, neighWalked: false, dripOn: false, radioOn: false, busy: false, washing: false, pushing: false, revArmed: false, obsNext: 0 });
   FX.cop1.base = FX.cop2.base = 0; FX.copRed.base = FX.copBlue.base = 0; if (TORCH1){ TORCH1.visible = TORCH2.visible = false; }
   D.front.lockedThought = 'Locked. Mrs. Henderson said the spare key is under the flowerpot.'; D.nBath.lockedThought = 'Locked.';
   stopStoryLoops(); monHide(); ghostHide(); stopChaseMusic();

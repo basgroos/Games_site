@@ -142,7 +142,15 @@ function neighborCall(){
   NEIGH.root.visible = true; NEIGH.root.position.set(4, 0, -23.35); NEIGH.root.rotation.set(0, 0, 0);
   after(1.4, () => { SND.voice(new V3(4, 1.7, -23.3), 3, 0.4, 175); say('NEIGHBOR, ACROSS THE STREET', '"Hey! Are you okay? You look like you\'ve had a terrible night. Come inside. You can rest here."', 6.5); });
   after(8.5, () => { think('A porch light. Someone awake. Someone warm.', 3.5); objective('Find somewhere safe.'); G.step = 'safe'; });
-  G.step = 'called';
+  G.step = 'called'; lawnWatcher();
+}
+// it is standing on the Hendersons' lawn, between the police lights, watching you cross the street
+function lawnWatcher(){ monPlace(7.4, 0, -4.6, Math.PI); MON.mode = 'watch'; }
+// the front door of the neighbor's house shuts with all of you inside: the thing outside is gone
+function frontDoorShut(){
+  S.doorShut = true; monHide(); SND.lockClick(D.nFront.center);
+  think('(The door clicks shut. Through the little window the lawn across the street is empty. It is gone.)', 5);
+  objective('Sit down and rest (couch or armchair)');
 }
 function loadPolice(){ policeScene(); }
 
@@ -164,10 +172,9 @@ function startChill(){
 }
 function ch8(){
   saveCheckpoint('neighbor'); G.step = 'n_talk0'; S.radioOn = false; S.chillT = 0;
-  monHide(); ghostHide();   // the thing from the house is gone. As far as you can tell.
-  after(1.2, () => { if (player.pos.z < -24.9) setDoor(D.nFront, false); });
+  ghostHide();
   S.loops.music = LOOPS.music(new V3(7.4, 0.8, -24.4)); AMB.master = 0.8;
-  objective('Sit down and rest (couch or armchair)'); S.dripOn = true; after(4, dripChain);
+  objective('Close the front door behind you'); S.dripOn = true; after(4, dripChain);
 }
 function talkNeighbor(){
   if (G.step === 'n_talk0') startChill();
@@ -208,7 +215,7 @@ function twistB(){
   after(3.5, () => { showMon(); }); after(3.65, showN);
   after(4.3, () => {
     showMon(); G.npower = false; PROPS.shadow.visible = false; SND.bang(new V3(sx, 2, sz)); SND.sting(0.28); player.shake = 0.8; AMB.master = 0.7;
-    player.frozen = false; scare('RUN.', 2); saveCheckpoint('chase2'); after(1.3, startChase2);
+    player.frozen = false; scare('RUN. To the kitchen!', 2.2); saveCheckpoint('chase2'); after(2.0, startChase2);
   });
 }
 function stateNeighborDark(){
@@ -217,17 +224,20 @@ function stateNeighborDark(){
   D.nFront.locked = true; D.nFront.jammed = true;
 }
 function loadChase2(){
-  resetWorld(); stateNeighborDark(); saveCheckpoint('chase2'); G.step = 'n_twist';
-  setPlayer(4.2, 0, -25.5, -Math.PI / 2); monPlace(1.0, 0, -29.0, Math.PI / 2); MON.mode = 'stand';
-  S.dripOn = true; after(1, dripChain); scare('RUN. The kitchen!', 2.2); SND.sting(0.25);
-  // the way out works right away; it starts hunting you a moment later
-  startChase2(); MON.mode = 'stand'; after(2.2, () => { if (G.step === 'chase2' && MON.mode === 'stand') monChase(CHASE2); });
+  resetWorld(); statePolice(); stateBodies(); S.radioOn = false; D.front.locked = false; setDoor(D.front, true, { instant: true, silent: true });
+  G.npower = true; FX.nPorch.on = true; D.nFront.locked = true; S.doorShut = true; PROPS.water.visible = false;
+  NEIGH.root.visible = true; neighborSit(); saveCheckpoint('chase2'); G.step = 'n_twist';
+  setPlayer(SEATS[0].x, 0, SEATS[0].z, SEATS[0].yaw); sitDown(SEATS[0]);
+  objective('...'); S.dripOn = true; after(0.5, dripChain);
+  after(0.6, () => say('NEIGHBOR', '"Of course. Just don\'t go into that room at the end of the hall."', 3.2));
+  after(4.2, () => { think('(...That is exactly what Mrs. Henderson said.)', 2.6); AMB.master = 0; });
+  after(6.4, twistB);
 }
 function loadNeighbor(){
   resetWorld(); statePolice(); stateBodies(); D.front.locked = false; setDoor(D.front, true, { instant: true, silent: true });
   G.npower = true; FX.nPorch.on = true; D.nFront.locked = false; setDoor(D.nFront, true, { instant: true, silent: true });
   NEIGH.root.visible = true; NEIGH.root.position.set(4, 0, -23.35); setPlayer(4.6, 0, -18.5, 0); G.step = 'safe'; saveCheckpoint('neighbor');
-  objective('Find somewhere safe.'); S.neighWalked = false;
+  objective('Find somewhere safe.'); S.neighWalked = false; lawnWatcher();
 }
 
 // ---------- Chapter 9: final escape ----------
@@ -268,10 +278,18 @@ function storyUpdateC(dt){
   if (!VIEW_ID && S.neighWalk && !S.neighWalk()) S.neighWalk = null;
   if (G.step === 'safe' && inN) ch8();
   // everyone settles in; after a little while (or once you sit) he starts talking
+  if (G.step === 'safe' && !S.lawnSeen && MON.m.root.visible && inView(new V3(MON.pos.x, 2.4, MON.pos.z), 25, 40, false)){ S.lawnSeen = true; think('(It is standing on the lawn. Watching you. Do not look back. Just get inside.)', 4.5); }
   if (G.step === 'n_talk0' && !VIEW_ID){
-    S.chillT += dt;
     const allIn = everyone(q => inHouseRect(q.x, q.z) === 'neighbor');
-    if (!S.neighWalk && NEIGH.seated && ((player.seated && S.chillT > 2) || (allIn && S.chillT > 7) || S.chillT > 16)) startChill();
+    if (!S.doorShut){
+      S.shutT += dt;
+      if (allIn && !D.nFront.open && D.nFront.ang < 0.05) frontDoorShut();
+      else if (S.shutT > 10 && !S.askedDoor && !S.busy){ S.askedDoor = true; dialog([['NEIGHBOR', "Close the door, would you? You're letting the cold in.", 4]]); }
+      else if (S.shutT > 28 && allIn && D.nFront.open){ setDoor(D.nFront, false, { slam: true, speed: 10 }); SND.creak(D.nFront.center, 0.12, 0.8); }   // the wind does it for you
+    } else {
+      S.chillT += dt;
+      if (!S.neighWalk && NEIGH.seated && ((player.seated && S.chillT > 2) || (allIn && S.chillT > 6) || S.chillT > 14)) startChill();
+    }
   }
   if ((CHILL.includes(G.step) || G.step === 'n_twist') && NEIGH.root.visible && !player.frozen){
     if (!S.neighWalk){ const ty = Math.atan2(p.x - NEIGH.root.position.x, p.z - NEIGH.root.position.z); let dy = ty - NEIGH.root.rotation.y; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
@@ -292,11 +310,11 @@ function storyUpdateC(dt){
     const inKitchen = q => q.x > 10.2 && q.z > -34 && q.z < -24.1 && Math.hypot(q.x - 10, q.z + 29.5) > 0.8;
     if (inKitchen(p) && !f.kitBurst){ f.kitBurst = true; lightBurst(FX.nKitchen.pos, 0xfff0d8); }
     if (!f.kitSlam && D.nKitchen.open && everyone(inKitchen) && Math.hypot(MON.pos.x - 10, MON.pos.z + 29.5) > 1.3){
-      f.kitSlam = true; D.nKitchen.hold = 8; setDoor(D.nKitchen, false, { slam: true, speed: 18 });
+      f.kitSlam = true; D.nKitchen.hold = 10; setDoor(D.nKitchen, false, { slam: true, speed: 18 });
       after(0.5, () => think('The door slammed shut behind you. Something is throwing itself against it. Key, shelf, back door. Hurry!', 4.5));
     }
     const outside = q => q.z < -34.7;
-    if (!f.backSlam && D.nBack.open && everyone(outside) && MON.pos.z > -34 && Math.hypot(MON.pos.x - 13, MON.pos.z + 34) > 1.5){ f.backSlam = true; D.nBack.hold = 2.5; setDoor(D.nBack, false, { slam: true, speed: 18 }); }
+    if (!f.backSlam && D.nBack.open && everyone(outside) && MON.pos.z > -34 && Math.hypot(MON.pos.x - 13, MON.pos.z + 34) > 1.5){ f.backSlam = true; D.nBack.hold = 3.5; setDoor(D.nBack, false, { slam: true, speed: 18 }); }
     if (p.x > 10.2 && !f.winGhost && inView(new V3(16.9, 2.3, -29), 20, 9)){ f.winGhost = true; ghostShow(16.9, 0, -29, true); SND.sting(0.14); after(0.45, ghostHide); }
     if (p.z < -34.4 && !f.yard){ f.yard = true; think('The gate! At the back of the garden!', 2.5); }
     if (f.yard && !f.yardGhost && inView(new V3(2.4, 2.3, -42.8), 25, 14)){ f.yardGhost = true; ghostShow(2.4, 0, -42.8, true); after(0.5, ghostHide); }

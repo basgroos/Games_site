@@ -1,5 +1,11 @@
 # Wijzigingen
 
+## House Sitting 1.2.1 (2026-10-22)
+- **Het monster verdwijnt als je de voordeur van de buurman dichtdoet.** Terwijl je de straat oversteekt, staat het op het gazon van de Hendersons naar je te kijken. Binnen bij de buurman vraagt die je de deur dicht te doen (*Close the front door behind you*); zodra die dicht is en iedereen binnen is, is het weg. Pas daarna ga je zitten, drink je wat en praat je met hem, en pas als je naar de wc vraagt verandert hij.
+  - Doe je de deur niet dicht, dan vraagt hij het na 10 seconden; na een halve minuut slaat de wind hem dicht.
+- **Try again en Continue bij de laatste achtervolging beginnen nu op de bank naast de buurman**, vlak voordat hij opstaat en verandert. Eerder stond je meteen in de woonkamer met het monster al binnen, waardoor het leek alsof het gewoon bij de buurman binnenkwam.
+- Na de verandering heb je 2 seconden (was 1,3) voordat het achter je aan komt; de keukendeur houdt het 10 seconden tegen (was 8), de achterdeur 3,5 (was 2,5).
+
 ## House Sitting 1.2.0 (2026-10-22)
 - **Even chillen bij de buurman, dan pas het monster.** De buurman loopt naar binnen en gaat op de bank zitten. Je kunt naast hem gaan zitten (of in de leunstoel): druk op E bij de bank, met W sta je weer op. Er speelt een plaat, hij schenkt water in en praat een tijdje rustig met je, met stiltes waarin je de vreemde dingen opmerkt (hij knippert niet, zijn schaduw, zijn vingers, het druppen, de deur op slot).
   - Pas als je naar de wc vraagt, staat hij op van de bank, vlak naast je, en verandert hij in het monster. Iedereen die zit, wordt overeind getrokken.

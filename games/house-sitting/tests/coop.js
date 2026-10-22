@@ -96,12 +96,15 @@ const near = (a, b, d = 1.5) => Math.hypot(a[0] - b[0], a[1] - b[1]) < d;
   check(EB("MON.m.root.visible"), 'and the guest sees what he really is');
 
   // ---- the kitchen door only slams when everyone is inside ----
-  EA("MP.hostStart('chase2')"); both(0.5); both(2.5);
-  check(EA("G.step") === 'chase2' && EB("G.step") === 'chase2', 'both at the final chase checkpoint');
+  EA("MP.hostStart('chase2')"); both(0.5);
+  check(EA("NEIGH.seated") && EA("!!player.seated") && !EA("MON.m.root.visible"), 'try again at the final chase: back on the couch next to him, no monster yet');
+  for (let i = 0; i < 200 && EA("G.step") !== 'chase2'; i++) both(0.1);
+  EA("MON.mode = 'watch'"); both(0.5);
+  check(EA("G.step") === 'chase2' && EB("G.step") === 'chase2', 'both at the final chase checkpoint', [EA("G.step + ' ' + G.state"), EB("G.step + ' ' + G.state")]);
   EA("MON.mode = 'watch'; MON.pos.set(2, 0, -28)"); EB("setPlayer(9, 0, -27, 0)"); EA("player.pos.set(12, 0, -30); player.vel.set(0, 0, 0)"); both(0.5);
   check(!EA("G.flags.kitSlam") && EA("D.nKitchen.open"), 'one player still in the hall: the kitchen door stays open', EA("[G.flags.kitSlam, D.nKitchen.open, JSON.stringify(Object.values(MP.remotes).map(r => [r.tx, r.tz])), player.pos.x, player.pos.z, G.state]"));
   EB("setPlayer(12.5, 0, -31, 0)"); both(0.5);
-  check(EA("G.flags.kitSlam") && EA("D.nKitchen.hold") === 8 && !EB("D.nKitchen.open"), 'both in the kitchen: it slams shut (for the guest too)');
+  check(EA("G.flags.kitSlam") && EA("D.nKitchen.hold") === 10 && !EB("D.nKitchen.open"), 'both in the kitchen: it slams shut (for the guest too)', EA("[G.flags.kitSlam, D.nKitchen.hold, D.nKitchen.open, G.state, G.step, MON.mode, player.pos.x, player.pos.z, JSON.stringify(Object.values(MP.remotes).map(r=>[r.tx,r.tz]))].join(' ')"));
 
   // ---- leaving ----
   EB("toMenu()"); both(0.3);
