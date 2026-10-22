@@ -70,10 +70,21 @@ const w = boot('Solo', errors), E = s => w.eval(s);
   check(E("G.step") === 'called', 'the neighbor calls you over');
   step(w, 8); E("setPlayer(4,0,-21,0)"); step(w, 5); E("setPlayer(4,0,-25.5,0)"); step(w, 1);
   check(E("G.step") === 'n_talk0', 'inside the neighbor\'s house');
-  E("talkNeighbor()"); step(w, 9); E("drinkWater()"); step(w, 40);
-  check(E("G.step") === 'n_ask', 'ask for the bathroom');
-  E("setPlayer(4,0,-27,Math.PI/2)"); step(w, 0.5); E("talkNeighbor()"); for (let i = 0; i < 300 && E("G.step") !== 'chase2'; i++) step(w, 0.1);
+  check(!E("MON.m.root.visible") && E("MON.mode") === 'off', 'no monster anywhere while you are at the neighbor\'s');
+  for (let i = 0; i < 100 && !E("NEIGH.seated"); i++) step(w, 0.1);
+  check(E("NEIGH.seated && Math.abs(NEIGH.root.position.x - 4.5) < 0.1"), 'the neighbor sits down on the couch');
+  check(use(w, "inters.find(e => e.text === 'Sit down').obj") === 'ok' && E("!!player.seated"), 'you sit down next to him');
+  step(w, 0.2); check(E("camera.position.y") < 1.3, 'seated: the camera is lower', E("camera.position.y"));
+  for (let i = 0; i < 200 && E("G.step") !== 'n_drink'; i++) step(w, 0.1);
+  check(E("G.step") === 'n_drink' && E("!!player.seated"), 'he starts chatting and offers water (you are still sitting)');
+  E("drinkWater()"); let maxMon = false;
+  for (let i = 0; i < 900 && E("G.step") !== 'n_ask'; i++){ step(w, 0.1); maxMon = maxMon || E("MON.m.root.visible"); }
+  check(E("G.step") === 'n_ask' && !maxMon, 'a long quiet chat on the couch, still no monster');
+  E("keys.KeyW = true"); step(w, 0.2); E("keys.KeyW = false");
+  check(!E("player.seated") && E("player.pos.x") < 4.1, 'W gets you up off the couch', E("player.pos.x"));
+  E("sitDown(SEATS[0]); talkNeighbor()"); for (let i = 0; i < 300 && E("G.step") !== 'chase2'; i++) step(w, 0.1);
   check(E("G.step + ' ' + MON.mode") === 'chase2 chase', 'the twist and the final chase');
+  check(!E("player.seated") && !E("NEIGH.seated"), 'he got up, and so did you');
   E("loadCheckpoint('chase2'); setPlayer(13,0,-31,0)"); step(w, 2); E("MON.mode = 'watch'"); // let it watch while we open the way out
   check(E("G.state + ' ' + G.step") === 'playing chase2', 'checkpoint: final chase', E("G.state + ' ' + G.step"));
   check(use(w, 'PROPS.nKeyHit') === 'ok', 'grab the back door key');
@@ -95,8 +106,8 @@ const w = boot('Solo', errors), E = s => w.eval(s);
   check(E("G.flags.kitSlam"), 'the kitchen door slammed shut behind you');
   E("toMenu(); loadCheckpoint('chase2')");
   r = runRoute(w, 'chase2', 2.0); check(r.ok, 'the final chase can be survived even when slow (2 s per press)', r);
-  E("toMenu(); loadCheckpoint('neighbor'); G.step = 'n_ask'; NEIGH.root.position.set(1.6,0,-28.3); setPlayer(3.6,0,-25.5,-Math.PI/2); talkNeighbor()");
-  r = runRoute(w, 'chase2', 1.0, 80); check(r.ok, 'the final chase can be survived after the twist', r);
+  E("toMenu(); loadCheckpoint('neighbor'); G.step = 'n_ask'; neighborSit(); sitDown(SEATS[0]); talkNeighbor()");
+  r = runRoute(w, 'chase2', 1.0, 80); check(r.ok, 'the final chase can be survived after he gets up from the couch', r);
   for (const c of ['night', 'chase1', 'police', 'neighbor', 'chase2']){ E(`loadCheckpoint('${c}')`); step(w, 1); check(E("G.state") === 'playing' || E("G.state") === 'cine', 'checkpoint ' + c + ' loads'); }
   done(errors, 'House Sitting smoke test');
 })().catch(e => { console.log('FAIL', e.stack); process.exit(1); });

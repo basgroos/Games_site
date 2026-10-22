@@ -1,12 +1,19 @@
 // ================= STORY III: chapters 6–9 (police, the officers, the neighbor, the final escape) =================
 let TORCH1, TORCH2;
 const CAR_POS = new V3(10.5, 1.0, -12.6), DRIP_POS = new V3(15.6, 0.9, -31.6);
+// lines: [who, text, seconds]; text null = a quiet pause (things can be noticed then)
 function dialog(lines, done){
   S.busy = true; let t = 0;
-  lines.forEach(([who, text, d]) => { after(t, () => { if (who === 'YOU') say('YOU', '"' + text + '"', d); else if (who) { say(who, '"' + text + '"', d); if (NEIGH.root.visible) SND.voice(new V3(NEIGH.root.position.x, 1.6, NEIGH.root.position.z), Math.min(d * 0.6, 2.5), 0.12, 175); } else think(text, d); }); t += d + 0.25; });
+  lines.forEach(([who, text, d]) => { after(t, () => {
+    if (text == null) return;
+    S.talkEnd = G.time + d;
+    if (who === 'YOU') say('YOU', '"' + text + '"', d);
+    else if (who){ say(who, '"' + text + '"', d); if (NEIGH.root.visible) SND.voice(new V3(NEIGH.root.position.x, NEIGH.seated ? 1.2 : 1.6, NEIGH.root.position.z), Math.min(d * 0.6, 2.5), 0.12, 175); }
+    else think(text, d);
+  }); t += d + 0.25; });
   after(t, () => { S.busy = false; done && done(); });
 }
-function observe(key, text){ if (G.flags['obs_' + key] || G.time < (S.obsNext || 0) || S.busy) return; G.flags['obs_' + key] = true; think(text, 4.5); S.obsNext = G.time + 5.5; }
+function observe(key, text){ if (G.flags['obs_' + key] || G.time < (S.obsNext || 0) || G.time < (S.talkEnd || 0)) return; G.flags['obs_' + key] = true; think(text, 4.5); S.obsNext = G.time + 5.5; }
 function dripChain(){ if (!S.dripOn) return; SND.drip(DRIP_POS, 0.4); after(rnd(0.9, 1.7), dripChain); }
 function radioChain(){ if (!S.radioOn) return; SND.radio(new V3(12.4, 0.2, 10.2), rnd(0.6, 1.2), 0.14); after(rnd(6, 11), radioChain); }
 
@@ -19,6 +26,8 @@ function storyInitC(){
   hitbox(0.7, 1.8, 0.6, 0, 0.9, 0, NEIGH.root);
   addInter(NEIGH.root, 'Talk to the neighbor', talkNeighbor, () => ['n_talk0', 'n_drink', 'n_ask'].includes(G.step) && !S.busy);
   addInter(PROPS.water, 'Drink the water', drinkWater, () => G.step === 'n_drink' && !S.busy);
+  SEATS.forEach(seat => { const e = addInter(hitbox(0.6, 0.55, 0.62, seat.x, 0.5, seat.z), 'Sit down', () => { sitDown(seat); think('(The cushions are warm. Press W to get up.)', 3); },
+    () => CHILL.includes(G.step) && !player.seated && NEIGH.root.visible); e.local = true; });
   addInter(PROPS.nKeyHit, 'Grab the key', () => { addItem('Back door key'); PROPS.nKey.visible = false; markObj('k'); think('BACK DOOR, says the tag.', 2); }, () => G.step === 'chase2' && !hasItem('Back door key'));
   addInter(PROPS.pantry, () => 'Push the shelf aside (' + (G.flags.pantry || 0) + '/2)', () => {
     if (S.pushing) return; S.pushing = true; G.flags.pantry = (G.flags.pantry || 0) + 1; SND.scrape(new V3(13, 0.5, -33.6), 0.4); player.shake = Math.max(player.shake, 0.25);
@@ -138,25 +147,42 @@ function neighborCall(){
 function loadPolice(){ policeScene(); }
 
 // ---------- Chapter 8: the neighbor ----------
+const NSEAT = { x: 4.5, z: -27.87 };                       // the neighbor's spot on the couch
+const SEATS = [{ x: 4.45, z: -26.55, yaw: Math.PI / 2 }, { x: 0.85, z: -29.2, yaw: -Math.PI / 2 }];   // couch, armchair
+const CHILL = ['n_talk0', 'n_chat', 'n_drink', 'n_story', 'n_rest', 'n_ask'];
+function neighborSit(){ NEIGH.root.position.set(NSEAT.x, 0, NSEAT.z); NEIGH.root.rotation.y = -Math.PI / 2; humanSit(NEIGH, true); SND.rustle(new V3(NSEAT.x, 0.5, NSEAT.z), 0.4); }
 function neighborWalkIn(){
-  S.neighWalked = true; const path = [[4, -24.6], [3.0, -26.2], [1.6, -28.3]]; let i = 0;
-  S.neighWalk = () => { if (i >= path.length) return false; const p = NEIGH.root.position; const [tx, tz] = path[i]; const vx = tx - p.x, vz = tz - p.z, L = Math.hypot(vx, vz); if (L < 0.06){ i++; return true; } const st = Math.min(L, 1.1 * G.dt); p.x += vx / L * st; p.z += vz / L * st; NEIGH.root.rotation.y = Math.atan2(vx, vz); animHuman(NEIGH, G.dt, 1.1); return true; };
+  S.neighWalked = true; const path = [[4, -24.6], [3.3, -25.6], [3.6, -27.87]]; let i = 0;
+  S.neighWalk = () => { if (i >= path.length){ neighborSit(); return false; } const p = NEIGH.root.position; const [tx, tz] = path[i]; const vx = tx - p.x, vz = tz - p.z, L = Math.hypot(vx, vz); if (L < 0.06){ i++; return true; } const st = Math.min(L, 1.1 * G.dt); p.x += vx / L * st; p.z += vz / L * st; NEIGH.root.rotation.y = Math.atan2(vx, vz); animHuman(NEIGH, G.dt, 1.1); return true; };
   say('NEIGHBOR', '"Come in, come in. Sit down before you fall down."', 4);
 }
+function startChill(){
+  if (G.step !== 'n_talk0') return; G.step = 'n_chat';
+  dialog([['NEIGHBOR', "There. Isn't that better? Nobody can get you in here.", 4], ['YOU', 'Thanks. Really. I just need a minute.', 3.5], [null, null, 2.5],
+    ['NEIGHBOR', "You poor thing. You're soaked right through.", 3.5], ['NEIGHBOR', 'I poured you some water. Go on. Drink something.', 4]],
+    () => { G.step = 'n_drink'; objective('Drink the water (on the coffee table)'); });
+}
 function ch8(){
-  saveCheckpoint('neighbor'); G.step = 'n_talk0'; S.radioOn = false;
+  saveCheckpoint('neighbor'); G.step = 'n_talk0'; S.radioOn = false; S.chillT = 0;
+  monHide(); ghostHide();   // the thing from the house is gone. As far as you can tell.
   after(1.2, () => { if (player.pos.z < -24.9) setDoor(D.nFront, false); });
   S.loops.music = LOOPS.music(new V3(7.4, 0.8, -24.4)); AMB.master = 0.8;
-  objective('Talk to the neighbor'); S.dripOn = true; after(4, dripChain);
+  objective('Sit down and rest (couch or armchair)'); S.dripOn = true; after(4, dripChain);
 }
 function talkNeighbor(){
-  if (G.step === 'n_talk0') dialog([['NEIGHBOR', "You poor thing. You're soaked right through.", 3.5], ['NEIGHBOR', 'I poured you some water. Go on. Drink something.', 4]], () => { G.step = 'n_drink'; objective('Drink the water'); });
+  if (G.step === 'n_talk0') startChill();
   else if (G.step === 'n_drink') dialog([['NEIGHBOR', "Go on. Drink. You'll feel better.", 3]]);
   else if (G.step === 'n_ask'){ G.step = 'n_twist'; dialog([['YOU', 'Can I use your bathroom?', 2.8], ['NEIGHBOR', 'Of course.', 2.2], ['NEIGHBOR', "Just don't go into that room at the end of the hall.", 4]], twistA); }
 }
 function drinkWater(){
   SND.gulp(); PROPS.water.visible = false; G.step = 'n_story';
-  dialog([['NEIGHBOR', 'Better?', 2], ['NEIGHBOR', 'Now. Tell me what happened over there.', 3.5], ['YOU', "There's something in that house. Something tall. Two police officers went in after it and they... they didn't come out.", 6.5], ['NEIGHBOR', 'Mm.', 2.4], ['NEIGHBOR', 'That house has always been particular about its guests.', 4.5]], () => {
+  dialog([['NEIGHBOR', 'Better?', 2], ['NEIGHBOR', 'Now. Tell me what happened over there.', 3.5],
+    ['YOU', "There's something in that house. Something tall. Two police officers went in after it and they... they didn't come out.", 6.5],
+    ['NEIGHBOR', 'Mm.', 2.4], ['NEIGHBOR', 'That house has always been particular about its guests.', 4.5], [null, null, 5],
+    ['NEIGHBOR', "Put your feet up. You're safe here. Nobody comes in unless I let them in.", 5], [null, null, 6],
+    ['NEIGHBOR', 'I have lived on Alder Lane a long time. Longer than the Hendersons. Longer than the trees out front.', 5.5], [null, null, 4],
+    ['NEIGHBOR', 'This record was my mother\'s favourite. Or somebody\'s mother.', 4.5], [null, null, 6],
+    ['NEIGHBOR', 'The rain always stops around four. You can go home then.', 4.5], [null, null, 4]], () => {
     G.step = 'n_rest'; objective('Rest for a moment');
     after(5, () => { S.dripLoud = true; think('(Drip. Drip. The same wet sound as the trash bag. From the kitchen.)', 4.5); });
     after(12, () => { think('(You need a minute alone. Somewhere with a lock on the door.)', 4); objective('Ask to use the bathroom'); G.step = 'n_ask'; });
@@ -167,7 +193,10 @@ function twistA(){
   think('(...That is exactly what Mrs. Henderson said.)', 4); after(3.6, twistB);
 }
 function twistB(){
-  player.frozen = true; const p = player.pos, n = NEIGH.root.position;
+  // he gets up from the couch, right next to whoever is closest
+  humanSit(NEIGH, false); standUp(); netFx({ t: 'stand' });
+  const views = monViews(); let best = views[0]; for (const v of views) if (v.pos.distanceTo(NEIGH.root.position) < best.pos.distanceTo(NEIGH.root.position)) best = v;
+  player.frozen = true; const p = best.pos, n = NEIGH.root.position;
   let dx = n.x - p.x, dz = n.z - p.z, L = Math.hypot(dx, dz) || 1; dx /= L; dz /= L;
   const sx = p.x + dx * 1.25, sz = p.z + dz * 1.25; NEIGH.root.position.set(sx, 0, sz); NEIGH.root.rotation.y = Math.atan2(-dx, -dz);
   lookAtPoint(new V3(sx, 1.65, sz), 9); SND.lowSwell(0.32, 3); SND.heartbeat(0.7);
@@ -238,9 +267,17 @@ function storyUpdateC(dt){
   if (G.step === 'safe' && !S.neighWalked && Math.hypot(p.x - 4, p.z + 24) < 5) neighborWalkIn();
   if (!VIEW_ID && S.neighWalk && !S.neighWalk()) S.neighWalk = null;
   if (G.step === 'safe' && inN) ch8();
-  if (['n_talk0', 'n_drink', 'n_story', 'n_rest', 'n_ask', 'n_twist'].includes(G.step) && NEIGH.root.visible && !player.frozen){
-    if (!S.neighWalk){ const ty = Math.atan2(p.x - NEIGH.root.position.x, p.z - NEIGH.root.position.z); let dy = ty - NEIGH.root.rotation.y; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI; NEIGH.root.rotation.y += dy * Math.min(1, dt * 2); }
-    const nh = new V3(NEIGH.root.position.x, 1.72, NEIGH.root.position.z), dN = Math.hypot(p.x - nh.x, p.z - nh.z);
+  // everyone settles in; after a little while (or once you sit) he starts talking
+  if (G.step === 'n_talk0' && !VIEW_ID){
+    S.chillT += dt;
+    const allIn = everyone(q => inHouseRect(q.x, q.z) === 'neighbor');
+    if (!S.neighWalk && NEIGH.seated && ((player.seated && S.chillT > 2) || (allIn && S.chillT > 7) || S.chillT > 16)) startChill();
+  }
+  if ((CHILL.includes(G.step) || G.step === 'n_twist') && NEIGH.root.visible && !player.frozen){
+    if (!S.neighWalk){ const ty = Math.atan2(p.x - NEIGH.root.position.x, p.z - NEIGH.root.position.z); let dy = ty - NEIGH.root.rotation.y; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
+      if (NEIGH.seated){ const h = NEIGH.P.head; h.rotation.y += (clamp(dy, -1.1, 1.1) - h.rotation.y) * Math.min(1, G.dt * 2); }   // sitting: only his head turns to watch you
+      else NEIGH.root.rotation.y += dy * Math.min(1, dt * 2); }
+    const nh = new V3(NEIGH.root.position.x, NEIGH.seated ? 1.32 : 1.72, NEIGH.root.position.z), dN = Math.hypot(p.x - nh.x, p.z - nh.z);
     if (looked('blink', dN < 3.2 && inView(nh, 12, 4), dt, 3.5)) observe('blink', "(They haven't blinked. Not once.)");
     if (PROPS.shadow.visible && looked('shadow', inView(new V3(0.09, 1.9, -28.3), 22, 8), dt, 1.2)) observe('shadow', '(Their shadow on the wall behind them... it reaches all the way to the ceiling.)');
     const hp = new V3(); NEIGH.P.aR.getWorldPosition(hp); hp.y -= 0.72;

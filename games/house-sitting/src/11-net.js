@@ -282,7 +282,7 @@ const MP = {
       ob: this.sync.map(o => [o.visible ? 1 : 0, r3(o.position.x), r3(o.position.y), r3(o.position.z), r3(o.rotation.x), r3(o.rotation.y), r3(o.rotation.z)]),
       c: this.syncCols.map(c => [c.on ? 1 : 0, r3(c.minX), r3(c.maxX), r3(c.minZ), r3(c.maxZ)]),
       a: [r2(AMB.rain), r2(AMB.wind), r2(AMB.master)],
-      lp: Object.keys(S.loops).filter(k => S.loops[k]), cl: G.clutter ? 1 : 0,
+      lp: Object.keys(S.loops).filter(k => S.loops[k]), cl: G.clutter ? 1 : 0, ns: NEIGH.seated ? 1 : 0,
     };
   },
   applySnap(s){
@@ -295,6 +295,7 @@ const MP = {
     (s.c || []).forEach((a, i) => { const c = this.syncCols[i]; if (!c) return; c.on = !!a[0]; c.minX = a[1]; c.maxX = a[2]; c.minZ = a[3]; c.maxZ = a[4]; });
     if (s.a){ AMB.rain = s.a[0]; AMB.wind = s.a[1]; AMB.master = s.a[2]; }
     this.syncLoops(s.lp || []);
+    if (!!s.ns !== !!NEIGH.seated){ humanSit(NEIGH, !!s.ns); if (s.ns) NEIGH.root.position.y = -0.4; }
     if (s.cl && !G.clutter) G.clutter = CLUTTER.map(c => Object.assign({}, c)); else if (!s.cl) G.clutter = null;
   },
   syncLoops(keys){
@@ -325,6 +326,7 @@ const MP = {
       case 'dr': { const d = doors[e.i]; if (d) setDoor(d, !!e.o, { silent: true, speed: e.sp, instant: !!e.ins, force: true }); break; }
       case 'gs': ghostShow(...e.a); break;
       case 'gh': ghostHide(); break;
+      case 'stand': standUp(); break;
       case 'bat': player.battery = Math.min(100, player.battery + (+e.v || 0)); break;
     }
   },
@@ -429,7 +431,7 @@ function netInit(){
     return o();
   });
   netWrap('netFx', o => e => { if (MP.bcast()) MP.q(e); });
-  netWrap('useInter', o => h => { if (MP.guest && MP.started){ const i = inters.indexOf(h); if (i >= 0) MP.send('use', { i }); return; } return o(h); });
+  netWrap('useInter', o => h => { if (MP.guest && MP.started && !h.local){ const i = inters.indexOf(h); if (i >= 0) MP.send('use', { i }); return; } return o(h); });
   netWrap('storyUpdate', o => dt => {
     o(dt);
     if (!(MP.host && MP.started)) return;

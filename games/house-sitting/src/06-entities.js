@@ -52,9 +52,12 @@ function buildHuman(o = {}){
   const root = new THREE.Group(); const P = {};
   const skin = std({ color: o.skin || 0xc8a184, roughness: 0.6 }), shirt = std({ color: o.shirt || 0x34405a, roughness: 0.9 }), pants = std({ color: o.pants || 0x1e2128, roughness: 0.9 }), hair = std({ color: o.hair || 0x2a2018, roughness: 1 });
   const cyl = (rt, rb, h, mat) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, 10), mat); m.castShadow = true; return m; };
-  const mkLeg = sx => { const hip = new THREE.Group(); hip.position.set(sx * 0.1, 0.92, 0); root.add(hip); const l = cyl(0.07, 0.055, 0.9, pants); l.position.y = -0.45; hip.add(l);
-    const sh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.07, 0.25), std({ color: 0x111111 })); sh.position.set(0, -0.9, 0.05); hip.add(sh); return hip; };
-  P.lL = mkLeg(-1); P.lR = mkLeg(1);
+  const mkLeg = sx => { const hip = new THREE.Group(); hip.position.set(sx * 0.1, 0.92, 0); root.add(hip);
+    const th = cyl(0.07, 0.062, 0.46, pants); th.position.y = -0.23; hip.add(th);
+    const knee = new THREE.Group(); knee.position.y = -0.46; hip.add(knee); hip.userData.knee = knee;
+    const sn = cyl(0.062, 0.055, 0.44, pants); sn.position.y = -0.22; knee.add(sn);
+    const sh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.07, 0.25), std({ color: 0x111111 })); sh.position.set(0, -0.44, 0.05); knee.add(sh); return hip; };
+  P.lL = mkLeg(-1); P.lR = mkLeg(1); P.kL = P.lL.userData.knee; P.kR = P.lR.userData.knee;
   const tor = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.62, 0.24), shirt); tor.position.y = 1.22; tor.castShadow = true; root.add(tor);
   if (o.belt) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.07, 0.26), std({ color: 0x0a0a0a })); b.position.y = 0.95; root.add(b); }
   const nk = cyl(0.05, 0.06, 0.1, skin); nk.position.y = 1.57; root.add(nk);
@@ -70,7 +73,14 @@ function buildHuman(o = {}){
   P.aL = mkArm(-1); P.aR = mkArm(1);
   return { root, P, phase: 0 };
 }
-function animHuman(h, dt, speed){ h.phase += dt * speed * 3.2; const a = Math.min(0.5, speed * 0.25), s = Math.sin(h.phase); h.P.lL.rotation.x = s * a; h.P.lR.rotation.x = -s * a; h.P.aL.rotation.x = -s * a * 0.6; h.P.aR.rotation.x = s * a * 0.6; }
+// sitting: thighs forward, shins down, hands in the lap
+function humanSit(h, on){
+  const P = h.P; h.seated = !!on;
+  P.lL.rotation.x = P.lR.rotation.x = on ? -Math.PI / 2 : 0; P.kL.rotation.x = P.kR.rotation.x = on ? Math.PI / 2 : 0;
+  P.aL.rotation.x = P.aR.rotation.x = on ? -0.5 : 0; P.head.rotation.set(0, 0, 0);
+  h.root.position.y = on ? -0.4 : 0;
+}
+function animHuman(h, dt, speed){ if (h.seated) return; h.phase += dt * speed * 3.2; const a = Math.min(0.5, speed * 0.25), s = Math.sin(h.phase); h.P.lL.rotation.x = s * a; h.P.lR.rotation.x = -s * a; h.P.aL.rotation.x = -s * a * 0.6; h.P.aR.rotation.x = s * a * 0.6; }
 
 // ---------- Monster controller ----------
 const MON = { m: null, mode: 'off', pos: new V3(), level: 0, yaw: 0, speed: 0, kind: 'walk', kindT: 0, path: [], stall: 0, P: null, stepAcc: 0, breathT: 2, tilt: 0, intensity: 0, music: null };

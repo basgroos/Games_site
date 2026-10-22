@@ -84,6 +84,17 @@ const near = (a, b, d = 1.5) => Math.hypot(a[0] - b[0], a[1] - b[1]) < d;
   EA("$('bDeadRetry').click()"); both(1);
   check(EA("G.state") !== 'dead' && EB("G.state") !== 'dead', 'host tries again: both back in');
 
+  // ---- chilling on the neighbor's couch together ----
+  EA("MP.hostStart('neighbor')"); both(1);
+  EA("setPlayer(4, 0, -25.4, 0)"); both(0.5);
+  for (let i = 0; i < 120 && !EB("NEIGH.seated"); i++) both(0.1);
+  check(EA("NEIGH.seated") && EB("NEIGH.seated") && EB("Math.abs(NEIGH.root.position.y + 0.4) < 0.05"), 'both see the neighbor sitting on the couch');
+  check(use(B, "inters.find(e => e.text === 'Sit down').obj") === 'ok', 'guest sits down'); both(0.4);
+  check(EB("!!player.seated") && !EA("player.seated") && EA("Math.hypot(player.pos.x - 4, player.pos.z + 25.4)") < 0.5, 'sitting is only on the guest\'s own screen (host not moved)');
+  EA("G.step = 'n_ask'; talkNeighbor()"); for (let i = 0; i < 300 && EA("G.step") !== 'chase2'; i++) both(0.1);
+  check(EA("G.step") === 'chase2' && !EB("player.seated") && !EB("NEIGH.seated"), 'he gets up and changes: the guest is pulled up off the couch too');
+  check(EB("MON.m.root.visible"), 'and the guest sees what he really is');
+
   // ---- the kitchen door only slams when everyone is inside ----
   EA("MP.hostStart('chase2')"); both(0.5); both(2.5);
   check(EA("G.step") === 'chase2' && EB("G.step") === 'chase2', 'both at the final chase checkpoint');

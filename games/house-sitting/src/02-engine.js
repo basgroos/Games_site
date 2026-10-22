@@ -133,6 +133,8 @@ function updatePlayer(dt){
     if (keys.KeyA) ix -= 1; if (keys.KeyD) ix += 1;
     if (keys.ArrowLeft) p.yaw += 2.2 * dt; if (keys.ArrowRight) p.yaw -= 2.2 * dt;
   }
+  // sitting: look around freely; any movement key gets you up
+  if (p.seated){ if (canMove && (ix !== 0 || iz !== 0)) standUp(); else { ix = 0; iz = 0; } }
   const moving = (ix !== 0 || iz !== 0);
   const wantSprint = (keys.ShiftLeft || keys.ShiftRight) && moving && iz < 0.5;
   const sprinting = wantSprint && !p.exhausted && p.stamina > 0;
@@ -146,11 +148,12 @@ function updatePlayer(dt){
   if (moving){ const fx = -sy, fz = -cy, rx = cy, rz = -sy; wx = fx * (-iz) + rx * ix; wz = fz * (-iz) + rz * ix; const l = Math.hypot(wx, wz); wx = wx / l * speed; wz = wz / l * speed; }
   const a = Math.min(1, dt * 11);
   p.vel.x += (wx - p.vel.x) * a; p.vel.z += (wz - p.vel.z) * a;
+  if (p.seated) p.vel.set(0, 0, 0);
   const np = p.pos.clone(); np.x += p.vel.x * dt; np.z += p.vel.z * dt;
   // level & floor
   let fl = floorAt(np.x, np.z, p.level);
   if (fl.stair) p.level = fl.y > 1.5 ? 1 : 0; else fl = floorAt(np.x, np.z, p.level);
-  collide(np, p.r, p.level);
+  if (!p.seated) collide(np, p.r, p.level);
   fl = floorAt(np.x, np.z, p.level);
   if (fl.stair) p.level = fl.y > 1.5 ? 1 : 0;
   p.pos.copy(np);
@@ -174,7 +177,7 @@ function updatePlayer(dt){
   const bob = Math.sin(p.bobT) * (sprinting ? 0.055 : 0.032) * Math.min(1, hs / 3);
   p.shake = Math.max(0, p.shake - dt * 0.9);
   const sh = p.shake * p.shake;
-  camera.position.set(p.pos.x + (Math.random() - 0.5) * sh * 0.06, p.feetY + p.height + bob + (p.stumble > 0 ? -0.18 : 0), p.pos.z + (Math.random() - 0.5) * sh * 0.06);
+  camera.position.set(p.pos.x + (Math.random() - 0.5) * sh * 0.06, p.feetY + (p.seated ? 1.12 : p.height) + bob + (p.stumble > 0 ? -0.18 : 0), p.pos.z + (Math.random() - 0.5) * sh * 0.06);
   p.pitch = clamp(p.pitch, -1.45, 1.45);
   p.roll += ((p.stumble > 0 ? 0.08 : 0) - p.roll) * Math.min(1, dt * 6);
   camera.rotation.set(p.pitch + (Math.random() - 0.5) * sh * 0.03, p.yaw + (Math.random() - 0.5) * sh * 0.03, p.roll);
@@ -183,7 +186,9 @@ function updatePlayer(dt){
   let fi = p.flashOn ? 2.4 : 0; if (p.flashOn && p.battery < 15 && Math.random() < 0.08) fi *= 0.2;
   flash.intensity = fi;
 }
-function setPlayer(x, y, z, yaw, pitch = 0){ player.pos.set(x, y, z); player.feetY = y; player.level = y > 1.5 ? 1 : 0; player.yaw = yaw; player.pitch = pitch; player.vel.set(0, 0, 0); player.trail = []; player.lookTarget = null; player.stumble = 0; player.roll = 0; }
+function sitDown(seat){ const p = player; p.seated = seat; p.pos.set(seat.x, 0, seat.z); p.feetY = 0; p.level = 0; p.yaw = seat.yaw; p.pitch = -0.08; p.vel.set(0, 0, 0); p.lookTarget = null; SND.rustle(p.pos, 0.3); }
+function standUp(){ const p = player, s = p.seated; if (!s) return; p.seated = null; p.pos.x -= Math.sin(s.yaw) * 0.6; p.pos.z -= Math.cos(s.yaw) * 0.6; }
+function setPlayer(x, y, z, yaw, pitch = 0){ player.seated = null; player.pos.set(x, y, z); player.feetY = y; player.level = y > 1.5 ? 1 : 0; player.yaw = yaw; player.pitch = pitch; player.vel.set(0, 0, 0); player.trail = []; player.lookTarget = null; player.stumble = 0; player.roll = 0; }
 
 // ---------- Visibility test ----------
 const occluders = [];

@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## House Sitting 1.2.0 (2026-10-22)
+- **Even chillen bij de buurman, dan pas het monster.** De buurman loopt naar binnen en gaat op de bank zitten. Je kunt naast hem gaan zitten (of in de leunstoel): druk op E bij de bank, met W sta je weer op. Er speelt een plaat, hij schenkt water in en praat een tijdje rustig met je, met stiltes waarin je de vreemde dingen opmerkt (hij knippert niet, zijn schaduw, zijn vingers, het druppen, de deur op slot).
+  - Pas als je naar de wc vraagt, staat hij op van de bank, vlak naast je, en verandert hij in het monster. Iedereen die zit, wordt overeind getrokken.
+  - Het monster uit het huis van de Hendersons is weg zodra je bij de buurman binnenkomt; je ziet het pas weer als hij verandert.
+  - Samen spelen: zitten doe je alleen op je eigen scherm. Hij begint te praten als iemand gaat zitten of als iedereen even binnen is.
+- Mensen in het spel hebben nu knieën (zitten, lopen).
+- Tests: de buurman zit, jij zit, geen monster tijdens het praten, opstaan met W, en de ontsnapping na het opstaan blijft te halen (ook in co-op).
+
 ## House Sitting 1.1.1 (2026-10-22)
 - **De laatste achtervolging (bij de buurman) is nu te halen.** Je werd eerder bijna altijd gepakt: zelfs een perfect spelende bot haalde het hek niet, en na *Try again* stond je op 1,4 m van het monster met 1,5 s om weg te rennen.
   - Ren naar de **keuken**: zodra iedereen binnen is, slaat de keukendeur dicht en houdt die het monster zo'n **8 seconden** tegen. Je hoort en voelt het tegen de deur beuken. Pak in die tijd de sleutel (haakje bij de keukendeur), duw de kast weg en open de achterdeur.

@@ -157,7 +157,8 @@ function resetWorld(){
   PROPS.policeCar.visible = false; PROPS.policeCarCol.on = false;
   if (PROPS.clutterMeshes) PROPS.clutterMeshes.visible = false;
   BATT.forEach(b => { b.taken = false; b.g.visible = true; });
-  [OFF1, OFF2, NEIGH].forEach(h => { h.root.visible = false; h.root.rotation.set(0, 0, 0); });
+  [OFF1, OFF2, NEIGH].forEach(h => { humanSit(h, false); h.root.visible = false; h.root.rotation.set(0, 0, 0); });
+  player.seated = null;
   beam1.visible = beam2.visible = false;
   AMB.rain = 0.55; AMB.wind = 0.3; AMB.master = 1;
   Object.assign(player, { hasFlash: false, flashOn: false, battery: 100, stamina: 100, exhausted: false, frozen: false, speedMul: 1, lookTarget: null, shake: 0, stumble: 0 });
