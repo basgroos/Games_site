@@ -1,5 +1,15 @@
 # Wijzigingen
 
+## House Sitting 1.0.0 (2026-10-22)
+- **Nieuw spel: House Sitting**, een first-person horrorspel in 3D (Three.js r128 via cdnjs). Je past een weekend op het huis van de Hendersons, met drie vreemde regels.
+- Negen hoofdstukken: aankomst, vijf klusjes (vuilnis, afwas, was, stoppen, alles afsluiten), de nacht, de geopende kamer, een achtervolging door het huis, de politie, de agenten, de buurman en een laatste achtervolging met einde.
+- Lopen, sprinten met uithoudingsvermogen, zaklamp met batterij, zakken voor sleutels, taken, interactie met deuren, lichtknoppen, ramen, gootsteen, wasmachine, stoppenkast en hek.
+- Het monster volgt precies het pad dat jij liep, wisselt traag lopen af met sprints en moet dichte deuren eerst inbeuken.
+- Alle geluid wordt in de browser gemaakt en komt uit de juiste richting (koptelefoon aangeraden).
+- Automatische checkpoints; staging heeft een eigen save (`hs_ckpt_staging`). Link terug naar Bas Games in het hoofdmenu.
+- Alleen toetsenbord en muis; niet voor telefoon of tablet.
+- Test: `games/house-sitting/tests/smoke.js` (controleert de gebouwde pagina; jsdom heeft geen WebGL).
+
 ## Heldenwacht 1.33.1 (2026-10-13)
 - **Samen spelen werkt weer, ook als Supabase Realtime hapert.** Op 13-10-2026 had Supabase een storing in Realtime: het bijhouden wie er in een kamer is (*presence*) liep in een timeout, waardoor een co-op/race/portaal-potje na het accepteren nooit startte. Spelers melden zich nu ook met een "hi"-bericht (broadcast, elke 3 s); de kamer start zodra je elkaar via presence óf via die berichten ziet, en je vriend telt pas als "weg" als je 12 s niets meer van hem hoort.
 - Niet veroorzaakt door PULSE//SHIFT: dat spel gebruikt eigen kamers (`bg-room-ps-…`) en raakt de Heldenwacht-kamers en de online-lijst niet.
