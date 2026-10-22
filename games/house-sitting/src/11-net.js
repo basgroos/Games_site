@@ -234,7 +234,7 @@ const MP = {
       a.h.root.position.set(r.x, r.y, r.z); a.h.root.rotation.y = r.yaw + Math.PI; a.h.P.head.rotation.x = -r.pitch * 0.6;
       animHuman(a.h, dt, Math.min(speed, 6));
       a.tag.position.set(r.x, r.y + 2.08, r.z);
-      a.step += moved; if (a.step > 0.75 && speed > 0.5){ a.step = 0; SND.step(surfaceAt(r.x, r.z, r.lv), new V3(r.x, r.y + 0.05, r.z), speed > 4 ? 0.4 : 0.26); }
+      a.step += moved; if (a.step > 0.75 && speed > 0.5){ a.step = 0; SND.footstep(surfaceAt(r.x, r.z, r.lv), new V3(r.x, r.y + 0.05, r.z), speed > 4 ? 0.4 : 0.26); }
       const eye = new V3(r.x, r.y + 1.5, r.z), fwd = new V3(-Math.sin(r.yaw) * Math.cos(r.pitch), Math.sin(r.pitch), -Math.cos(r.yaw) * Math.cos(r.pitch));
       a.spot.position.copy(eye).addScaledVector(fwd, 0.3); a.spot.target.position.copy(eye).addScaledVector(fwd, 6); a.spot.intensity = r.fl ? 2.2 : 0;
       if (a.name !== this.nameOf(r.id)){ scene.remove(a.h.root); scene.remove(a.tag); scene.remove(a.spot); scene.remove(a.spot.target); this.makeAvatar(r); }
@@ -400,7 +400,7 @@ function netInit(){
 
   // sounds: the host's game makes them, everyone hears them (footsteps and panting are made per player)
   for (const k of Object.keys(SND)){
-    if (['ok', 'step', 'pant', 'pickup'].includes(k) || typeof SND[k] !== 'function') continue;
+    if (['ok', 'footstep', 'pant', 'pickup'].includes(k) || typeof SND[k] !== 'function') continue;
     const o = SND[k];
     SND[k] = function(...a){ const top = MP.depth === 0; MP.depth++; try { if (top && MP.bcast()) MP.q({ t: 's', n: k, a: a.map(ser) }); return o.apply(SND, a); } finally { MP.depth--; } };
   }

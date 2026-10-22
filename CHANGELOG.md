@@ -1,5 +1,10 @@
 # Wijzigingen
 
+## House Sitting 1.3.0 (2026-10-22)
+- **Er staat altijd een taak linksboven in beeld.** Overal waar de lijst eerder leeg of afgevinkt bleef (na de afwas, na de stoppen, bij de figuur in de tuin, voor het slapengaan, na het doorzoeken met de agenten, in de geopende kamer, tijdens het gesprek met de buurman en als hij verandert) staat nu wat je moet doen, bv. *Something is out in the garden. Look through the glass door.*, *Rest and talk with the neighbor* en *Get away from him!*. Is alles toch eens afgevinkt, dan staat er *Look around. Something will happen soon.*
+- Samen spelen: de voetstappen boven (na de afwas) en in de gang (tijdens de nacht) hoort nu iedereen, niet alleen de host.
+- Test: tijdens de hele doorspeeltest moet er steeds een open taak in beeld staan.
+
 ## House Sitting 1.2.1 (2026-10-22)
 - **Het monster verdwijnt als je de voordeur van de buurman dichtdoet.** Terwijl je de straat oversteekt, staat het op het gazon van de Hendersons naar je te kijken. Binnen bij de buurman vraagt die je de deur dicht te doen (*Close the front door behind you*); zodra die dicht is en iedereen binnen is, is het weg. Pas daarna ga je zitten, drink je wat en praat je met hem, en pas als je naar de wc vraagt verandert hij.
   - Doe je de deur niet dicht, dan vraagt hij het na 10 seconden; na een halve minuut slaat de wind hem dicht.

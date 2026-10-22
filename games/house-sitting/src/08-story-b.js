@@ -20,7 +20,7 @@ const CLUTTER = [{ x: 5.5, z: 5.35, r: 0.42, level: 0 }, { x: 3.0, z: 5.3, r: 0.
 function reveal1(){
   saveCheckpoint('chase1'); G.step = 'reveal1'; S.revT = 0; G.flags.revSwap = false;
   if (D.bedroom.open) setDoor(D.bedroom, false, { slam: true, speed: 18 }); else SND.doorClose(D.bedroom.center, true);
-  player.shake = 0.4; AMB.master = 0.25;
+  player.shake = 0.4; AMB.master = 0.25; objective('Something is in the room with you. Turn around.', 'urgent');
   after(0.6, () => think('A door slammed. Somewhere behind you.', 2.5));
   after(1.6, () => { monStand(8, 3, 8.55); SND.breath(new V3(8, 5.4, 8.6), 0.9); after(1.2, () => scare('Something is breathing behind you.', 3)); S.revArmed = true; });
 }
@@ -42,7 +42,7 @@ function startChase1(){
 }
 function loadChase1(){
   resetWorld(); stateNight(); saveCheckpoint('chase1'); G.step = 'room'; setPlayer(7.6, 3, 10.4, Math.PI); player.battery = Math.max(player.battery, 70);
-  objective('...'); after(0.4, reveal1);
+  objective('Search the room'); after(0.4, reveal1);
 }
 function breakWindow(){
   if (G.flags.winBroken) return; G.flags.winBroken = true; MON.mode = 'watch'; W.kitchenWin.glass.visible = false; SND.shatter(W.kitchenWin.center); player.shake = 0.6; player.frozen = true;

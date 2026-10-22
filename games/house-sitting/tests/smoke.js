@@ -115,5 +115,6 @@ const w = boot('Solo', errors), E = s => w.eval(s);
   E("toMenu(); loadCheckpoint('neighbor'); monHide(); S.doorShut = true; G.step = 'n_ask'; neighborSit(); sitDown(SEATS[0]); talkNeighbor()");
   r = runRoute(w, 'chase2', 1.0, 80); check(r.ok, 'the final chase can be survived after he gets up from the couch', r);
   for (const c of ['night', 'chase1', 'police', 'neighbor', 'chase2']){ E(`loadCheckpoint('${c}')`); step(w, 1); check(E("G.state") === 'playing' || E("G.state") === 'cine', 'checkpoint ' + c + ' loads'); }
+  check(!w.__noObjective, 'there is always an objective in the top left while playing', w.__noObjective || 0);
   done(errors, 'House Sitting smoke test');
 })().catch(e => { console.log('FAIL', e.stack); process.exit(1); });

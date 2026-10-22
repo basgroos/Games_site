@@ -137,7 +137,7 @@ function afterOfficers(){
   after(5.5, () => { setObjectives([{ key: 'liv', text: 'Search the living room' }, { key: 'kit', text: 'Search the kitchen' }, { key: 'up', text: 'Search upstairs' }]); flashObj(); G.flags.searching = true; think('Whatever did this is still in the house. Or it was.', 4); });
 }
 function neighborCall(){
-  G.npower = true; FX.nPorch.on = true; SND.latch(new V3(4, 1, -24)); SND.creak(new V3(4, 1, -24), 0.15, 1.2);
+  objective('Someone across the street is calling you'); G.npower = true; FX.nPorch.on = true; SND.latch(new V3(4, 1, -24)); SND.creak(new V3(4, 1, -24), 0.15, 1.2);
   D.nFront.locked = false; setDoor(D.nFront, true, { silent: true });
   NEIGH.root.visible = true; NEIGH.root.position.set(4, 0, -23.35); NEIGH.root.rotation.set(0, 0, 0);
   after(1.4, () => { SND.voice(new V3(4, 1.7, -23.3), 3, 0.4, 175); say('NEIGHBOR, ACROSS THE STREET', '"Hey! Are you okay? You look like you\'ve had a terrible night. Come inside. You can rest here."', 6.5); });
@@ -165,7 +165,7 @@ function neighborWalkIn(){
   say('NEIGHBOR', '"Come in, come in. Sit down before you fall down."', 4);
 }
 function startChill(){
-  if (G.step !== 'n_talk0') return; G.step = 'n_chat';
+  if (G.step !== 'n_talk0') return; G.step = 'n_chat'; objective('Rest and talk with the neighbor');
   dialog([['NEIGHBOR', "There. Isn't that better? Nobody can get you in here.", 4], ['YOU', 'Thanks. Really. I just need a minute.', 3.5], [null, null, 2.5],
     ['NEIGHBOR', "You poor thing. You're soaked right through.", 3.5], ['NEIGHBOR', 'I poured you some water. Go on. Drink something.', 4]],
     () => { G.step = 'n_drink'; objective('Drink the water (on the coffee table)'); });
@@ -179,10 +179,10 @@ function ch8(){
 function talkNeighbor(){
   if (G.step === 'n_talk0') startChill();
   else if (G.step === 'n_drink') dialog([['NEIGHBOR', "Go on. Drink. You'll feel better.", 3]]);
-  else if (G.step === 'n_ask'){ G.step = 'n_twist'; dialog([['YOU', 'Can I use your bathroom?', 2.8], ['NEIGHBOR', 'Of course.', 2.2], ['NEIGHBOR', "Just don't go into that room at the end of the hall.", 4]], twistA); }
+  else if (G.step === 'n_ask'){ G.step = 'n_twist'; objective('Go to the bathroom'); dialog([['YOU', 'Can I use your bathroom?', 2.8], ['NEIGHBOR', 'Of course.', 2.2], ['NEIGHBOR', "Just don't go into that room at the end of the hall.", 4]], twistA); }
 }
 function drinkWater(){
-  SND.gulp(); PROPS.water.visible = false; G.step = 'n_story';
+  SND.gulp(); PROPS.water.visible = false; G.step = 'n_story'; objective('Rest and listen to him');
   dialog([['NEIGHBOR', 'Better?', 2], ['NEIGHBOR', 'Now. Tell me what happened over there.', 3.5],
     ['YOU', "There's something in that house. Something tall. Two police officers went in after it and they... they didn't come out.", 6.5],
     ['NEIGHBOR', 'Mm.', 2.4], ['NEIGHBOR', 'That house has always been particular about its guests.', 4.5], [null, null, 5],
@@ -190,7 +190,7 @@ function drinkWater(){
     ['NEIGHBOR', 'I have lived on Alder Lane a long time. Longer than the Hendersons. Longer than the trees out front.', 5.5], [null, null, 4],
     ['NEIGHBOR', 'This record was my mother\'s favourite. Or somebody\'s mother.', 4.5], [null, null, 6],
     ['NEIGHBOR', 'The rain always stops around four. You can go home then.', 4.5], [null, null, 4]], () => {
-    G.step = 'n_rest'; objective('Rest for a moment');
+    G.step = 'n_rest'; objective('Rest for a moment on the couch');
     after(5, () => { S.dripLoud = true; think('(Drip. Drip. The same wet sound as the trash bag. From the kitchen.)', 4.5); });
     after(12, () => { think('(You need a minute alone. Somewhere with a lock on the door.)', 4); objective('Ask to use the bathroom'); G.step = 'n_ask'; });
   });
@@ -201,7 +201,7 @@ function twistA(){
 }
 function twistB(){
   // he gets up from the couch, right next to whoever is closest
-  humanSit(NEIGH, false); standUp(); netFx({ t: 'stand' });
+  humanSit(NEIGH, false); standUp(); netFx({ t: 'stand' }); objective('Get away from him!', 'urgent');
   const views = monViews(); let best = views[0]; for (const v of views) if (v.pos.distanceTo(NEIGH.root.position) < best.pos.distanceTo(NEIGH.root.position)) best = v;
   player.frozen = true; const p = best.pos, n = NEIGH.root.position;
   let dx = n.x - p.x, dz = n.z - p.z, L = Math.hypot(dx, dz) || 1; dx /= L; dz /= L;
@@ -228,7 +228,7 @@ function loadChase2(){
   G.npower = true; FX.nPorch.on = true; D.nFront.locked = true; S.doorShut = true; PROPS.water.visible = false;
   NEIGH.root.visible = true; neighborSit(); saveCheckpoint('chase2'); G.step = 'n_twist';
   setPlayer(SEATS[0].x, 0, SEATS[0].z, SEATS[0].yaw); sitDown(SEATS[0]);
-  objective('...'); S.dripOn = true; after(0.5, dripChain);
+  objective('Go to the bathroom'); S.dripOn = true; after(0.5, dripChain);
   after(0.6, () => say('NEIGHBOR', '"Of course. Just don\'t go into that room at the end of the hall."', 3.2));
   after(4.2, () => { think('(...That is exactly what Mrs. Henderson said.)', 2.6); AMB.master = 0; });
   after(6.4, twistB);
@@ -272,7 +272,7 @@ function storyUpdateC(dt){
     if (l0 && p.x < 5.9 && p.z < 7.9 && !f.s_liv){ f.s_liv = true; markObj('liv'); think('The couch. The TV. Nothing.', 3); }
     if (l0 && p.x > 6.2 && p.z > 6.2 && !f.s_kit){ f.s_kit = true; markObj('kit'); think('Just the broken window, and the rain coming in.', 3.5); }
     if (player.level === 1 && p.z > 5 && !f.s_up){ f.s_up = true; markObj('up'); think('The locked door is shut again. Every lock is back in place.', 4.5); SND.lowSwell(0.2, 3); }
-    if (f.s_liv && f.s_kit && f.s_up && !f.callArmed){ f.callArmed = true; after(4, neighborCall); }
+    if (f.s_liv && f.s_kit && f.s_up && !f.callArmed){ f.callArmed = true; objective('Nothing here. Wait... a sound from across the street.'); after(4, neighborCall); }
   }
   if (G.step === 'safe' && !S.neighWalked && Math.hypot(p.x - 4, p.z + 24) < 5) neighborWalkIn();
   if (!VIEW_ID && S.neighWalk && !S.neighWalk()) S.neighWalk = null;

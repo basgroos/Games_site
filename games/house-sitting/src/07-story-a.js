@@ -222,15 +222,16 @@ function powerOut(){
 function restorePower(){
   SND.zap(PROPS.fuse.position); G.power = true; flickerGroup(f => f.group === 'house', 1.4); ghostHide(); G.flags.figDone = true;
   G.step = 'knocks'; think('Lights. Thank God.', 2.5);
+  setObjectives([{ text: 'Reset the breakers', done: true }, { text: 'Lock up before bed', cls: '' }]);
   after(2.6, () => { SND.knock(new V3(8, 4.2, 9.1), 3, true); player.shake = 0.5; });
   after(5.0, () => think('Three knocks. From inside the locked room upstairs.', 4.5));
   after(10, () => { G.step = 'lockup'; setObjectives([{ key: 'front', text: 'Lock the front door' }, { key: 'win_liv', text: 'Check the living room window' }, { key: 'win_din', text: 'Check the dining room window' }, { key: 'win_kit', text: 'Check the kitchen window' }, { key: 'back', text: 'Lock the back door' }]); flashObj(); });
 }
-function gardenEvent(){ G.flags.garden = 'armed'; S.gardenT = 0; ghostShow(12.5, 0, 21, false, Math.PI); }
+function gardenEvent(){ G.flags.garden = 'armed'; S.gardenT = 0; ghostShow(12.5, 0, 21, false, Math.PI); G.objectives = (G.objectives || []).concat([{ key: 'garden', text: 'Something is out in the garden. Look through the glass door.', cls: 'urgent' }]); renderObjectives(); flashObj(); }
 function checkLockup(){
   const f = G.flags; if (!(f.lockFront && f.lockBack && f.win_liv && f.win_din && f.win_kit && f.garden === 'gone')) return;
   G.step = 'bed'; FX.bedLamp.on = true;
-  after(1.2, () => { objective('Everything is locked. Go upstairs and get some sleep.'); });
+  objective('Everything is locked. Go upstairs and get some sleep.');
 }
 
 // ---------- Chapter 3: sleep ----------
@@ -294,7 +295,7 @@ function storyUpdateA(dt){
       if (looked('reflAway', !inView(W.kitchenWin.center, 55, 10, false), dt, 0.25)){ ghostHide(); f.refl = 'gone'; after(0.6, () => think('Nobody. There is nobody in here.', 3)); }
     }
     if (f.plates >= 4 && f.refl === 'gone' && !f.dishesDone){
-      f.dishesDone = true; G.step = 'steps';
+      f.dishesDone = true; G.step = 'steps'; chores('laundry', 'Wait... (do the laundry next)');
       after(2.5, () => { for (let i = 0; i < 7; i++) after(i * 0.75, () => { SND.step('wood', new V3(7.5 + i * 0.1, 3.05, 2 + i * 0.95), 0.75); if (i === 3) SND.creak(new V3(8, 3.1, 5), 0.12); }); });
       after(4.5, () => think('Footsteps. Upstairs.', 3)); after(8, () => think('Rule two. Do not investigate.', 3.5));
       after(10.5, () => { G.step = 'laundry'; chores('laundry', 'Get the laundry basket (laundry room)'); });
@@ -329,6 +330,6 @@ function storyUpdateA(dt){
   if (f.garden === 'close'){
     if (looked('gardenAway', !inView(new V3(12.5, 1.6, 12.6), 45, 12, false), dt, 0.7)){ ghostHide(); f.garden = 'gone'; f.gardenBack = true; }
   }
-  if (f.gardenBack && inView(new V3(12.5, 1.6, 12.6), 30, 12, false)){ f.gardenBack = false; think('...Gone. The garden is empty.', 3); checkLockup(); }
-  if (f.garden === 'gone' && !f.gardenChecked){ f.gardenChecked = true; after(4, checkLockup); }
+  if (f.gardenBack && inView(new V3(12.5, 1.6, 12.6), 30, 12, false)){ f.gardenBack = false; think('...Gone. The garden is empty.', 3); markObj('garden'); checkLockup(); }
+  if (f.garden === 'gone' && !f.gardenChecked){ f.gardenChecked = true; markObj('garden'); checkLockup(); }
 }

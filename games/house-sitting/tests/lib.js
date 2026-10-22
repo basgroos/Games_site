@@ -30,7 +30,15 @@ function boot(name, errors){
   return w;
 }
 // advance the game by `sec` seconds of game time (20 frames per second)
-function step(w, sec){ const n = Math.max(1, Math.round(sec * 20)); for (let i = 0; i < n; i++) w.eval('tick(lastT + 50)'); }
+function step(w, sec){
+  const n = Math.max(1, Math.round(sec * 20));
+  for (let i = 0; i < n; i++){
+    w.eval('tick(lastT + 50)');
+    // while you are playing, the to-do list in the top left must never be empty
+    // (the "Look around" line is only a safety net: the story itself should always say what to do)
+    if (w.eval("G.state === 'playing' && !$('hud').hidden && (!(G.objectives || []).some(o => !o.done && o.text && o.text !== '...'))")) w.__noObjective = (w.__noObjective || 0) + 1;
+  }
+}
 // use the interaction behind an object, like pressing E while looking at it
 function use(w, expr){
   return w.eval(`(() => { const o = ${expr}; let e = null; o.traverse(x => { if (!e && x.userData.inter) e = x.userData.inter; }); if (!e) return 'no interaction';

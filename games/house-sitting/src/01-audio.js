@@ -189,6 +189,9 @@ const SND = {
   pickup(){ if (!AU.ready) return; tone(AU.sfx, 'sine', 520, 520, 0.08, 0.05); nburst(AU.sfx, 'highpass', 3000, 1, 0.08, 0.12); },
 };
 
+// your own (and other players') footsteps: made on each computer, never sent over the network
+SND.footstep = SND.step;
+
 // ---------- Continuous loops ----------
 function makeLoop(build, pos, vol, ref = 1.5){
   if (!AU.ready) return null;

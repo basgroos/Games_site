@@ -173,7 +173,7 @@ function updatePlayer(dt){
   }
   // bob & footsteps
   const hs = Math.hypot(p.vel.x, p.vel.z);
-  if (hs > 0.4){ p.bobT += dt * hs * 2.1; if (Math.floor(p.bobT / STEP_INTERVAL) !== Math.floor(p.lastBob / STEP_INTERVAL)) SND.step(surfaceAt(p.pos.x, p.pos.z, p.level), new V3(p.pos.x, p.feetY + 0.05, p.pos.z), sprinting ? 0.45 : 0.28); p.lastBob = p.bobT; }
+  if (hs > 0.4){ p.bobT += dt * hs * 2.1; if (Math.floor(p.bobT / STEP_INTERVAL) !== Math.floor(p.lastBob / STEP_INTERVAL)) SND.footstep(surfaceAt(p.pos.x, p.pos.z, p.level), new V3(p.pos.x, p.feetY + 0.05, p.pos.z), sprinting ? 0.45 : 0.28); p.lastBob = p.bobT; }
   const bob = Math.sin(p.bobT) * (sprinting ? 0.055 : 0.032) * Math.min(1, hs / 3);
   p.shake = Math.max(0, p.shake - dt * 0.9);
   const sh = p.shake * p.shake;
@@ -235,7 +235,12 @@ function updateTimers(){ const due = timers.filter(t => t.t <= G.time); if (!due
 // ---------- HUD ----------
 function setObjectives(list){ G.objectives = list; renderObjectives(); }
 function objective(text, cls = ''){ setObjectives([{ text, cls }]); flashObj(); }
-function renderObjectives(){ const ul = $('objList'); ul.innerHTML = ''; (G.objectives || []).forEach(o => { const li = document.createElement('li'); li.textContent = o.text; if (o.done) li.className = 'done'; else if (o.cls) li.className = o.cls; ul.appendChild(li); }); }
+function renderObjectives(){
+  const ul = $('objList'); ul.innerHTML = ''; const list = G.objectives || [];
+  list.forEach(o => { const li = document.createElement('li'); li.textContent = o.text; if (o.done) li.className = 'done'; else if (o.cls) li.className = o.cls; ul.appendChild(li); });
+  // there is always something to do on screen
+  if (!list.some(o => !o.done && o.text && o.text !== '...')){ const li = document.createElement('li'); li.textContent = G.hint || 'Look around. Something will happen soon.'; ul.appendChild(li); }
+}
 function flashObj(){ $('objList').querySelectorAll('li').forEach(li => { li.classList.remove('flash'); void li.offsetWidth; li.classList.add('flash'); }); }
 function markObj(key){ (G.objectives || []).forEach(o => { if (o.key === key) o.done = true; }); renderObjectives(); }
 let subTimer = null;
