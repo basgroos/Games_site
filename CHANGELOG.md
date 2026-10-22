@@ -1,5 +1,11 @@
 # Wijzigingen
 
+## House Sitting 1.3.1 (2026-10-22)
+- **Het monster verdwijnt zodra je bij de overbuurman naar binnen stapt.** Eerder verdween het alleen als je eerst de voordeur dichtdeed; ging je meteen met de buurman praten, dan bleef het op het gazon van de Hendersons staan. Nu: je stapt binnen, je kijkt achterom, het gazon is leeg. Daarna praat je met hem (of ga je zitten) en pas als je naar de wc vraagt, verandert hij.
+  - De voordeur hoef je niet meer zelf dicht te doen; die zwaait na een paar seconden achter jullie dicht.
+  - Taak bij binnenkomst: *Talk to the neighbor (or sit down and rest)*.
+  - Samen spelen: het monster verdwijnt voor iedereen zodra één van jullie binnen is.
+
 ## House Sitting 1.3.0 (2026-10-22)
 - **Er staat altijd een taak linksboven in beeld.** Overal waar de lijst eerder leeg of afgevinkt bleef (na de afwas, na de stoppen, bij de figuur in de tuin, voor het slapengaan, na het doorzoeken met de agenten, in de geopende kamer, tijdens het gesprek met de buurman en als hij verandert) staat nu wat je moet doen, bv. *Something is out in the garden. Look through the glass door.*, *Rest and talk with the neighbor* en *Get away from him!*. Is alles toch eens afgevinkt, dan staat er *Look around. Something will happen soon.*
 - Samen spelen: de voetstappen boven (na de afwas) en in de gang (tijdens de nacht) hoort nu iedereen, niet alleen de host.

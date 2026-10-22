@@ -86,7 +86,9 @@ const near = (a, b, d = 1.5) => Math.hypot(a[0] - b[0], a[1] - b[1]) < d;
 
   // ---- chilling on the neighbor's couch together ----
   EA("MP.hostStart('neighbor')"); both(1);
+  check(EB("MON.m.root.visible") && EB("MON.pos.z") > -6, 'guest sees it on the Hendersons\' lawn');
   EA("setPlayer(4, 0, -25.4, 0)"); both(0.5);
+  check(!EA("MON.m.root.visible") && !EB("MON.m.root.visible"), 'someone steps into the neighbor\'s house: it is gone for everyone');
   for (let i = 0; i < 120 && !EB("NEIGH.seated"); i++) both(0.1);
   check(EA("NEIGH.seated") && EB("NEIGH.seated") && EB("Math.abs(NEIGH.root.position.y + 0.4) < 0.05"), 'both see the neighbor sitting on the couch');
   check(use(B, "inters.find(e => e.text === 'Sit down').obj") === 'ok', 'guest sits down'); both(0.4);

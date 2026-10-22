@@ -147,11 +147,7 @@ function neighborCall(){
 // it is standing on the Hendersons' lawn, between the police lights, watching you cross the street
 function lawnWatcher(){ monPlace(7.4, 0, -4.6, Math.PI); MON.mode = 'watch'; }
 // the front door of the neighbor's house shuts with all of you inside: the thing outside is gone
-function frontDoorShut(){
-  S.doorShut = true; monHide(); SND.lockClick(D.nFront.center);
-  think('(The door clicks shut. Through the little window the lawn across the street is empty. It is gone.)', 5);
-  objective('Sit down and rest (couch or armchair)');
-}
+function frontDoorShut(){ S.doorShut = true; SND.lockClick(D.nFront.center); }
 function loadPolice(){ policeScene(); }
 
 // ---------- Chapter 8: the neighbor ----------
@@ -172,9 +168,11 @@ function startChill(){
 }
 function ch8(){
   saveCheckpoint('neighbor'); G.step = 'n_talk0'; S.radioOn = false; S.chillT = 0;
-  ghostHide();
+  // you step inside: the thing on the lawn is gone
+  monHide(); ghostHide();
+  after(0.8, () => think('(You glance back across the street. The lawn is empty. It is gone.)', 4.5));
   S.loops.music = LOOPS.music(new V3(7.4, 0.8, -24.4)); AMB.master = 0.8;
-  objective('Close the front door behind you'); S.dripOn = true; after(4, dripChain);
+  objective('Talk to the neighbor (or sit down and rest)'); S.dripOn = true; after(4, dripChain);
 }
 function talkNeighbor(){
   if (G.step === 'n_talk0') startChill();
@@ -279,17 +277,16 @@ function storyUpdateC(dt){
   if (G.step === 'safe' && inN) ch8();
   // everyone settles in; after a little while (or once you sit) he starts talking
   if (G.step === 'safe' && !S.lawnSeen && MON.m.root.visible && inView(new V3(MON.pos.x, 2.4, MON.pos.z), 25, 40, false)){ S.lawnSeen = true; think('(It is standing on the lawn. Watching you. Do not look back. Just get inside.)', 4.5); }
+  if (CHILL.includes(G.step) && !VIEW_ID && !S.doorShut){
+    S.shutT += dt;
+    if (!D.nFront.open && D.nFront.ang < 0.05) frontDoorShut();
+    else if (S.shutT > 6 && everyone(q => inHouseRect(q.x, q.z) === 'neighbor' && Math.hypot(q.x - 4, q.z + 24) > 1.2)){ setDoor(D.nFront, false); }   // the door swings shut behind you
+  }
   if (G.step === 'n_talk0' && !VIEW_ID){
     const allIn = everyone(q => inHouseRect(q.x, q.z) === 'neighbor');
-    if (!S.doorShut){
-      S.shutT += dt;
-      if (allIn && !D.nFront.open && D.nFront.ang < 0.05) frontDoorShut();
-      else if (S.shutT > 10 && !S.askedDoor && !S.busy){ S.askedDoor = true; dialog([['NEIGHBOR', "Close the door, would you? You're letting the cold in.", 4]]); }
-      else if (S.shutT > 28 && allIn && D.nFront.open){ setDoor(D.nFront, false, { slam: true, speed: 10 }); SND.creak(D.nFront.center, 0.12, 0.8); }   // the wind does it for you
-    } else {
-      S.chillT += dt;
-      if (!S.neighWalk && NEIGH.seated && ((player.seated && S.chillT > 2) || (allIn && S.chillT > 6) || S.chillT > 14)) startChill();
-    }
+    // he starts talking once you sit, or once everyone has been inside for a bit (or talk to him yourself)
+    S.chillT += dt;
+    if (!S.neighWalk && NEIGH.seated && ((player.seated && S.chillT > 2) || (allIn && S.chillT > 8) || S.chillT > 16)) startChill();
   }
   if ((CHILL.includes(G.step) || G.step === 'n_twist') && NEIGH.root.visible && !player.frozen){
     if (!S.neighWalk){ const ty = Math.atan2(p.x - NEIGH.root.position.x, p.z - NEIGH.root.position.z); let dy = ty - NEIGH.root.rotation.y; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
