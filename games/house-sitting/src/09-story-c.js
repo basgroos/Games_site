@@ -20,11 +20,11 @@ function storyInitC(){
   addInter(NEIGH.root, 'Talk to the neighbor', talkNeighbor, () => ['n_talk0', 'n_drink', 'n_ask'].includes(G.step) && !S.busy);
   addInter(PROPS.water, 'Drink the water', drinkWater, () => G.step === 'n_drink' && !S.busy);
   addInter(PROPS.nKeyHit, 'Grab the key', () => { addItem('Back door key'); PROPS.nKey.visible = false; markObj('k'); think('BACK DOOR, says the tag.', 2); }, () => G.step === 'chase2' && !hasItem('Back door key'));
-  addInter(PROPS.pantry, () => 'Push the shelf aside (' + (G.flags.pantry || 0) + '/3)', () => {
+  addInter(PROPS.pantry, () => 'Push the shelf aside (' + (G.flags.pantry || 0) + '/2)', () => {
     if (S.pushing) return; S.pushing = true; G.flags.pantry = (G.flags.pantry || 0) + 1; SND.scrape(new V3(13, 0.5, -33.6), 0.4); player.shake = Math.max(player.shake, 0.25);
-    const x0 = PROPS.pantry.position.x, x1 = 13 + G.flags.pantry * 0.55;
-    animate(0.28, k => { PROPS.pantry.position.x = x0 + (x1 - x0) * k; }, () => { S.pushing = false; PROPS.pantryCol.minX = x1 - 0.75; PROPS.pantryCol.maxX = x1 + 0.75; if (G.flags.pantry >= 3){ G.flags.shelfMoved = true; markObj('s'); } });
-  }, () => G.step === 'chase2' && !(G.flags.pantry >= 3));
+    const x0 = PROPS.pantry.position.x, x1 = 13 + G.flags.pantry * 0.8;
+    animate(0.28, k => { PROPS.pantry.position.x = x0 + (x1 - x0) * k; }, () => { S.pushing = false; PROPS.pantryCol.minX = x1 - 0.75; PROPS.pantryCol.maxX = x1 + 0.75; if (G.flags.pantry >= 2){ G.flags.shelfMoved = true; markObj('s'); } });
+  }, () => G.step === 'chase2' && !(G.flags.pantry >= 2));
   D.nBack.textFn = () => { const d = D.nBack; if (G.step === 'chase2'){ if (!G.flags.shelfMoved) return 'Blocked by the shelf'; if (d.locked) return hasItem('Back door key') ? 'Unlock the back door' : 'Locked'; } return d.locked ? 'Locked' : (d.open ? 'Close door' : 'Open door'); };
   D.nBack.useFn = () => {
     const d = D.nBack;
@@ -32,10 +32,10 @@ function storyInitC(){
     if (d.locked && G.step === 'chase2'){ if (hasItem('Back door key')){ d.locked = false; SND.lockClick(d.center); markObj('u'); after(0.25, () => setDoor(d, true, { speed: 9 })); } else { SND.latch(d.center); think('Locked! There was a key hook by the kitchen door.', 2.5); } return; }
     toggleDoor(d);
   };
-  D.nGate.textFn = () => G.step === 'chase2' && !D.nGate.open ? 'Force the bolt (' + (G.flags.gate || 0) + '/3)' : (D.nGate.open ? 'Gate' : 'Locked');
+  D.nGate.textFn = () => G.step === 'chase2' && !D.nGate.open ? 'Force the bolt (' + (G.flags.gate || 0) + '/2)' : (D.nGate.open ? 'Gate' : 'Locked');
   D.nGate.useFn = () => {
     if (G.step !== 'chase2' || D.nGate.open) return; G.flags.gate = (G.flags.gate || 0) + 1; SND.clang(D.nGate.center, 0.4, 0.6); player.shake = Math.max(player.shake, 0.3);
-    if (G.flags.gate >= 3){ setDoor(D.nGate, true, { speed: 9 }); markObj('g'); think('GO!', 1); }
+    if (G.flags.gate >= 2){ setDoor(D.nGate, true, { speed: 9 }); markObj('g'); think('GO!', 1); }
   };
 }
 
@@ -189,8 +189,10 @@ function stateNeighborDark(){
 }
 function loadChase2(){
   resetWorld(); stateNeighborDark(); saveCheckpoint('chase2'); G.step = 'n_twist';
-  setPlayer(4.0, 0, -27.9, Math.PI / 2); monPlace(2.6, 0, -28.1, Math.PI / 2); MON.mode = 'stand';
-  S.dripOn = true; after(1, dripChain); scare('RUN.', 2); SND.sting(0.25); after(1.5, startChase2);
+  setPlayer(4.2, 0, -25.5, -Math.PI / 2); monPlace(1.0, 0, -29.0, Math.PI / 2); MON.mode = 'stand';
+  S.dripOn = true; after(1, dripChain); scare('RUN. The kitchen!', 2.2); SND.sting(0.25);
+  // the way out works right away; it starts hunting you a moment later
+  startChase2(); MON.mode = 'stand'; after(2.2, () => { if (G.step === 'chase2' && MON.mode === 'stand') monChase(CHASE2); });
 }
 function loadNeighbor(){
   resetWorld(); statePolice(); stateBodies(); D.front.locked = false; setDoor(D.front, true, { instant: true, silent: true });
@@ -200,10 +202,11 @@ function loadNeighbor(){
 }
 
 // ---------- Chapter 9: final escape ----------
+const CHASE2 = { slow: 1.8, walk: 4.3, burst: 7.0, catchup: 5.0, catchupDist: 12, closeCap: 5.0, catch: 0.9, doorStall: 1.6 };
 function startChase2(){
   G.step = 'chase2'; D.nFront.jammed = true; D.nFront.jamThought = "It won't open! Not this way!";
-  setObjectives([{ text: 'Out the back. Through the kitchen.', cls: 'urgent' }, { key: 'k', text: 'Find the back door key' }, { key: 's', text: 'Clear the back door' }, { key: 'u', text: 'Unlock the back door' }, { key: 'g', text: 'Get through the garden gate' }]); flashObj();
-  monChase({ slow: 1.8, walk: 4.4, burst: 7.6, catchup: 5.4, catchupDist: 12, closeCap: 5.1, catch: 0.9, doorStall: 1.6 });
+  setObjectives([{ text: 'Out the back. Through the kitchen.', cls: 'urgent' }, { key: 'k', text: 'Grab the back door key (hook by the kitchen door)' }, { key: 's', text: 'Push the shelf away from the back door' }, { key: 'u', text: 'Unlock the back door' }, { key: 'g', text: 'Get through the garden gate' }]); flashObj();
+  monChase(CHASE2);
   player.stamina = Math.max(player.stamina, 85);
 }
 function endChase(){
@@ -249,7 +252,14 @@ function storyUpdateC(dt){
     if (inHall && !f.hallLocks){ f.hallLocks = true; if (D.nBath.open) setDoor(D.nBath, false, { slam: true, speed: 18 }); else SND.lockClick(D.nBath.center); D.nBath.locked = true; D.nBath.lockedThought = 'Locked! From the inside?'; SND.knock(D.nLocked.center, 3, true); SND.clang(D.nLocked.center, 0.2, 0.7); }
     if (inHall && !f.livSlam && p.x > 8.4 && Math.hypot(p.x - 8, p.z + 27) > 1.6 && Math.hypot(MON.pos.x - 8, MON.pos.z + 27) > 2.2){ f.livSlam = true; setDoor(D.nLivHall, false, { slam: true, speed: 18 }); }
     if (inHall && !f.hallGhost && inView(new V3(9, 2.3, -24.5), 22, 8)){ f.hallGhost = true; ghostShow(9, 0, -24.55, true); SND.sting(0.14); after(0.3, ghostHide); }
-    if (p.x > 10.15 && p.z > -34 && !f.kitSlam){ f.kitSlam = true; if (Math.hypot(MON.pos.x - 10, MON.pos.z + 29.5) > 2.2 && Math.hypot(p.x - 10, p.z + 29.5) > 0.8){ setDoor(D.nKitchen, false, { slam: true, speed: 18 }); after(0.4, () => think('The door slammed behind you!', 2)); } lightBurst(FX.nKitchen.pos, 0xfff0d8); }
+    const inKitchen = q => q.x > 10.2 && q.z > -34 && q.z < -24.1 && Math.hypot(q.x - 10, q.z + 29.5) > 0.8;
+    if (inKitchen(p) && !f.kitBurst){ f.kitBurst = true; lightBurst(FX.nKitchen.pos, 0xfff0d8); }
+    if (!f.kitSlam && D.nKitchen.open && everyone(inKitchen) && Math.hypot(MON.pos.x - 10, MON.pos.z + 29.5) > 1.3){
+      f.kitSlam = true; D.nKitchen.hold = 8; setDoor(D.nKitchen, false, { slam: true, speed: 18 });
+      after(0.5, () => think('The door slammed shut behind you. Something is throwing itself against it. Key, shelf, back door. Hurry!', 4.5));
+    }
+    const outside = q => q.z < -34.7;
+    if (!f.backSlam && D.nBack.open && everyone(outside) && MON.pos.z > -34 && Math.hypot(MON.pos.x - 13, MON.pos.z + 34) > 1.5){ f.backSlam = true; D.nBack.hold = 2.5; setDoor(D.nBack, false, { slam: true, speed: 18 }); }
     if (p.x > 10.2 && !f.winGhost && inView(new V3(16.9, 2.3, -29), 20, 9)){ f.winGhost = true; ghostShow(16.9, 0, -29, true); SND.sting(0.14); after(0.45, ghostHide); }
     if (p.z < -34.4 && !f.yard){ f.yard = true; think('The gate! At the back of the garden!', 2.5); }
     if (f.yard && !f.yardGhost && inView(new V3(2.4, 2.3, -42.8), 25, 14)){ f.yardGhost = true; ghostShow(2.4, 0, -42.8, true); after(0.5, ghostHide); }

@@ -11,6 +11,7 @@ const SAVE_KEY = (window.HW_BUILD && window.HW_BUILD.env === 'staging') ? 'hs_ck
 let VIEW_ID = '';           // which player's eyes the story checks are looking through ('' = this computer)
 function netFx(e){}         // send a world event to the other players
 function useInter(h){ h.use(); }
+function everyone(pred){ return pred(player.pos, player.level); }   // true when every player matches (co-op adds the others)
 const G = { state: 'menu', time: 0, flags: {}, inv: [], step: '', checkpoint: 'start', power: true, sens: 1, noLock: false, chapter: 0 };
 
 const canvas = $('c');

@@ -135,8 +135,10 @@ function monUpdate(dt){
   for (const dr of doors){
     if (dr.open || Math.abs(dr.center.y - 1.1 - MON.level * 3) > 1) continue;
     if (Math.hypot(dr.center.x - MON.pos.x, dr.center.z - MON.pos.z) < 1.05){
-      MON.stall = P.doorStall; SND.knock(dr.center, 2, true); player.shake = Math.max(player.shake, 0.3);
-      const door = dr; after(P.doorStall * 0.9, () => { if (MON.mode !== 'chase') return; door.locked = false; door.jammed = false; setDoor(door, true, { speed: 16, silent: true }); SND.bang(door.center); });
+      const door = dr, hold = dr.hold || 0; dr.hold = 0;
+      MON.stall = hold || P.doorStall; SND.knock(dr.center, 2, true); player.shake = Math.max(player.shake, 0.3);
+      if (hold) poundDoor(door, hold);
+      after(MON.stall * 0.9, () => { if (MON.mode !== 'chase') return; door.locked = false; door.jammed = false; setDoor(door, true, { speed: 16, silent: true }); SND.bang(door.center); player.shake = Math.max(player.shake, 0.6); });
       updateChaseFx(dLocal, dt); return;
     }
   }
@@ -158,6 +160,14 @@ function monUpdate(dt){
   for (const v of views){
     if (Math.hypot(v.pos.x - MON.pos.x, v.pos.z - MON.pos.z) < P.catch && Math.abs(v.feetY - MON.pos.y) < 1.3){ gameOver(v.local ? null : v.id); return; }
   }
+}
+// it throws itself against a door again and again: the lights shake, the frame splinters
+function poundDoor(door, secs){
+  for (let t = 0.9; t < secs * 0.85; t += rnd(0.7, 1.1)) after(t, () => {
+    if (MON.mode !== 'chase' || door.open) return;
+    SND.knock(door.center, 1, true); SND.thud(door.center, 0.9); player.shake = Math.max(player.shake, 0.45);
+    flickerGroup(f => f.pos.distanceTo(door.center) < 6, 0.3);
+  });
 }
 function updateChaseFx(d, dt){
   const i = clamp(1 - (d - 1.5) / 13, 0, 1); MON.intensity += (i - MON.intensity) * Math.min(1, dt * 3);

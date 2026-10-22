@@ -245,10 +245,10 @@ const MP = {
     const p = player, sv = { x: p.pos.x, y: p.pos.y, z: p.pos.z, lv: p.level, fy: p.feetY, fl: p.flashOn, cp: camera.position.clone(), cr: camera.rotation.clone() }, tp0 = this.tpN;
     p.pos.set(r.tx, r.ty, r.tz); p.feetY = r.ty; p.level = r.lv; p.flashOn = !!r.fl;
     camera.position.set(r.tx, r.ty + p.height, r.tz); camera.rotation.set(r.tpitch, r.tyaw, 0); camera.updateMatrixWorld(true);
-    VIEW_ID = r.id;
+    VIEW_ID = r.id; this.viewSave = sv;
     try { fn(); }
     finally {
-      VIEW_ID = ''; p.flashOn = sv.fl;
+      VIEW_ID = ''; this.viewSave = null; p.flashOn = sv.fl;
       if (this.tpN === tp0){ p.pos.set(sv.x, sv.y, sv.z); p.level = sv.lv; p.feetY = sv.fy; camera.position.copy(sv.cp); camera.rotation.copy(sv.cr); }
       camera.updateMatrixWorld(true);
     }
@@ -439,6 +439,13 @@ function netInit(){
     const v = o(); if (!(MP.host && MP.started)) return v;
     for (const r of MP.liveRemotes()) v.push({ id: r.id, pos: new V3(r.tx, r.ty, r.tz), level: r.lv, feetY: r.ty, trail: r.trail, local: false });
     return v;
+  });
+  // "everyone" means this computer's player and all the others (also while looking through someone else's eyes)
+  netWrap('everyone', o => pred => {
+    if (!(MP.host && MP.started)) return o(pred);
+    const sv = MP.viewSave, me = sv ? { x: sv.x, z: sv.z, lv: sv.lv } : { x: player.pos.x, z: player.pos.z, lv: player.level };
+    if (!pred(new V3(me.x, 0, me.z), me.lv)) return false;
+    return MP.liveRemotes().every(r => pred(new V3(r.tx, r.ty, r.tz), r.lv));
   });
   netWrap('restartCheckpoint', o => () => { if (MP.started){ if (MP.host) MP.hostStart(G.checkpoint); return; } return o(); });
 }

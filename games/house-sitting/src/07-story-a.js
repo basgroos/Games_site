@@ -143,7 +143,7 @@ function resetWorld(){
   stopStoryLoops(); monHide(); ghostHide(); stopChaseMusic();
   G.flags = {}; G.inv = []; renderInv(); G.power = true; G.npower = false; G.clutter = null; G.step = ''; G.objectives = []; renderObjectives();
   D.locked.maxAng = 1.7;
-  doors.forEach(d => { d.locked = d.def.locked; d.jammed = false; setDoor(d, d.def.open, { instant: true, silent: true, force: true }); });
+  doors.forEach(d => { d.locked = d.def.locked; d.jammed = false; d.hold = 0; setDoor(d, d.def.open, { instant: true, silent: true, force: true }); });
   D.locked.lockedThought = 'Three padlocks, a deadbolt and a chain. All on this side of the door.';
   fixtures.forEach(f => { if (f.unstable0 === undefined){ f.unstable0 = f.unstable; f.base0 = f.base; } f.on = f.def; f.flicker = 0; f.broken = false; f.unstable = f.unstable0; f.base = f.base0; });
   // props

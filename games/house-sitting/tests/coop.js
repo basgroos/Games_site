@@ -84,6 +84,14 @@ const near = (a, b, d = 1.5) => Math.hypot(a[0] - b[0], a[1] - b[1]) < d;
   EA("$('bDeadRetry').click()"); both(1);
   check(EA("G.state") !== 'dead' && EB("G.state") !== 'dead', 'host tries again: both back in');
 
+  // ---- the kitchen door only slams when everyone is inside ----
+  EA("MP.hostStart('chase2')"); both(0.5); both(2.5);
+  check(EA("G.step") === 'chase2' && EB("G.step") === 'chase2', 'both at the final chase checkpoint');
+  EA("MON.mode = 'watch'; MON.pos.set(2, 0, -28)"); EB("setPlayer(9, 0, -27, 0)"); EA("player.pos.set(12, 0, -30); player.vel.set(0, 0, 0)"); both(0.5);
+  check(!EA("G.flags.kitSlam") && EA("D.nKitchen.open"), 'one player still in the hall: the kitchen door stays open', EA("[G.flags.kitSlam, D.nKitchen.open, JSON.stringify(Object.values(MP.remotes).map(r => [r.tx, r.tz])), player.pos.x, player.pos.z, G.state]"));
+  EB("setPlayer(12.5, 0, -31, 0)"); both(0.5);
+  check(EA("G.flags.kitSlam") && EA("D.nKitchen.hold") === 8 && !EB("D.nKitchen.open"), 'both in the kitchen: it slams shut (for the guest too)');
+
   // ---- leaving ----
   EB("toMenu()"); both(0.3);
   check(EA("MP.members.length") === 1 && EA("Object.keys(MP.remotes).length") === 0, 'guest leaves: host keeps playing alone');

@@ -1,5 +1,5 @@
 /* House Sitting smoke test: plays the whole story alone, from the flowerpot to the ending, plus game over and every checkpoint. */
-const { boot, step, use, sleep, check, done, file } = require('./lib');
+const { boot, step, use, sleep, check, done, file, runRoute } = require('./lib');
 const fs = require('fs');
 const html = fs.readFileSync(file, 'utf8');
 check(html.includes('cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'), 'Three.js r128 is loaded from cdnjs');
@@ -87,6 +87,16 @@ const w = boot('Solo', errors), E = s => w.eval(s);
   E("toMenu(); loadCheckpoint('chase1')"); step(w, 6); E("monChase({}); MON.pos.copy(player.pos)"); step(w, 0.2);
   await sleep(1100);
   check(E("G.state") === 'dead' && !E("$('dead').hidden") && E("$('deadTitle').textContent") === 'IT FOUND YOU', 'caught: game over screen');
+  // the chases must be survivable for a normal player (1 second per E press)
+  E("toMenu(); loadCheckpoint('chase1')"); step(w, 3); E("revealSwap()");
+  let r = runRoute(w, 'chase1', 1.0); check(r.ok, 'chase 1 can be survived from its checkpoint', r);
+  E("toMenu(); loadCheckpoint('chase2')");
+  r = runRoute(w, 'chase2', 1.0); check(r.ok, 'the final chase can be survived from its checkpoint', r);
+  check(E("G.flags.kitSlam"), 'the kitchen door slammed shut behind you');
+  E("toMenu(); loadCheckpoint('chase2')");
+  r = runRoute(w, 'chase2', 2.0); check(r.ok, 'the final chase can be survived even when slow (2 s per press)', r);
+  E("toMenu(); loadCheckpoint('neighbor'); G.step = 'n_ask'; NEIGH.root.position.set(1.6,0,-28.3); setPlayer(3.6,0,-25.5,-Math.PI/2); talkNeighbor()");
+  r = runRoute(w, 'chase2', 1.0, 80); check(r.ok, 'the final chase can be survived after the twist', r);
   for (const c of ['night', 'chase1', 'police', 'neighbor', 'chase2']){ E(`loadCheckpoint('${c}')`); step(w, 1); check(E("G.state") === 'playing' || E("G.state") === 'cine', 'checkpoint ' + c + ' loads'); }
   done(errors, 'House Sitting smoke test');
 })().catch(e => { console.log('FAIL', e.stack); process.exit(1); });

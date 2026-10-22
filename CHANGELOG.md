@@ -1,5 +1,15 @@
 # Wijzigingen
 
+## House Sitting 1.1.1 (2026-10-22)
+- **De laatste achtervolging (bij de buurman) is nu te halen.** Je werd eerder bijna altijd gepakt: zelfs een perfect spelende bot haalde het hek niet, en na *Try again* stond je op 1,4 m van het monster met 1,5 s om weg te rennen.
+  - Ren naar de **keuken**: zodra iedereen binnen is, slaat de keukendeur dicht en houdt die het monster zo'n **8 seconden** tegen. Je hoort en voelt het tegen de deur beuken. Pak in die tijd de sleutel (haakje bij de keukendeur), duw de kast weg en open de achterdeur.
+  - De kast hoeft nog maar **2 keer** geduwd te worden (was 3), het hek **2 keer** (was 3).
+  - Ben je allemaal buiten, dan slaat de achterdeur achter jullie dicht en houdt die het monster nog even tegen.
+  - Het monster is in deze achtervolging iets minder snel bij zijn uitvallen.
+  - Het checkpoint begint nu met afstand tot het monster en 2 seconden om te rennen. De sleutel, kast en deuren werken meteen.
+  - Duidelijkere taken: *Grab the back door key (hook by the kitchen door)* en *Push the shelf away from the back door*.
+- Tests: een bot rent beide achtervolgingen uit (ook met 2 s per E-druk) en moet ontsnappen; de co-op-test controleert dat de keukendeur pas dichtslaat als iedereen binnen is.
+
 ## House Sitting 1.1.0 (2026-10-22)
 - **Samen spelen (online co-op, 2–4 spelers, via Supabase)**: hoofdmenu → *Play together (online)*. Maak een kamer en geef de code van 4 letters aan je vrienden, of doe mee met een code. De host start een nieuw spel of gaat verder vanaf zijn checkpoint.
   - Jullie lopen samen door hetzelfde huis en zien elkaar, met naam en eigen zaklamp. Voetstappen van anderen hoor je uit de goede richting.
