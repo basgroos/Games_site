@@ -1,0 +1,12 @@
+{
+  "id": "hollow-pines",
+  "name": "Hollow Pines",
+  "tagline": "Survival horror · online",
+  "description": "Vijf overlevenden, een oud huis in een donker dennenbos en iets dat tussen de bomen loopt. Repareer de generator, bouw de radio, open het hek en haal de weg voor vijf uur 's nachts. Speel alleen met AI-teamgenoten, speel zelf het monster, of speel online: wie de kamer maakt is het monster, tot vijf vrienden zijn de overlevenden. Toetsenbord, muis en koptelefoon.",
+  "version": "1.0.0",
+  "status": "live",
+  "color": "#c4512f",
+  "tags": ["Horror", "3D", "Online", "Monster vs overlevenden"],
+  "order": 6,
+  "tests": ["tests/smoke.js", "tests/net.js"]
+}

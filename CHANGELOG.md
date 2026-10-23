@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## Hollow Pines 1.0.0 (2026-10-23)
+- **Nieuw spel: Hollow Pines**, een survival-horrorspel in 3D. Vijf overlevenden zitten vast in een oud huis in een donker dennenbos. Ze moeten de generator repareren, de radio bouwen, het hek openen en de weg halen voor vijf uur 's nachts. Ondertussen jaagt er iets tussen de bomen.
+- **Online spelen: wie de kamer maakt, is het monster.** Maak een kamer en geef de code van vier letters aan maximaal vijf vrienden; zij spelen de overlevenden. Lege plekken worden opgevuld met AI-overlevenden. Loopt een vriend weg, dan neemt een AI het over.
+- Ook alleen te spelen: als overlevende met vier AI-teamgenoten, of als het monster tegen vijf AI-overlevenden. Moeilijkheid Easy tot Nightmare, drie lengtes, mist, regen of helder weer.
+- Het monster heeft drie aanvallen (uithalen, springen, grijpen en wegslepen; losrukken door snel op E te drukken) en zeven vaardigheden (dash, kruipen, geest, rennen, besluipen, schreeuw, duisternis).
+- Alle geluiden zijn ruimtelijk en worden gedempt door muren. Een koptelefoon wordt aangeraden.
+- Tests: volledige potjes met alleen bots (overlevende en monster), alle aanvallen, en online spelen met een volle kamer, bewegen, zoeken, deuren, taken, grijpen en losrukken, een gast die weggaat of naar een ander tabblad gaat, de host die weggaat, en het aantal berichten per seconde (onder de limiet van Supabase).
+
 ## House Sitting 1.3.1 (2026-10-22)
 - **Het monster verdwijnt zodra je bij de overbuurman naar binnen stapt.** Eerder verdween het alleen als je eerst de voordeur dichtdeed; ging je meteen met de buurman praten, dan bleef het op het gazon van de Hendersons staan. Nu: je stapt binnen, je kijkt achterom, het gazon is leeg. Daarna praat je met hem (of ga je zitten) en pas als je naar de wc vraagt, verandert hij.
   - De voordeur hoef je niet meer zelf dicht te doen; die zwaait na een paar seconden achter jullie dicht.
