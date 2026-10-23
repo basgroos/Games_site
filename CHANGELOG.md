@@ -1,5 +1,12 @@
 # Wijzigingen
 
+## The House That Remembers 1.0.1 (2026-10-23)
+- **Samen spelen werkt nu ook in het huis.** Na ongeveer een halve minuut (rond het moment dat je naar binnen ging) sloot Supabase de verbinding van de spelers af: het spel stuurde elke 4 seconden een presence-update, en Supabase knipt clients af die dat te vaak doen (`ClientPresenceRateLimitReached` in de Realtime-logs). Daarna zag je elkaar niet meer bewegen en liep het verhaal niet meer gelijk.
+  - Het spel gebruikt geen Supabase-presence meer. Wie er in de kamer is, komt nu uit gewone berichten: een hartslag met naam en positie, een afscheidsbericht bij weggaan, en wie 12 seconden niets stuurt, is weg.
+  - Nieuwe spelers zien elkaar meteen (je stuurt direct een hartslag terug als er iemand bijkomt).
+  - Met meer spelers gaan de updates per speler omlaag, zodat een huis met 3 of 4 spelers onder de limiet van Supabase blijft (100 berichten per seconde voor het hele project).
+- Nieuwe test `tests/coop-supa.js`: samen spelen via de echte Supabase-code van het spel (met een nagebootste supabase-js). Twee spelers lopen van het hek het huis in en zien elkaar daar nog; de test faalt als het spel Supabase-presence gebruikt.
+
 ## The House That Remembers 1.0.0 (2026-10-23)
 - **Nieuw spel: The House That Remembers**, een psychologisch horrorspel in 3D. Je opa is verdwenen en jij erft zijn oude huis. Hoe langer je blijft, hoe meer het huis verandert: foto's veranderen, gangen worden langer en iets dat je familie nadoet loopt door de kamers.
 - Zeven hoofdstukken (ongeveer 20 minuten): aankomst, de woonkamer, de eetkamer, de gang boven, de afgesloten slaapkamer, de kelder en de laatste herinnering. Puzzels: foto's op volgorde, de muziekdoos en de drie sokkels.

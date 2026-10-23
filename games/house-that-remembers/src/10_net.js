@@ -227,32 +227,32 @@ function supaRooms(cfg, env, meId) {
   let rtP = null;
   const client = () => rtP || (rtP = new Promise((res, rej) => { if (window.supabase) return res(); const s = document.createElement('script'); s.src = SUPA_LIB; s.onload = res; s.onerror = () => rej(new Error('Could not load the online library.')); document.head.appendChild(s); })
     .then(() => window.supabase.createClient(cfg.url, cfg.key, { auth: { persistSession: false, autoRefreshToken: false }, realtime: { params: { eventsPerSecond: 40 } } })));
-  const open = async (name, topics) => { const rt = await client(); return supaRoom(rt.channel(name, { config: { presence: { key: meId }, broadcast: { self: false, ack: false } } }), meId, topics); };
+  const open = async (name, topics) => { const rt = await client(); return supaRoom(rt.channel(name, { config: { broadcast: { self: false, ack: false } } }), meId, topics); };
   return { lobby: () => open('bg-thtr-' + env + '-lobby', []), join: n => open('bg-thtr-' + env + '-' + n, ['st', 'beat', 'mon', 'chase', 'hello']) };
 }
 function supaRoom(ch, meId, topics) {
-  const H = {}, PL = [], CL = [], peers = new Map(); let my = {}, conn = false, presT = 0, trackT = 0, pend = null, fireQ = null;
+  const H = {}, PL = [], CL = [], peers = new Map(); let my = {}, conn = false, presT = 0, pend = null, fireQ = null;
   const snap = () => { const a = [{ peer: meId, by: null, isMe: true, sameTab: true, kind: 'viewer', guest: false, presence: my, updatedAt: Date.now() }]; peers.forEach((v, k) => a.push({ peer: k, by: null, isMe: false, sameTab: false, kind: 'viewer', guest: false, presence: v.p, updatedAt: v.t })); return a; };
   let S = snap();
   const fire = (joined = [], left = []) => { S = snap(); PL.forEach(f => { try { f({ peers: S, joined, left, updated: [] }); } catch (e) { console.error(e); } }); };
-  const seen = (id, p) => { if (!id || id === meId) return; const fresh = !peers.has(id); peers.set(id, { p: p && typeof p === 'object' ? p : {}, t: Date.now() }); if (fresh) fire([{ peer: id, presence: p || {}, sameTab: false }]); else { S = snap(); if (!fireQ) fireQ = setTimeout(() => { fireQ = null; fire(); }, 150); } };
+  const seen = (id, p) => { if (!id || id === meId) return; const fresh = !peers.has(id); peers.set(id, { p: p && typeof p === 'object' ? p : {}, t: Date.now() }); if (fresh) { fire([{ peer: id, presence: p || {}, sameTab: false }]); setTimeout(flush, 50); } else { S = snap(); if (!fireQ) fireQ = setTimeout(() => { fireQ = null; fire(); }, 150); } };
   const drop = id => { if (peers.delete(id)) fire([], [{ peer: id }]); };
-  ch.on('presence', { event: 'sync' }, () => { const st = ch.presenceState(); const keys = new Set(Object.keys(st)); keys.forEach(k => { if (k !== meId && !peers.has(k)) seen(k, ((st[k] || [])[0] || {}).pr); }); });
-  ch.on('presence', { event: 'leave' }, ({ key }) => drop(key));
   ch.on('broadcast', { event: '_p' }, ({ payload }) => { if (payload) seen(payload.from, payload.pr); });
   ch.on('broadcast', { event: '_bye' }, ({ payload }) => { if (payload) drop(payload.from); });
   topics.forEach(t => ch.on('broadcast', { event: t }, ({ payload }) => { if (!payload || payload.from === meId) return; (H[t] || []).forEach(f => f({ topic: t, data: payload.d, peer: payload.from, by: null, isMe: false, sameTab: false, kind: 'viewer', guest: false })); }));
-  const flush = () => { if (!conn) return; ch.send({ type: 'broadcast', event: '_p', payload: { from: meId, pr: my } }); const now = Date.now(); if (now - trackT > 4000) { trackT = now; ch.track({ pr: my }); } };
-  const beat = setInterval(() => { flush(); const now = Date.now(); peers.forEach((v, k) => { if (now - v.t > 16000) drop(k); }); }, 4000);
-  ch.subscribe(st => { const c = st === 'SUBSCRIBED'; if (c !== conn) { conn = c; CL.forEach(f => f(c)); } if (c) { trackT = 0; flush(); } });
+  // No Supabase presence (track) at all: Supabase cuts off clients that update presence too often
+  // (ClientPresenceRateLimitReached). Who is here comes from these broadcast heartbeats, '_bye' and a timeout.
+  const flush = () => { if (!conn) return; ch.send({ type: 'broadcast', event: '_p', payload: { from: meId, pr: my } }).catch(() => {}); };
+  const beat = setInterval(() => { flush(); const now = Date.now(); peers.forEach((v, k) => { if (now - v.t > 12000) drop(k); }); }, 2000);
+  ch.subscribe(st => { const c = st === 'SUBSCRIBED'; if (c !== conn) { conn = c; CL.forEach(f => f(c)); } if (c) flush(); });
   return {
-    emit: async (t, d) => { if (conn) ch.send({ type: 'broadcast', event: t, payload: { from: meId, d } }); },
+    emit: async (t, d) => { if (conn) ch.send({ type: 'broadcast', event: t, payload: { from: meId, d } }).catch(() => {}); },
     on: (t, f) => { (H[t] = H[t] || []).push(f); return () => {}; },
-    presence: async patch => { my = Object.assign({}, my, patch); for (const k in patch) if (patch[k] === null) delete my[k]; S = snap(); const now = Date.now(); if (now - presT > 90) { presT = now; flush(); } else if (!pend) pend = setTimeout(() => { pend = null; presT = Date.now(); flush(); }, 100); },
+    presence: async patch => { my = Object.assign({}, my, patch); for (const k in patch) if (patch[k] === null) delete my[k]; S = snap(); const now = Date.now(); if (now - presT > 95 * Math.max(1, peers.size)) { presT = now; flush(); } else if (!pend) pend = setTimeout(() => { pend = null; presT = Date.now(); flush(); }, 100); },
     peers: () => S,
     onPeers: f => { PL.push(f); setTimeout(() => f({ peers: S, joined: S, left: [], updated: [] }), 0); return () => {}; },
     connected: () => conn,
     onConnection: f => { CL.push(f); setTimeout(() => f(conn), 0); return () => {}; },
-    leave: async () => { clearInterval(beat); try { if (conn) ch.send({ type: 'broadcast', event: '_bye', payload: { from: meId } }); await ch.unsubscribe(); } catch (e) {} },
+    leave: async () => { clearInterval(beat); try { if (conn) ch.send({ type: 'broadcast', event: '_bye', payload: { from: meId } }).catch(() => {}); await ch.unsubscribe(); } catch (e) {} },
   };
 }

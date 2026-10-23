@@ -36,7 +36,7 @@ function makeBus(){
     });
   } };
 }
-function boot(name, errors, bus){
+function boot(name, errors, bus, supa){
   let html = fs.readFileSync(file, 'utf8');
   const tag = /<script src="https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/three\.js\/r128\/three\.min\.js"><\/script>/;
   if (!tag.test(html)) throw new Error('Three.js script tag not found in the built page');
@@ -51,6 +51,7 @@ function boot(name, errors, bus){
       w.requestAnimationFrame = () => 0; w.AudioContext = undefined; w.webkitAudioContext = undefined; w.scrollTo = () => {};
       w.localStorage.setItem('basgames-player', JSON.stringify({ id: 'id-' + name, name }));
       if (bus) w.__fakeRoom = n => bus.room(n, 'peer-' + name);
+      if (supa) w.supabase = supa.lib;
     } });
   const w = dom.window;
   w.addEventListener('error', e => errors.push(name + ': ' + e.message));
@@ -72,3 +73,34 @@ function done(errors, title){
   console.log(`${title} passed`); process.exit(0);
 }
 module.exports = { boot, sleep, check, done, file, makeBus };
+
+// A stand-in for supabase-js (createClient → channel: on / subscribe / send / track / presenceState / untrack / unsubscribe),
+// shared by several pages, so the game's real Supabase room code (supaRoom) is what gets tested.
+function makeSupa(opts = {}){
+  const hub = { chans: new Map(), delivered: 0, sent: 0, bytes: 0, maxBytes: 0, log: [] };
+  const later = fn => setTimeout(fn, opts.delay || 0);
+  function Channel(name, cfg){
+    this.name = name; this.key = cfg && cfg.config && cfg.config.presence && cfg.config.presence.key; this.H = []; this.joined = false; this.state = null;
+    this.self = !!(cfg && cfg.config && cfg.config.broadcast && cfg.config.broadcast.self);
+  }
+  const members = name => hub.chans.get(name) || (hub.chans.set(name, new Set()), hub.chans.get(name));
+  const pstate = name => { const o = {}; members(name).forEach(c => { if (c.state) o[c.key] = [Object.assign({ presence_ref: 'r' + c.key }, c.state)]; }); return o; };
+  Channel.prototype.on = function(type, filter, fn){ this.H.push({ type, event: filter && filter.event, fn }); return this; };
+  Channel.prototype.emitLocal = function(type, event, arg){ this.H.forEach(h => { if (h.type === type && (h.event === event || h.event === '*')) h.fn(arg); }); };
+  Channel.prototype.subscribe = function(cb){ this.joined = true; members(this.name).add(this); later(() => { cb && cb('SUBSCRIBED'); this.emitLocal('presence', 'sync', {}); }); return this; };
+  Channel.prototype.send = function(msg){
+    const json = JSON.stringify(msg.payload); hub.sent++; hub.byEvent = hub.byEvent || {}; hub.byEvent[msg.event] = (hub.byEvent[msg.event] || 0) + 1; hub.bytes += json.length; hub.maxBytes = Math.max(hub.maxBytes, json.length);
+    if (opts.limitBytes && json.length > opts.limitBytes) return Promise.resolve('error');
+    members(this.name).forEach(c => { if (c === this && !this.self) return; hub.delivered++; const payload = JSON.parse(json); later(() => c.emitLocal('broadcast', msg.event, { type: 'broadcast', event: msg.event, payload })); });
+    return Promise.resolve('ok');
+  };
+  Channel.prototype.track = function(state){ hub.tracks = (hub.tracks || 0) + 1; const fresh = !this.state; this.state = JSON.parse(JSON.stringify(state)); const nm = this.name;
+    members(nm).forEach(c => { hub.delivered++; later(() => { if (fresh) c.emitLocal('presence', 'join', { key: this.key, newPresences: [this.state] }); c.emitLocal('presence', 'sync', {}); }); }); return Promise.resolve('ok'); };
+  Channel.prototype.presenceState = function(){ return pstate(this.name); };
+  Channel.prototype.untrack = function(){ this.state = null; return Promise.resolve('ok'); };
+  Channel.prototype.unsubscribe = function(){ const nm = this.name, key = this.key; members(nm).delete(this); this.joined = false;
+    members(nm).forEach(c => later(() => { c.emitLocal('presence', 'leave', { key, leftPresences: [] }); c.emitLocal('presence', 'sync', {}); })); return Promise.resolve('ok'); };
+  hub.lib = { createClient: () => ({ channel: (name, cfg) => new Channel(name, cfg), removeChannel: ch => ch.unsubscribe() }) };
+  return hub;
+}
+module.exports.makeSupa = makeSupa;

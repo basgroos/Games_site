@@ -291,7 +291,7 @@ const Chase = {
   },
   faceTo(x, z, dt) { const e = Ent.g.position; const ty = Math.atan2(x - e.x, z - e.z); let dr = ty - Ent.g.rotation.y; while (dr > Math.PI) dr -= TAU; while (dr < -Math.PI) dr += TAU; Ent.g.rotation.y += dr * (1 - Math.exp(-dt * 9)); },
   send(dt) {
-    if (!Net.active) return; this.monT -= dt; if (this.monT > 0) return; this.monT = .1;
+    if (!Net.active) return; this.monT -= dt; if (this.monT > 0) return; this.monT = .1 * Math.max(1, (Net.game ? Net.game.peers().length : 2) - 1);
     const e = Ent.g.position; Net.emit('mon', { x: +e.x.toFixed(2), z: +e.z.toFixed(2), r: +Ent.g.rotation.y.toFixed(2), m: this.mode, s: +this.speed.toFixed(2), st: this.state });
   },
   onNet(d) { if (!this.active || this.owner) return; this.lastMon = performance.now(); this.netPos.set(d.x, levelY(this.lv), d.z); this.netRot = d.r; this.mode = d.m; this.speed = d.s; if (d.st === 'hunt') this.state = 'hunt'; },
