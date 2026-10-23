@@ -52,6 +52,7 @@ const info = () => E(`({ ch: Story.S.ch, obj: Story.S.objective, room: Story.get
   E("T.step(10); W.doors.elena.tryUse(); T.step(.5)");
   check(/three old keys/i.test(E("Story.S.objective")), 'the triple-locked door asks for three keys');
   E("T.tp(9,1,-2.5,-Math.PI/2); T.use('nightstand'); T.use('gPainting'); T.step(2); T.close(); T.step(2)");
+  check(E(`(() => { T.tp(-7.9,1,-12.8); P.yaw = Math.PI / 2; P.pitch = -0.2; T.step(.1); W.scene.updateMatrixWorld(true); updateInteraction(); return P.look && P.look.id; })()`) === 'bathtub', 'the bath can be grabbed while looking across it, not only straight down');
   E("T.tp(-8,1,-12,0); T.step(3); T.use('bathtub'); T.use('medCabinet'); T.step(1)");
   E("T.tp(0,1,-4,Math.PI); T.step(4)");
   check(E("W.doors.sewing.open"), 'with two keys the sewing room door opens by itself');

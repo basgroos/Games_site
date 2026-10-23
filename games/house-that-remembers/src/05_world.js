@@ -470,6 +470,8 @@ function buildUpstairs() {
   const tub = new THREE.Group(); tub.position.set(-9.15, Y, -12.8); add(tub);
   box(1.6, .55, 1.0, 0, 0, 0, MAT.porcelain, { parent: tub, cast: true, ry: Math.PI / 2 }); box(1.4, .02, .8, 0, .5, 0, new THREE.MeshStandardMaterial({ color: 0x29302a, roughness: .2 }), { parent: tub, ry: Math.PI / 2 });
   addCollider(-9.7, -8.6, -13.65, -11.95, lv); IT(tub, 'bathtub');
+  // a generous invisible grab zone over the tub, so looking roughly at the bath is enough
+  IT(box(1.25, 1.3, 1.9, -9.15, Y + .3, -12.8, new THREE.MeshBasicMaterial({ visible: false }), { occ: false, receive: false }), 'bathtub');
   const sink = new THREE.Group(); sink.position.set(-6, Y, -13.65); add(sink); cyl(.08, .1, .8, 0, 0, 0, MAT.porcelain, { parent: sink }); box(.55, .15, .4, 0, .8, 0, MAT.porcelain, { parent: sink, cast: true }); addCollider(-6.3, -5.7, -13.9, -13.4, lv);
   W.mirrorBath = makeMirror(.8, .95, -6, Y + 1.6, -13.9, 0, { range: 6 });
   box(.9, 1.05, .04, -6, Y + 1.07, -13.94, MAT.frame, { occ: false });

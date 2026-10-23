@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## The House That Remembers 1.0.3 (2026-10-23)
+- **Het bad is makkelijk te pakken.** Je kon alleen in het water grijpen als je van dichtbij bijna recht naar beneden keek; keek je gewoon over het bad heen, dan verscheen *Reach into the water* niet en leek het alsof de sleutel niet te pakken was. Nu werkt het zodra je ongeveer naar het bad kijkt, tot borsthoogte erboven.
+- Test: het bad moet te pakken zijn terwijl je er schuin overheen kijkt.
+
 ## The House That Remembers 1.0.2 (2026-10-23)
 - **De foto onder de eettafel is nu te zien.** Hij lag 1,2 cm boven de vloer, maar het tapijt in de eetkamer is 1,5 cm dik: de foto zat dus ín het tapijt en was onzichtbaar. Nu ligt hij op het tapijt, iets groter, half onder de rand van de tafel tussen de twee stoelen, en vangt hij een beetje licht.
 - Heb je de kast al bekeken maar na 45 seconden nog steeds die derde foto niet, dan zegt je personage: *Something pale is lying on the floor... under the table.*
