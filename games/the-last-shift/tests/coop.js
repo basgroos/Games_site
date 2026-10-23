@@ -74,4 +74,4 @@ const both = async (sec) => { for (let t = 0; t < sec; t += 0.25) { a('T.step(.2
   b('__game.net.leave()'); await both(1);
   check(a('Object.keys(__game.net.avatars).length') === 0, 'als Bram weggaat, ziet Anna hem niet meer');
   done(errors, 'The Last Shift co-op-test');
-})().catch((err) => { console.log('FAIL gecrasht: ' + err.stack); process.exit(1); });
+})().catch((err) => { console.log('FAIL gecrasht: ' + err.stack); if (process.env.GITHUB_ACTIONS) console.log('::error title=The Last Shift gecrasht::' + String(err.message).slice(0, 300)); process.exit(1); });

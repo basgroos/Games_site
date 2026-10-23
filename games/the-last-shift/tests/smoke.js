@@ -95,4 +95,4 @@ const errors = [];
   for (let i = 0; i < 60 && e2('__game.state') !== 'ended'; i++) { e2('T.step(.2)'); await sleep(30); }
   check(e2('__game.state') === 'ended' && /LAATSTE DIENST/.test(e2("document.getElementById('endTitle').textContent")), 'einde 2: De laatste dienst');
   done(errors, 'The Last Shift smoke-test');
-})().catch((err) => { console.log('FAIL gecrasht: ' + err.stack); process.exit(1); });
+})().catch((err) => { console.log('FAIL gecrasht: ' + err.stack); if (process.env.GITHUB_ACTIONS) console.log('::error title=The Last Shift gecrasht::' + String(err.message).slice(0, 300)); process.exit(1); });

@@ -11,7 +11,7 @@ for (const d of fs.readdirSync(path.join(root, 'games'))) {
   for (const t of g.tests || []) {
     console.log(`▶ ${g.name}: ${t}`);
     try { execSync(`node ${t}`, { cwd: path.join(root, 'games', d), stdio: 'inherit', env: Object.assign({}, process.env, { HW_FILE: file }) }); }
-    catch (e) { failed++; console.log(`✖ ${g.name}: ${t} mislukt`); }
+    catch (e) { failed++; console.log(`✖ ${g.name}: ${t} mislukt`); if (process.env.GITHUB_ACTIONS) console.log(`::error title=Test mislukt::${g.name}: ${t}`); }
   }
 }
 if (failed) { console.log(`\n${failed} test(s) mislukt`); process.exit(1); }

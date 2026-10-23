@@ -69,9 +69,12 @@ function boot(name, errors, bus){
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let failed = 0;
-function check(cond, label, extra){ console.log((cond ? 'OK   ' : 'FAIL ') + label + (extra !== undefined ? '  ' + JSON.stringify(extra) : '')); if (!cond) failed++; }
+function check(cond, label, extra){
+  console.log((cond ? 'OK   ' : 'FAIL ') + label + (extra !== undefined ? '  ' + JSON.stringify(extra) : ''));
+  if (!cond){ failed++; if (process.env.GITHUB_ACTIONS) console.log(`::error title=The Last Shift::${label} ${extra !== undefined ? JSON.stringify(extra).slice(0, 300) : ''}`); }
+}
 function done(errors, title){
-  if (errors.length){ console.log('Fouten:\n  ' + errors.slice(0, 20).join('\n  ')); failed++; }
+  if (errors.length){ console.log('Fouten:\n  ' + errors.slice(0, 20).join('\n  ')); failed++; if (process.env.GITHUB_ACTIONS) console.log('::error title=The Last Shift fouten::' + errors.slice(0, 3).join(' | ').slice(0, 500)); }
   if (failed){ console.log(`${title}: ${failed} controle(s) mislukt`); process.exit(1); }
   console.log(`${title} geslaagd`); process.exit(0);
 }
