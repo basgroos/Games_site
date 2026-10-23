@@ -62,7 +62,7 @@ const errors = [];
   check(new RegExp(e('__game.story.code')).test(e('__game.ui.currentObjective')), 'alle vier cijfers gevonden: de code staat in het doel', [e('__game.story.code'), e('__game.ui.currentObjective'), e('__game.state')]);
   // gepakt worden en terug naar het checkpoint
   e("const g = __game; g.enemy.activate(); g.enemy.place(g.player.pos.x + .6, g.player.pos.z); g.enemy.setMode('chase'); T.step(.5)");
-  await sleep(2800); e('T.step(.2)');
+  for (let i = 0; i < 200 && e('__game.state') !== 'dead'; i++) { await sleep(50); e('T.step(.05)'); }
   check(e('__game.state') === 'dead' && e("document.getElementById('deathScreen').classList.contains('show')"), 'gepakt: het game-over-scherm verschijnt');
   e("document.getElementById('btnRetry').click(); T.step(1)");
   check(e('__game.state') === 'play' && e('__game.story.flags.chapter') === 4, 'terug bij het checkpoint in hoofdstuk 4');

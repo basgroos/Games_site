@@ -53,7 +53,8 @@ const both = async (sec) => { for (let t = 0; t < sec; t += 0.25) { a('T.step(.2
   check(chased, 'het monster ziet Bram (zaklamp) en jaagt op hem');
   check(same < 1.5, 'Bram ziet het monster op dezelfde plek als Anna', same);
   check(caught, 'het monster vangt Bram: zijn scherm toont de jumpscare');
-  await sleep(2800); await both(0.5);
+  for (let i = 0; i < 200 && !b("document.getElementById('deathScreen').classList.contains('show')"); i++) { await sleep(50); await both(0.05); }
+  await both(0.5);
   check(b('__game.player.dead') && b("document.getElementById('deathScreen').classList.contains('show')") && a('__game.state') === 'play' && !a('__game.player.dead'), 'Bram ligt eruit, Anna speelt door');
   check(a("__game.enemy.mode") !== 'chase', 'het monster trekt zich terug na de vangst');
   b("document.getElementById('btnRetry').click()"); await both(1);

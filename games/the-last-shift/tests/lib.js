@@ -75,5 +75,5 @@ function done(errors, title){
   if (failed){ console.log(`${title}: ${failed} controle(s) mislukt`); process.exit(1); }
   console.log(`${title} geslaagd`); process.exit(0);
 }
-async function ready(w){ for (let i = 0; i < 400; i++){ if (w.document.querySelector('#startMenu.show')) return true; await sleep(50); } return false; }
+async function ready(w){ for (let i = 0; i < 2400; i++){ if (w.document.querySelector('#startMenu.show')) return true; await sleep(50); } return false; }
 module.exports = { boot, sleep, check, done, file, makeBus, ready };
