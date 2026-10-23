@@ -237,7 +237,15 @@ export class Level {
   }
 
   // ---------------- VERSTOPPLEKKEN ----------------
-  addHide(spot) { this.hideSpots.push(spot); return spot; }
+  addHide(spot) {
+    this.hideSpots.push(spot);
+    // kasten en wc-hokjes: E op de deur (bureaus/tafels gaan via de nabijheidscheck in findInteract)
+    if (spot.type !== 'desk') {
+      const g = this.game;
+      g.addInteract(spot.mesh, { local: true, prompt: () => spot.prompt, enabled: () => !g.player.hidden, use: () => { g.player.pos.set(spot.out.x, 0, spot.out.z); g.player.hide(spot); } });
+    }
+    return spot;
+  }
 
   // ---------------- INRICHTING ----------------
   furnish() {

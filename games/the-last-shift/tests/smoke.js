@@ -47,7 +47,11 @@ const errors = [];
   check(e("__game.inv.has('fuse')") && e('__game.story.flags.burst'), 'zekering gevonden en de kast springt open');
   e("T.tp(47.8, 8.2, -Math.PI / 2); __game.story.useFuse(0); __game.story.useFuse(2); T.step(6)");
   check(e('__game.story.flags.fuseFixed') && e('__game.lights.power.C'), 'zekering vervangen, de stroom komt terug');
-  e("__game.flashlight.on = false; const sp = __game.level.hideSpots.find(h => h.id === 'tech1'); __game.player.pos.copy(sp.out); __game.player.hide(sp)");
+  // verstoppen zoals een speler: kijk naar de kastdeur en druk op E
+  e("__game.flashlight.on = false; const sp = __game.level.hideSpots.find(h => h.id === 'tech1'); __game.player.pos.copy(sp.out); __game.player.yaw = sp.yaw + Math.PI; __game.player.pitch = -0.1; T.step(.1)");
+  check(e("(__game.findInteract() || {def:{prompt:()=>''}}).def.prompt()") === 'Verstoppen in de kast', 'voor de kast verschijnt "Verstoppen in de kast"', e("(__game.findInteract() || {def:{prompt:()=>'(niets)'}}).def.prompt()"));
+  e("__game.onKey('KeyE'); T.step(.5)");
+  check(e('!!__game.player.hidden'), 'met E zit je in de kast');
   for (let i = 0; i < 80 && !e('__game.story.flags.afterHide'); i++) e('T.step(1)');
   check(e('__game.story.flags.afterHide') && e('__game.state') === 'play', 'verstopt in de kast: het monster loopt voorbij zonder je te vinden');
   e("__game.player.hideT = 5; __game.player.unhide(); T.step(1); T.use(__game.story.note3)"); await sleep(10); e('T.close()'); await sleep(10); e('T.step(1)');

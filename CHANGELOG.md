@@ -1,5 +1,10 @@
 # Wijzigingen
 
+## The Last Shift 1.0.1 (2026-10-23)
+- **Verstoppen in kasten en wc-hokjes werkt.** Bij de kasten verscheen geen *Verstoppen in de kast*; alleen onder bureaus en tafels kon je je verstoppen. Nu: kijk naar de kastdeur en druk op E.
+- Late doelteksten overschrijven het huidige doel niet meer (bv. als je het briefje in hoofdstuk 3 heel snel leest).
+- Test: de smoke-test verstopt zich nu zoals een speler (kijken naar de kast, E).
+
 ## The Last Shift 1.0.0 (2026-10-23)
 - **Nieuw spel: The Last Shift**, een psychologisch horrorspel in 3D. Je draait je laatste nachtdienst in kantoorpand De Wachter, de nacht voor de sloop. Precies dertig jaar geleden verdween hier ook een nachtwaker.
 - Vijf hoofdstukken (ongeveer 20 minuten): de aankomst, de eerste afwijkingen, iets is hier, de jacht en de laatste uitgang. Puzzels: de volgorde van de hoofdschakelaar, de controleklokken, de doorgebrande zekering en een code die op vier plekken in de muren gekrast staat (elke keer anders).
