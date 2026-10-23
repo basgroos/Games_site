@@ -18,6 +18,7 @@ Een website met browsergames. Alles draait direct in de browser; voortgang wordt
 | House Sitting | `games/house-sitting/` | live |
 | Hollow Pines | `games/hollow-pines/` | live |
 | The House That Remembers | `games/house-that-remembers/` | live |
+| The Last Shift | `games/the-last-shift/` | live |
 
 ## Hoe het werkt
 

@@ -7,10 +7,12 @@
     "build": "node scripts/build.js live site",
     "build:staging": "node scripts/build.js staging site",
     "test": "node scripts/test.js site",
-    "check": "npm run build && npm test"
+    "check": "npm run build && npm test",
+    "bundle:the-last-shift": "npx --yes esbuild@0.24.0 games/the-last-shift/engine/main.js --bundle --minify --format=iife --target=es2020 --legal-comments=none --alias:three=./games/the-last-shift/engine/three-shim.cjs --outfile=games/the-last-shift/src/game.js"
   },
   "devDependencies": {
     "jsdom": "^24.1.3",
-    "three": "^0.128.0"
+    "three": "^0.128.0",
+    "three-r159": "npm:three@^0.159.0"
   }
 }

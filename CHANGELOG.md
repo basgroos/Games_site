@@ -1,5 +1,15 @@
 # Wijzigingen
 
+## The Last Shift 1.0.0 (2026-10-23)
+- **Nieuw spel: The Last Shift**, een psychologisch horrorspel in 3D. Je draait je laatste nachtdienst in kantoorpand De Wachter, de nacht voor de sloop. Precies dertig jaar geleden verdween hier ook een nachtwaker.
+- Vijf hoofdstukken (ongeveer 20 minuten): de aankomst, de eerste afwijkingen, iets is hier, de jacht en de laatste uitgang. Puzzels: de volgorde van de hoofdschakelaar, de controleklokken, de doorgebrande zekering en een code die op vier plekken in de muren gekrast staat (elke keer anders).
+- **Een monster dat zoekt, luistert en verdwijnt.** Het ziet je als je licht geeft of rent, hoort voetstappen (metaal en water luider, tapijt zachter), deuren en gegooide flessen, en muren dempen het geluid. Verstop je in kasten, hokjes of onder bureaus; ziet het je wegkruipen, dan vindt het je. Een regisseur bouwt de druk op en geeft rust na een achtervolging. Gepakt: terug naar het laatste checkpoint.
+- **Twee eindes**: de laatste keuze is welke uitgang de noodstroom krijgt.
+- Alle geluiden (screams, voetstappen per ondergrond, krakende deuren, gefluister, TL-zoem) worden in de browser gemaakt en klinken ruimtelijk, met galm en demping door muren. Een limiter en een aparte schuif voor schrikgeluiden.
+- **Samen spelen (online co-op, 2–4 spelers)**: host een dienst of doe mee via de lijst of de code. Je ziet elkaar met naam en zaklamp; sleutels, deuren, stroom, puzzels en het verhaal zijn gedeeld. Het monster jaagt op jullie allemaal. Pakt het één van jullie, dan staat die weer op bij het laatste checkpoint en spelen de anderen door. Persoonlijke schrikmomenten (de spiegel, het camerabeeld, voetstappen achter je) krijg je op je eigen scherm. Kanalen `bg-tls-<env>-lobby` en `bg-tls-<env>-<code>` via Supabase Realtime, alleen broadcast (geen presence); geen nieuwe tabellen.
+- Three.js r159 via jsDelivr; voor de tests staat r159 als `three-r159` in de devDependencies.
+- Tests: `tests/smoke.js` speelt het hele verhaal alleen uit (alle puzzels, verstoppen, gepakt worden met checkpoint en beide eindes), `tests/coop.js` speelt met een host en een gast via een nep-verbinding (lobby, gedeelde sleutel, deuren en stroom, de gast laat de host dingen doen, het monster vangt de gast, opstaan en het gezamenlijke einde).
+
 ## The House That Remembers 1.0.1 (2026-10-23)
 - **Samen spelen werkt nu ook in het huis.** Na ongeveer een halve minuut (rond het moment dat je naar binnen ging) sloot Supabase de verbinding van de spelers af: het spel stuurde elke 4 seconden een presence-update, en Supabase knipt clients af die dat te vaak doen (`ClientPresenceRateLimitReached` in de Realtime-logs). Daarna zag je elkaar niet meer bewegen en liep het verhaal niet meer gelijk.
   - Het spel gebruikt geen Supabase-presence meer. Wie er in de kamer is, komt nu uit gewone berichten: een hartslag met naam en positie, een afscheidsbericht bij weggaan, en wie 12 seconden niets stuurt, is weg.
