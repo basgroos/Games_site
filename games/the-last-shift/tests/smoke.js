@@ -55,7 +55,7 @@ const errors = [];
 
   // H4: de code
   e("const s = __game.story; for (const sc of s.scratches) { T.tp(sc.x + (Math.abs(Math.sin(sc.rot)) > .5 ? Math.sin(sc.rot) : 0), sc.z + (Math.abs(Math.cos(sc.rot)) > .5 ? Math.cos(sc.rot) : 0)); s.foundDigit(sc); } T.step(.5)");
-  check(new RegExp(e('__game.story.code')).test(e('__game.ui.currentObjective')), 'alle vier cijfers gevonden: de code staat in het doel');
+  check(new RegExp(e('__game.story.code')).test(e('__game.ui.currentObjective')), 'alle vier cijfers gevonden: de code staat in het doel', [e('__game.story.code'), e('__game.ui.currentObjective'), e('__game.state')]);
   // gepakt worden en terug naar het checkpoint
   e("const g = __game; g.enemy.activate(); g.enemy.place(g.player.pos.x + .6, g.player.pos.z); g.enemy.setMode('chase'); T.step(.5)");
   await sleep(2800); e('T.step(.2)');

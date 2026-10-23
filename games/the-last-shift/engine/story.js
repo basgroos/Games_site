@@ -346,7 +346,7 @@ export class Story {
     this.after(3.5, () => g.ui.toast('F — zaklamp  ·  WASD — lopen  ·  E — interactie  ·  TAB — inventaris', 7));
     this.after(7, () => {
       g.ui.pager('Hoi Daan. Laatste dienst! Morgen komt de sloper. De stroom is vanmiddag afgesloten, ik heb gevraagd hem voor jou terug te zetten. Hoofdschakelaar zit in de technische ruimte, helemaal oost in de gang. De sleutel hangt in het sleutelkastje in de beveiligingsruimte. — Ria');
-      this.objective('Haal de sleutel van de technische ruimte uit het sleutelkastje in de beveiligingsruimte.');
+      if (!this.flags.keyTech) this.objective('Haal de sleutel van de technische ruimte uit het sleutelkastje in de beveiligingsruimte.');
     });
   }
   useSwitch(sw) {
@@ -406,8 +406,9 @@ export class Story {
     g.ui.chapter(2, 'De eerste afwijkingen');
     g.saveCheckpoint('Stroom hersteld');
     this.after(4, () => {
+      if (this.flags.chapter !== 2) return;
       g.ui.pager('Licht doet het weer? Mooi. Loop je ronde: stempel de drie controleklokken — kantoor A, de kantine en de toiletten. Daarna mag je koffie. Ik hou de camera’s in de gaten.');
-      this.objective('Stempel de controleklokken: kantoor A, kantine en toiletten (0/3).');
+      if (!(this.flags.stamps > 0)) this.objective('Stempel de controleklokken: kantoor A, kantine en toiletten (0/3).');
     });
     this.flags.ch2T = 0;
   }
@@ -425,8 +426,9 @@ export class Story {
     if (n === 3) {
       g.saveCheckpoint('Ronde gelopen');
       this.after(5, () => {
+        if (this.flags.chapter !== 2) return;
         g.ui.pager('Raar. De bewegingsmelder in het archief gaat steeds af. Zal een rat zijn, maar ik moet het melden. Wil je even kijken? De archiefsleutel ligt in kantoor B, in de ladekast — onderste la.');
-        this.objective('Pak de archiefsleutel uit de onderste la van de ladekast in kantoor B.');
+        if (!this.flags.keyArchive) this.objective('Pak de archiefsleutel uit de onderste la van de ladekast in kantoor B.');
         this.flags.glassArmed = true;
       });
     }
@@ -515,7 +517,7 @@ export class Story {
     });
     this.after(7, () => {
       g.ui.pager('Daan? Mijn scherm zegt dat groep II en III eruit liggen. Er liggen reservezekeringen in de opslagruimte aan de zuidkant. Vervang de doorgebrande in de zekeringkast in de technische ruimte.');
-      this.objective('Zoek een reservezekering in de opslag (zuidkant van de hoofdgang).');
+      if (!this.flags.taken?.fuse) this.objective('Zoek een reservezekering in de opslag (zuidkant van de hoofdgang).');
       this.flags.silhouetteArmed = true;
     });
   }
@@ -578,6 +580,7 @@ export class Story {
     const g = this.g; if (this.flags.afterHide) return; this.flags.afterHide = true;
     this.note3.visible = true;
     this.after(3, () => {
+      if (this.flags.chapter !== 3) return; // briefje al gelezen
       g.ui.pager('Daan?? De camera in de technische ruimte… er stond iemand naast je. Ik krijg de deuren niet meer open vanaf hier. Kom naar de laaddock, ik probeer de roldeur van buitenaf te openen. Het systeem vraagt om de code van de serverruimte.');
       this.objective('Er ligt een verfrommeld briefje op de vloer van de technische ruimte.');
     });
