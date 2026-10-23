@@ -7,12 +7,12 @@ const ROMAN = ['I', 'II', 'III', 'IV'];
 // Kandidaatplekken voor de gekraste cijfers (wereldpositie op de muur + rotatie + hint)
 const SCRATCH_SPOTS = [
   { g: 0, room: 'officeA', x: 11.01, y: 0.75, z: 7.4, rot: Math.PI / 2, hint: 'Kantoor A — laag op de westmuur, tussen de bureaus.' },
-  { g: 0, room: 'officeB', x: 25.6, y: 1.05, z: 1.01, rot: 0, hint: 'Kantoor B — onder het raam aan de noordkant.' },
+  { g: 0, room: 'officeB', x: 25.6, y: 1.05, z: 1.01, rot: 0, hint: 'Kantoor B — noordmuur, tussen de twee ramen.' },
   { g: 0, room: 'security', x: 9.99, y: 1.25, z: 8.6, rot: -Math.PI / 2, hint: 'De beveiligingsruimte — naast het prikbord.' },
   { g: 0, room: 'lobby', x: 2.6, y: 0.8, z: 11.01, rot: 0, hint: 'De hal — bij het dichtgelaste trappenhuis.' },
   { g: 1, room: 'archive', x: 41.99, y: 1.2, z: 12.4, rot: -Math.PI / 2, hint: 'Het archief — achterin, oostmuur.' },
   { g: 1, room: 'passage', x: 47.01, y: 1.3, z: 24.5, rot: Math.PI / 2, hint: 'De natte dienstgang achter de serverruimte.' },
-  { g: 2, room: 'toilets', x: 17.99, y: 1.45, z: 26.8, rot: -Math.PI / 2, hint: 'De toiletten — in het middelste hokje.' },
+  { g: 2, room: 'toilets', x: 17.99, y: 1.45, z: 26.8, rot: -Math.PI / 2, hint: 'De toiletten — in het achterste hokje, boven de wc.' },
   { g: 2, room: 'kantine', x: 27.4, y: 1.0, z: 28.99, rot: Math.PI, hint: 'De kantine — zuidmuur, achter de tafels.' },
   { g: 3, room: 'storage', x: 37.4, y: 1.2, z: 28.99, rot: Math.PI, hint: 'De opslag — achterste hoek.' },
   { g: 3, room: 'dock', x: 1.01, y: 1.3, z: 28.2, rot: Math.PI / 2, hint: 'De laaddock — westmuur, achter de pallets.' },

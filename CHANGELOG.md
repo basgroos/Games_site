@@ -1,5 +1,8 @@
 # Wijzigingen
 
+## The Last Shift 1.0.2 (2026-10-23)
+- Twee hints in Henks briefje klopten niet: het cijfer in de toiletten zit in het **achterste** hokje (niet het middelste), dat in kantoor B **tussen de twee ramen** (niet eronder).
+
 ## The Last Shift 1.0.1 (2026-10-23)
 - **Verstoppen in kasten en wc-hokjes werkt.** Bij de kasten verscheen geen *Verstoppen in de kast*; alleen onder bureaus en tafels kon je je verstoppen. Nu: kijk naar de kastdeur en druk op E.
 - Late doelteksten overschrijven het huidige doel niet meer (bv. als je het briefje in hoofdstuk 3 heel snel leest).
