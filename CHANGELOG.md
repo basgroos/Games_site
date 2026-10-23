@@ -1,5 +1,14 @@
 # Wijzigingen
 
+## The House That Remembers 1.0.0 (2026-10-23)
+- **Nieuw spel: The House That Remembers**, een psychologisch horrorspel in 3D. Je opa is verdwenen en jij erft zijn oude huis. Hoe langer je blijft, hoe meer het huis verandert: foto's veranderen, gangen worden langer en iets dat je familie nadoet loopt door de kamers.
+- Zeven hoofdstukken (ongeveer 20 minuten): aankomst, de woonkamer, de eetkamer, de gang boven, de afgesloten slaapkamer, de kelder en de laatste herinnering. Puzzels: foto's op volgorde, de muziekdoos en de drie sokkels.
+- **Drie achtervolgingen** door The Forgotten: de gang boven (vlucht de afgesloten kamer in), de gang in de kledingkast (haal het deurtje) en de kelder (verstop je waar het je niet kan volgen). Word je gepakt, dan begin je opnieuw vlak voor de achtervolging; het monster wordt dan iets trager.
+- **Drie eindes**, waarvan één geheim: vind alle zes de verborgen herinneringen voor einde C.
+- **Samen spelen (online co-op)**: host een huis of doe mee via de lijst of de code. Je ziet elkaar met naam en zaklamp, sleutels, deuren en puzzels zijn gedeeld, en wie achterloopt wordt meegetrokken naar het volgende hoofdstuk. Kanalen `bg-thtr-<env>-lobby` en `bg-thtr-<env>-<code>` via Supabase Realtime; geen nieuwe tabellen.
+- Je naam komt uit het gedeelde Bas Games-profiel; staging heeft een eigen save.
+- Tests: `tests/smoke.js` speelt het hele verhaal alleen uit (alle puzzels, alle achtervolgingen inclusief gepakt worden, checkpoints en alle drie de eindes), `tests/coop.js` speelt met een host en een gast via een nep-verbinding.
+
 ## Hollow Pines 1.0.0 (2026-10-23)
 - **Nieuw spel: Hollow Pines**, een survival-horrorspel in 3D. Vijf overlevenden zitten vast in een oud huis in een donker dennenbos. Ze moeten de generator repareren, de radio bouwen, het hek openen en de weg halen voor vijf uur 's nachts. Ondertussen jaagt er iets tussen de bomen.
 - **Online spelen: wie de kamer maakt, is het monster.** Maak een kamer en geef de code van vier letters aan maximaal vijf vrienden; zij spelen de overlevenden. Lege plekken worden opgevuld met AI-overlevenden. Loopt een vriend weg, dan neemt een AI het over.

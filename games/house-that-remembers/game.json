@@ -1,0 +1,12 @@
+{
+  "id": "house-that-remembers",
+  "name": "The House That Remembers",
+  "tagline": "Psychologische horror · co-op",
+  "description": "Je opa is verdwenen en jij erft zijn oude huis. Hoe langer je blijft, hoe meer het huis verandert: foto's veranderen, gangen worden langer en iets dat je familie nadoet loopt door de kamers. Zeven hoofdstukken, puzzels, drie achtervolgingen en drie eindes, in ongeveer 20 minuten. Alleen of online samen in hetzelfde huis. Toetsenbord, muis en koptelefoon.",
+  "version": "1.0.0",
+  "status": "live",
+  "color": "#6e4b2e",
+  "tags": ["Horror", "3D", "Verhaal", "Co-op"],
+  "order": 7,
+  "tests": ["tests/smoke.js", "tests/coop.js"]
+}

@@ -1,0 +1,194 @@
+<meta charset="utf-8">
+<title>The House That Remembers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Special+Elite&family=Caveat:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#d9d2c3; --dim:#8d877b; --faint:#5b574f; --paper:#e8dfc8; --paper-ink:#2b2418;
+  --blood:#8a2c22; --bg:#050506; --panel:rgba(10,10,12,.92); --line:rgba(217,210,195,.18);
+}
+:root:not([data-theme="light"]){ color-scheme: dark; }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#050506; } }
+:root[data-theme="dark"]{ --bg:#050506; }
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:"IM Fell English",Georgia,serif;user-select:none;-webkit-user-select:none}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+.hud{position:fixed;pointer-events:none;z-index:5}
+#crosshair{left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:rgba(230,225,210,.55);transition:all .15s}
+#crosshair.on{width:8px;height:8px;margin:-4px 0 0 -4px;background:transparent;border:1px solid rgba(230,225,210,.85)}
+#prompt{left:0;right:0;top:calc(50% + 22px);text-align:center;font-size:17px;letter-spacing:.04em;color:rgba(235,230,215,.9);text-shadow:0 0 6px #000,0 0 2px #000;opacity:0;transition:opacity .2s}
+#prompt b{font-family:"Special Elite",monospace;font-weight:normal;border:1px solid rgba(235,230,215,.5);padding:0 5px;margin-right:6px;font-size:13px}
+#objective{left:24px;top:20px;max-width:min(380px,70vw);font-size:16px;color:rgba(217,210,195,.75);text-shadow:0 0 5px #000;transition:opacity 1s}
+#objective small{display:block;font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:rgba(217,210,195,.4);margin-bottom:2px}
+#objective.flash{animation:objflash 2.4s}
+@keyframes objflash{0%{color:#fff}100%{color:rgba(217,210,195,.75)}}
+#subs{left:50%;bottom:9vh;transform:translateX(-50%);max-width:min(760px,90vw);text-align:center;font-size:21px;line-height:1.35;color:#ece6d6;text-shadow:0 0 6px #000,0 0 3px #000,0 0 1px #000;opacity:0;transition:opacity .35s}
+#subs .who{color:#b9a98a;font-style:italic;margin-right:6px}
+#subs .snd{color:#9a958a;font-style:italic}
+#chapter{left:0;right:0;top:38%;text-align:center;opacity:0;transition:opacity 2.2s}
+#chapter .n{font-size:13px;letter-spacing:.6em;text-transform:uppercase;color:var(--dim)}
+#chapter .t{font-size:clamp(30px,5vw,54px);margin-top:10px;color:#e6dfcf;text-shadow:0 0 18px rgba(0,0,0,.9)}
+#notify{right:24px;top:20px;text-align:right;font-size:15px;color:rgba(217,210,195,.85);text-shadow:0 0 4px #000}
+#notify div{opacity:0;animation:note 4.5s forwards;margin-bottom:4px}
+@keyframes note{0%{opacity:0;transform:translateY(-4px)}10%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0}}
+#stamina{left:50%;bottom:26px;width:120px;height:2px;margin-left:-60px;background:rgba(255,255,255,.08);opacity:0;transition:opacity .5s}
+#stamina i{display:block;height:100%;width:100%;background:rgba(220,212,190,.55)}
+#keys{left:24px;bottom:18px;font-family:"Special Elite",monospace;font-size:11px;color:rgba(217,210,195,.35);letter-spacing:.05em;line-height:1.6}
+#fade{position:fixed;inset:0;background:#000;opacity:1;pointer-events:none;z-index:8;transition:opacity 1.5s}
+.modal{position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px}
+.modal.show{display:flex}
+.box{background:var(--panel);border:1px solid var(--line);max-width:640px;width:100%;max-height:88vh;overflow:auto;padding:26px 28px;box-shadow:0 20px 60px rgba(0,0,0,.8)}
+.box h2{margin:0 0 6px;font-weight:normal;font-size:26px;color:#eee6d4}
+.box h3{margin:18px 0 6px;font-weight:normal;font-size:13px;letter-spacing:.3em;text-transform:uppercase;color:var(--dim)}
+.box p{line-height:1.5;font-size:17px;color:#cfc8b7}
+.hint{font-family:"Special Elite",monospace;font-size:12px;color:var(--faint);margin-top:14px}
+button,.btn{font-family:"IM Fell English",Georgia,serif;font-size:18px;background:transparent;color:var(--ink);border:1px solid var(--line);padding:9px 18px;cursor:pointer;transition:all .2s;letter-spacing:.03em}
+button:hover,.btn:hover{border-color:rgba(217,210,195,.6);background:rgba(217,210,195,.06);color:#fff}
+button:disabled{opacity:.35;cursor:default}
+.paper{background:var(--paper);color:var(--paper-ink);max-width:560px;width:100%;max-height:86vh;overflow:auto;padding:34px 38px;box-shadow:0 20px 70px #000,inset 0 0 80px rgba(120,90,40,.35);position:relative;font-family:"Special Elite",monospace;font-size:16px;line-height:1.6}
+.paper.hand{font-family:"Caveat",cursive;font-size:25px;line-height:1.3}
+.paper .pg{white-space:pre-wrap}
+.paper .nav{display:flex;justify-content:space-between;align-items:center;margin-top:20px;font-family:"IM Fell English",serif;font-size:14px;color:#6b5d44}
+.paper button{color:var(--paper-ink);border-color:rgba(43,36,24,.35);font-size:15px;padding:5px 12px}
+.paper button:hover{background:rgba(43,36,24,.08);color:#000}
+.paper .ttl{font-family:"IM Fell English",serif;font-size:13px;letter-spacing:.3em;text-transform:uppercase;color:#7a6a4d;margin-bottom:14px}
+#inspectImg{display:block;max-width:100%;max-height:46vh;margin:12px auto 4px;box-shadow:0 8px 30px #000}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:12px}
+.item{border:1px solid var(--line);padding:10px 12px;cursor:pointer;font-size:16px;min-height:58px}
+.item:hover,.item.sel{border-color:rgba(217,210,195,.6);background:rgba(217,210,195,.05)}
+.item small{display:block;color:var(--dim);font-size:12px;margin-top:3px;font-family:"Special Elite",monospace}
+#invDesc{min-height:48px;margin-top:14px;color:#bdb6a5;font-size:16px;line-height:1.45}
+.jl{list-style:none;padding:0;margin:0}
+.jl li{padding:8px 0;border-bottom:1px solid rgba(217,210,195,.08);font-size:16px;line-height:1.45;color:#cbc4b3}
+.jl li em{color:var(--dim);font-size:13px;display:block;font-style:normal;font-family:"Special Elite",monospace}
+/* title */
+#title{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 40%,#16151a 0%,#060607 70%);text-align:center;padding:20px}
+#title h1{font-weight:normal;font-size:clamp(34px,7vw,74px);margin:0;letter-spacing:.02em;color:#e3dccb;text-shadow:0 0 30px rgba(0,0,0,.9)}
+#title .sub{color:var(--dim);font-style:italic;margin:10px 0 34px;font-size:18px}
+#title .menu{display:flex;flex-direction:column;gap:10px;min-width:260px}
+#title input{font-family:"IM Fell English",serif;font-size:18px;background:rgba(255,255,255,.03);border:1px solid var(--line);color:var(--ink);padding:8px 12px;text-align:center;outline:none}
+#title .warn{position:absolute;bottom:18px;left:0;right:0;font-family:"Special Elite",monospace;font-size:12px;color:var(--faint);padding:0 16px}
+#title label{font-size:13px;color:var(--dim);letter-spacing:.2em;text-transform:uppercase}
+.row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:9px 0;border-bottom:1px solid rgba(217,210,195,.07);font-size:17px}
+.row input[type=range]{width:160px;accent-color:#a99d82}
+.row input[type=checkbox]{width:18px;height:18px;accent-color:#a99d82}
+.stack{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+/* puzzles */
+.slots{display:flex;gap:14px;justify-content:center;margin:18px 0}
+.slot{width:130px;height:110px;border:1px dashed rgba(217,210,195,.35);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--faint);font-size:13px;overflow:hidden;position:relative}
+.slot img,.ph img{width:100%;height:100%;object-fit:cover}
+.slot .num{position:absolute;top:4px;left:7px;font-family:"Special Elite";color:#b8ad93;text-shadow:0 0 3px #000;font-size:13px}
+.phs{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.ph{width:130px;height:100px;border:1px solid var(--line);cursor:pointer;overflow:hidden;transition:all .2s}
+.ph:hover{border-color:#cfc6b0;transform:translateY(-2px)}
+.ph.used{opacity:.15;pointer-events:none}
+.dials{display:flex;gap:22px;justify-content:center;margin:24px 0}
+.dial{display:flex;flex-direction:column;align-items:center;gap:6px}
+.dial .face{width:96px;height:96px;border-radius:50%;border:2px solid #6d6150;background:radial-gradient(circle,#2a241c,#120f0b);display:flex;align-items:center;justify-content:center;font-size:44px;color:#d8c9a6;text-shadow:0 0 10px rgba(255,220,150,.25)}
+.dial button{font-size:14px;padding:3px 14px}
+.dial .lbl{font-family:"Special Elite";font-size:12px;color:var(--dim)}
+#dlgBox{position:fixed;left:50%;bottom:6vh;transform:translateX(-50%);width:min(720px,92vw);background:rgba(8,7,6,.9);border:1px solid var(--line);padding:20px 24px}
+#dlgLine{font-size:20px;line-height:1.45;color:#e8e0cd;min-height:56px}
+#dlgLine .who{color:#b9a98a;font-style:italic}
+#dlgOpts{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+#dlgOpts button{text-align:left;font-size:17px}
+#dlgOpts button.special{border-color:rgba(200,170,110,.55);color:#e9d6a8}
+#endScreen .box{text-align:center}
+#endScreen h2{font-size:34px}
+#endPhoto{max-width:100%;max-height:44vh;margin:16px auto;display:block;box-shadow:0 10px 40px #000}
+#lockHint{left:0;right:0;top:45%;text-align:center;font-size:18px;color:var(--dim);display:none}
+#death{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .6s;color:#b33a2c;font-size:clamp(34px,6vw,64px);letter-spacing:.06em;text-shadow:0 0 30px rgba(140,20,10,.6)}
+#death.show{opacity:1}
+#death small{font-size:15px;color:var(--dim);letter-spacing:.3em;text-transform:uppercase;margin-top:12px}
+#coop{margin-top:26px;min-width:260px;max-width:min(420px,92vw);display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:16px}
+#coop .row2{display:flex;gap:8px}
+#coop .row2 input{flex:1;min-width:0}
+#coopStatus{font-size:14px;color:var(--dim)}
+#coopList{display:flex;flex-direction:column;gap:6px}
+#coopList button{font-size:15px}
+#coopHud{right:24px;bottom:18px;font-family:"Special Elite",monospace;font-size:12px;color:rgba(217,210,195,.5)}
+.homeLink{position:absolute;top:18px;left:20px;color:var(--dim);text-decoration:none;font-size:15px;letter-spacing:.06em}
+.homeLink:hover{color:var(--ink)}
+#errBox{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:50;background:#000;color:var(--ink);padding:30px;text-align:center;font-size:18px}
+@media (max-width:600px){ #keys{display:none} .box{padding:20px} .slot,.ph{width:96px;height:80px} }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div class="hud" id="crosshair"></div>
+<div class="hud" id="prompt"></div>
+<div class="hud" id="objective"></div>
+<div class="hud" id="notify"></div>
+<div class="hud" id="subs"></div>
+<div class="hud" id="chapter"><div class="n"></div><div class="t"></div></div>
+<div class="hud" id="stamina"><i></i></div>
+<div class="hud" id="keys">WASD move · SHIFT sprint · C crouch · E interact · F flashlight<br>TAB inventory · J journal · ESC pause</div>
+<div class="hud" id="lockHint">Click to continue</div>
+<div id="fade"></div>
+
+<!-- Reader (notes, letters, diary) -->
+<div class="modal" id="reader"><div class="paper" id="readerPaper"><div class="ttl" id="readerTitle"></div><div class="pg" id="readerText"></div>
+  <div class="nav"><button id="readerPrev">&larr; Back</button><span id="readerPage"></span><button id="readerNext">Next &rarr;</button></div>
+  <div class="nav" style="justify-content:center;margin-top:6px"><button id="readerClose">Put it down (E)</button></div></div></div>
+
+<!-- Inspect -->
+<div class="modal" id="inspect"><div class="box" style="text-align:center"><h2 id="inspectTitle"></h2><img id="inspectImg" alt=""><p id="inspectText"></p><button id="inspectClose">Close (E)</button></div></div>
+
+<!-- Inventory -->
+<div class="modal" id="inventory"><div class="box"><h2>Belongings</h2><div class="grid" id="invGrid"></div><div id="invDesc">Select something to look at it.</div><div class="hint">TAB or ESC to close</div></div></div>
+
+<!-- Journal -->
+<div class="modal" id="journal"><div class="box"><h2>Journal</h2><div id="jObjective" style="color:#a99d82;font-style:italic;margin:4px 0 10px"></div><h3>Notes</h3><ul class="jl" id="jList"></ul><h3>Memories</h3><div id="jMem" style="color:#cbc4b3;font-size:16px"></div><div class="hint">J or ESC to close</div></div></div>
+
+<!-- Puzzle -->
+<div class="modal" id="puzzle"><div class="box" style="text-align:center"><h2 id="pzTitle"></h2><p id="pzText"></p><div id="pzBody"></div><div class="stack" style="flex-direction:row;justify-content:center"><button id="pzClose">Step back</button></div></div></div>
+
+<!-- Dialogue -->
+<div class="modal" id="dialogue" style="background:transparent;align-items:flex-end"><div id="dlgBox"><div id="dlgLine"></div><div id="dlgOpts"></div></div></div>
+
+<!-- Pause -->
+<div class="modal" id="pause"><div class="box" style="max-width:380px;text-align:center"><h2>Paused</h2><p id="pauseInfo" style="color:var(--dim);font-size:15px"></p>
+  <div class="stack"><button id="btnResume">Resume</button><button id="btnSettings">Settings</button><button id="btnRestartCh">Restart chapter</button><button id="btnQuit">Quit to title</button></div></div></div>
+
+<!-- Settings -->
+<div class="modal" id="settings"><div class="box" style="max-width:480px"><h2>Settings</h2>
+  <div class="row"><span>Mouse sensitivity</span><input type="range" id="setSens" min="0.3" max="2.5" step="0.05"></div>
+  <div class="row"><span>Volume</span><input type="range" id="setVol" min="0" max="1" step="0.02"></div>
+  <div class="row"><span>Brightness</span><input type="range" id="setBright" min="0.6" max="1.8" step="0.02"></div>
+  <div class="row"><span>Subtitles</span><input type="checkbox" id="setSubs"></div>
+  <div class="row"><span>Spoken voices (speech synthesis)</span><input type="checkbox" id="setVoice"></div>
+  <div class="row"><span>Film grain &amp; distortion</span><input type="checkbox" id="setGrain"></div>
+  <div class="row"><span>Invert mouse Y</span><input type="checkbox" id="setInvert"></div>
+  <div class="row"><span>Shadows (restart to apply)</span><input type="checkbox" id="setShadows"></div>
+  <div class="stack"><button id="setBack">Back</button></div></div></div>
+
+<!-- End -->
+<div class="modal" id="endScreen" style="background:rgba(0,0,0,.92)"><div class="box"><div style="letter-spacing:.4em;font-size:12px;color:var(--dim);text-transform:uppercase" id="endKicker"></div><h2 id="endTitle"></h2><img id="endPhoto" alt=""><p id="endText"></p><p id="endStats" style="font-family:'Special Elite';font-size:13px;color:var(--dim)"></p><div class="stack" style="flex-direction:row;justify-content:center"><button id="endTitleBtn">Return to the gate</button></div></div></div>
+
+<!-- Title -->
+<div id="title">
+  <a id="homeLink" class="homeLink" href="../../" hidden>&larr; Bas Games</a>
+  <h1>The House That Remembers</h1>
+  <div class="sub">It kept everything. Even the things you were meant to forget.</div>
+  <div class="menu">
+    <label for="nameIn">Your name</label>
+    <input id="nameIn" maxlength="16" value="Sam" autocomplete="off">
+    <button id="btnNew">Play alone</button>
+    <button id="btnContinue" style="display:none">Continue</button>
+    <button id="btnTitleSettings">Settings</button>
+  </div>
+  <div id="coop" hidden>
+    <label>Co-op — one house, together</label>
+    <div id="coopStatus">Connecting…</div>
+    <button id="btnHost">Host a co-op house</button>
+    <div id="coopList"></div>
+    <div class="row2"><input id="codeIn" maxlength="8" placeholder="house code" autocomplete="off"><button id="btnJoin">Join</button></div>
+  </div>
+  <div class="warn">Headphones strongly recommended · About 20 minutes · Contains psychological horror, darkness and sudden sounds</div>
+</div>
+<div id="death">It caught you.<small>the house lets you try again</small></div>
+<div class="hud" id="coopHud" hidden></div>
+<div id="errBox"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

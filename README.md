@@ -17,6 +17,7 @@ Een website met browsergames. Alles draait direct in de browser; voortgang wordt
 | Tiny Empire | `games/tiny-empire/` | live |
 | House Sitting | `games/house-sitting/` | live |
 | Hollow Pines | `games/hollow-pines/` | live |
+| The House That Remembers | `games/house-that-remembers/` | live |
 
 ## Hoe het werkt
 
