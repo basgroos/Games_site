@@ -1,5 +1,11 @@
 # Wijzigingen
 
+## The House That Remembers 1.0.2 (2026-10-23)
+- **De foto onder de eettafel is nu te zien.** Hij lag 1,2 cm boven de vloer, maar het tapijt in de eetkamer is 1,5 cm dik: de foto zat dus ín het tapijt en was onzichtbaar. Nu ligt hij op het tapijt, iets groter, half onder de rand van de tafel tussen de twee stoelen, en vangt hij een beetje licht.
+- Heb je de kast al bekeken maar na 45 seconden nog steeds die derde foto niet, dan zegt je personage: *Something pale is lying on the floor... under the table.*
+- Hetzelfde probleem had de herinnering achter de bank in de woonkamer (de tekening op de grond): die ligt nu ook óp het tapijt. De polaroid aan het eind van de gang in de kledingkast is groter.
+- Test: de foto onder de tafel moet boven het tapijt liggen.
+
 ## The Last Shift 1.0.2 (2026-10-23)
 - Twee hints in Henks briefje klopten niet: het cijfer in de toiletten zit in het **achterste** hokje (niet het middelste), dat in kantoor B **tussen de twee ramen** (niet eronder).
 

@@ -153,7 +153,7 @@ function buildLivingRoom(ox, oz, y0, lv, variant) {
     cyl(.02, .02, 1.5, X(4.6), y0, Z(2.8), MAT.brass); cyl(.12, .2, .25, X(4.6), y0 + 1.42, Z(2.8), new THREE.MeshStandardMaterial({ color: 0xc9b48a, emissive: 0x3a2a12, roughness: 1, side: THREE.DoubleSide }), { open: true });
     W.obj.livingLamp = lamp(X(4.6), y0 + 1.45, Z(2.8), { int: .75, dist: 7, name: 'livingLamp', size: .04 });
     // memory 2: drawing behind the sofa
-    const dr2 = plane(.3, .24, X(5.1), y0 + .012, Z(-1.6), new THREE.MeshStandardMaterial({ map: texFrom(drawCrayon({ kind: 'house', stage: 1 }), false), roughness: 1 }), { rx: -Math.PI / 2 }); dr2.rotation.z = .4;
+    const dr2 = plane(.3, .24, X(5.1), y0 + .032, Z(-1.6), new THREE.MeshStandardMaterial({ map: texFrom(drawCrayon({ kind: 'house', stage: 1 }), false), roughness: 1 }), { rx: -Math.PI / 2 }); dr2.rotation.z = .4;
     IT(dr2, 'mem2');
     // window
     windowDecor(X(7), y0 + 1.7, Z(3.9), Math.PI, 1.4, 1.5, null, { lv });
@@ -365,8 +365,9 @@ function buildGround() {
   const photoA = new THREE.Group(); photoA.position.set(-9.6, .86, .55); photoA.rotation.y = Math.PI + .3; D.add(photoA);
   box(.16, .2, .015, 0, 0, 0, MAT.frame, { parent: photoA }); W.obj.photoA = photoA; IT(photoA, 'photoA');
   // photo C under the table
-  const photoC = plane(.13, .1, -9.5, .012, -3.7, new THREE.MeshStandardMaterial({ map: texFrom(Story.puzzlePhotos()[2], false), roughness: .8 }), { parent: D, rx: -Math.PI / 2 });
-  photoC.rotation.z = 2.2; W.obj.photoC = photoC; IT(photoC, 'photoC');
+  // lies on top of the carpet (its top is at 1.5 cm), half under the table edge, catching a little light
+  const photoC = plane(.2, .16, -9.05, .03, -3.42, new THREE.MeshStandardMaterial({ map: texFrom(Story.puzzlePhotos()[2], false), roughness: .7, emissive: 0x2a2620 }), { parent: D, rx: -Math.PI / 2 });
+  photoC.rotation.z = 2.6; W.obj.photoC = photoC; IT(photoC, 'photoC');
   // the cabinet (photo puzzle)
   const cab = new THREE.Group(); cab.position.set(-9, 0, -8.65); D.add(cab);
   box(1.5, 2.0, .5, 0, 0, 0, MAT.darkWood, { parent: cab, cast: true }); addCollider(-9.8, -8.2, -8.95, -8.35, lv, { grp: D });
@@ -551,7 +552,7 @@ function buildUpstairs() {
   wallZ(-22, -.5, .5, lv, MAT.wallPink, [[-.45, .45, 1.9]], { h: 2.0 });
   makeDoor('wardEnd', { axis: 'z', c: -22, mid: 0, w: .88, h: 1.9, lv, dir: -1, locked: true, name: 'small door', lockMsg: 'It will not open. On the other side, very close, something breathes in when you do.', onUse: d => Story.wardEndUse(d) });
   lamp(-16, Y + 1.85, 0, { name: 'wcor', int: .4, dist: 6, flick: .5, size: .035 });
-  const pol = plane(.09, .11, -21.5, Y + .012, .15, new THREE.MeshStandardMaterial({ map: texFrom(Story.polaroid(), false), roughness: .8 }), { rx: -Math.PI / 2 }); pol.rotation.z = .5; IT(pol, 'mem5');
+  const pol = plane(.14, .17, -21.5, Y + .02, .15, new THREE.MeshStandardMaterial({ map: texFrom(Story.polaroid(), false), roughness: .8 }), { rx: -Math.PI / 2 }); pol.rotation.z = .5; IT(pol, 'mem5');
   lamp(-6, Y + 2.7, 0, { name: 'elena', int: .5, dist: 8, color: 0xffcfc0 });
   lamp(-3.0, Y + 1.0, 3.7, { name: 'elenaLamp', int: .35, dist: 4, color: 0xffb080, size: .03 });
   // the room's stairwell side wall

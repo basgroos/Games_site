@@ -36,6 +36,7 @@ const info = () => E(`({ ch: Story.S.ch, obj: Story.S.objective, room: Story.get
   check(E("Story.S.ch") === 3, 'opening the dining room starts chapter III');
   // ---------- III. The First Memory ----------
   E("T.tp(-9,0,-6.5,0); T.step(16)");
+  check(E("W.obj.photoC.getWorldPosition(new THREE.Vector3()).y") > .02 && E("W.obj.photoC.visible"), 'the photo under the table lies on top of the carpet, not inside it');
   E("T.use('photoA'); T.use('sbDrawer'); T.use('photoC'); T.use('mem3'); T.close(); T.step(5)");
   check(['photoA', 'photoB', 'photoC'].every(p => E(`Story.has('${p}')`)), 'three photographs found');
   E("T.use('cabinet'); [...document.querySelectorAll('#pzBody .ph')].forEach(x => x.click())"); await sleep(1000);

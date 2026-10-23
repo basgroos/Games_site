@@ -330,6 +330,8 @@ Story.ch3 = function (dt) {
     f.plate5T += dt; const ch = W.obj.dinChairs[1]; const cp = ch.getWorldPosition(new THREE.Vector3()).setY(.5);
     if (f.plate5T > 3 && inView(cp, .4) && P.pos.distanceTo(cp) > 2.2) { f.chairSlid = true; this.slideChair(ch); }
   }
+  // a nudge if the third photograph is still on the floor
+  if (inD && f.cabSeen && !f.gotPhotoC && (f.photoCount || 0) >= 1 && f.dinT > 45 && !f.photoCHint) { f.photoCHint = true; UI.sub(NM(), 'Something pale is lying on the floor... under the table.', 4); }
   // the radio turns itself on
   if (inD && f.dinT > 32 && !f.radioPlayed && !W.radioOn) { this.toggleRadio(true); }
   // a shadow passes the frosted window
