@@ -28,6 +28,11 @@ const both = async (sec) => { for (let t = 0; t < sec; t += .25) { a('T.step(.25
   // a shared item
   a("T.tp(5,0,1.5,0); T.use('drawer2')"); await both(1);
   check(b("Story.has('diningKey')"), 'the team inventory is shared');
+  // keys found by different players count together: Anna finds one, Bram another -> the sewing room opens
+  a("Story.S.ch = 4; T.tp(9,1,-2.5,0); T.use('nightstand')"); b("Story.S.ch = 4; T.tp(-8,1,-12,0); T.use('bathtub')");
+  await both(1.5); a("T.tp(0,1,-4,0)"); await both(2);
+  check(a("Story.keysFound()") === 2 && b("Story.keysFound()") === 2, 'both count two keys when each found one', [a("Story.keysFound()"), b("Story.keysFound()")]);
+  check(a("W.doors.sewing.open") && b("W.doors.sewing.open"), 'the sewing room door opens for both');
   // the monster: Anna's game runs it, Bram sees it and can be chased
   a("Story.S.ch = 4; T.tp(0,1,-4,0); Chase.start(CHASES[1])"); b("T.tp(.5,1,-6,0)");
   await both(1);

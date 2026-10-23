@@ -1,5 +1,12 @@
 # Wijzigingen
 
+## The House That Remembers 1.0.4 (2026-10-23)
+- **De naaikamerdeur gaat open met twee sleutels, ook als jullie ze samen vonden.** Elk spel telde zelf hoeveel sleutels er gevonden waren. Vond de één de sleutel in het nachtkastje en de ander die in het bad, dan dacht elk spel dat er maar één was, en bleef de deur met de derde sleutel dicht.
+  - Het aantal komt nu uit de gedeelde sleutels zelf (sleutel I, II en III), dus het maakt niet uit wie welke vond.
+  - De deur gaat open zodra iemand boven is (niet alleen in de gang), en probeer je hem zelf met twee sleutels, dan gaat hij meteen open.
+  - De teller in het doel (*Find three old keys (2/3)*) telt ook sleutels die je medespeler vindt.
+- Test: in co-op vindt elke speler één sleutel; daarna moeten beide spellen twee sleutels tellen en de naaikamerdeur openen.
+
 ## The House That Remembers 1.0.3 (2026-10-23)
 - **Het bad is makkelijk te pakken.** Je kon alleen in het water grijpen als je van dichtbij bijna recht naar beneden keek; keek je gewoon over het bad heen, dan verscheen *Reach into the water* niet en leek het alsof de sleutel niet te pakken was. Nu werkt het zodra je ongeveer naar het bad kijkt, tot borsthoogte erboven.
 - Test: het bad moet te pakken zijn terwijl je er schuin overheen kijkt.

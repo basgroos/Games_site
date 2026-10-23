@@ -104,6 +104,7 @@ Story.afterBuild = function () {
   W.obj.seasonPic.set(drawSeason(3, true));
   W.doors.front.onOpen = () => { if (CH() === 1 && !SF().frontOpened) { SF().frontOpened = true; SFX.thunder(1.5, false); UI.objective('Look around.'); } };
   W.doors.dining.onOpen = () => { if (CH() === 2) this.startChapter(3); };
+  W.doors.sewing.onUse = d => this.sewingDoorUse(d);
   W.doors.dining.onUnlock = () => { if (CH() === 2) UI.objective('Open the dining room.'); };
   W.doors.sealed.onOpen = () => { if (!SF().enteredSealed) { SF().enteredSealed = true; setLamp(W.obj.lamp_sealed, true); } };
   W.drip = SFX.emitter(V3(W.emitDrip.x, W.emitDrip.y, W.emitDrip.z), 'drip'); W.emitters.push(W.drip);
@@ -483,22 +484,24 @@ Story.ch4 = function (dt) {
   const hp = W.portraits.hall.g.getWorldPosition(new THREE.Vector3());
   if (W.portraitStage.hall === 0 && r === 'uhall') {
     if (inView(hp, .4) && P.pos.distanceTo(hp) < 5) f.hpLook = (f.hpLook || 0) + dt;
-    if ((f.hpLook > 1 || f.hpSeen) && (f.keys || 0) >= 1 && !inView(hp, .8)) this.setPortrait('hall', 1);
+    if ((f.hpLook > 1 || f.hpSeen) && this.keysFound() >= 1 && !inView(hp, .8)) this.setPortrait('hall', 1);
   }
   // the sewing-room door opens by itself
-  if (!f.sewOpen && (f.keys || 0) >= 2 && (r === 'uhall') && Math.abs(P.pos.z + 6.5) < 7) {
+  // the key count shown in the objective follows keys found by anyone (co-op)
+  const kf = this.keysFound(); if (f.keysObj && kf !== f.keysShown) { f.keysShown = kf; if (kf > 0) UI.objective(kf >= 3 ? 'Open the locked room.' : `Find three old keys (${kf}/3).`); }
+  if (!f.sewOpen && kf >= 2 && P.lv === 1) {
     f.sewOpen = true; const d = W.doors.sewing; d.locked = false; d.creakOpen(1.3, .22);
     this.after(1.2, () => { if (!Ent.on) Ent.show(-4.6, UY, -6.4, { dur: 4, vanish: 3.8, untilUnseen: true }); });
   }
   // bulbs go out one by one, towards you
-  if (!f.bulbs && (f.keys || 0) >= 2 && r === 'uhall' && P.pos.z > -1 && lookDot(V3(0, UY + 2, -11)) > .85) {
+  if (!f.bulbs && this.keysFound() >= 2 && r === 'uhall' && P.pos.z > -1 && lookDot(V3(0, UY + 2, -11)) > .85) {
     f.bulbs = true; const names = ['uh1', 'uh2', 'uh3'];
     names.forEach((n, i) => this.after(i * .9, () => { setLamp(W.obj['lamp_' + n], false); SFX.click(W.obj['lamp_' + n].obj.position, .5, 700); }));
     this.after(2.8, () => { if (!Ent.on) Ent.show(0, UY, -10.5, { dur: 2.6, vanish: 5, quiet: true }); });
     this.after(5.6, () => { names.forEach(n => setLamp(W.obj['lamp_' + n], true)); SFX.click(null, .2, 900); });
   }
   // CHASE 1: with all three keys, something comes for you
-  if ((f.keys || 0) >= 3 && !f.chase1 && r === 'uhall' && !Chase.active) { Chase.start(CHASES[1]); }
+  if (this.keysFound() >= 3 && !f.chase1 && r === 'uhall' && !Chase.active) { Chase.start(CHASES[1]); }
   // bathroom mirror
   if (f.medOpened && !f.mirrorScare && r === 'bath' && !Chase.active) {
     const mp = V3(-6, UY + 1.6, -13.9);
@@ -507,6 +510,13 @@ Story.ch4 = function (dt) {
       SFX.stinger(.28, 2.4); this.after(.2, () => SFX.heartbeat(5, .4, 1.4));
     }
   }
+};
+// keys found by anyone: the three key flags are shared in co-op, a per-player counter was not
+Story.keysFound = function () { const f = SF(); return ['key1', 'key2', 'key3'].filter(k => f[k]).length; };
+Story.sewingDoorUse = function (d) {
+  if (!d.locked) return true;
+  if (this.keysFound() >= 2) { SF().sewOpen = true; d.locked = false; d.creakOpen(1.3, .5); return false; }
+  return true;
 };
 Story.elenaDoorUse = function (d) {
   if (!d.locked || d.missing) return true;
@@ -531,8 +541,8 @@ Story.elenaDoorUse = function (d) {
   return false;
 };
 Story.keyFound = function () {
-  const f = SF(); f.keys = (f.keys || 0) + 1;
-  if (!f.keysObj) f.keysObj = true;
+  const f = SF(); f.keys = this.keysFound();
+  if (!f.keysObj) f.keysObj = true; f.keysShown = f.keys;
   UI.objective(f.keys >= 3 ? 'Open the locked room.' : `Find three old keys (${f.keys}/3).`);
   if (f.keys === 1) this.after(3, () => { SFX.knock(V3(-2.2, UY + 1.2, 0), 2, .4); });
 };
