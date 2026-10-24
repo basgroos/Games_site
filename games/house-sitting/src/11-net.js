@@ -307,6 +307,7 @@ const MP = {
 
   // ---------- events (host → guests) ----------
   applyFx(e){
+    if (e.to && e.to !== this.me().id) return;   // meant for one player only
     switch (e.t){
       case 's': if (typeof SND[e.n] === 'function') SND[e.n](...(e.a || []).map(des)); break;
       case 'sub': subtitle(escHtml(e.a[0]), e.a[1], e.a[2], escHtml(e.a[3] || '')); break;
@@ -372,7 +373,7 @@ const MP = {
     $('mpList').innerHTML = this.members.slice().sort((a, b) => a.slot - b.slot).map(m => '<li style="--c:' + MP_COLORS[m.slot % 4] + '">' + escHtml(m.name || 'Player') + '<i>' + [m.id === this.hostId ? 'HOST' : '', m.id === me ? 'YOU' : ''].filter(Boolean).join(' · ') + '</i></li>').join('');
     $('mpHostBtns').hidden = !this.host;
     const cp = savedCheckpoint(); $('mpGoCont').hidden = !(cp && cp !== 'start');
-    $('mpGo').disabled = $('mpGoCont').disabled = this.members.length < 2;
+    $('mpGo').disabled = $('mpGoCont').disabled = $('mpGoCh2').disabled = this.members.length < 2;
     let msg = this.error;
     if (!msg){
       if (this.status === 'connecting') msg = 'Connecting...';

@@ -51,14 +51,17 @@ const ROUTES = {
   chase1: [[8.0, 9.0], [8.2, 7.6], [9.3, 6.6], [9.3, 1.0], [7.6, 1.6], [6.6, 2.5], [5.2, 2.5], [5.3, 6.7], [6.2, 7.0], [7.2, 7.4], [8.0, 11.2, 'W.kitchenWin.glass'], [8.0, 11.3]],
   chase2: [[6.2, -25.6], [7.4, -27.0], [8.4, -27.0], [9.0, -27.6], [9.1, -29.5], [10.5, -29.6], [10.5, -30.4, 'PROPS.nKeyHit'], [12.3, -32.9, 'PROPS.pantry', 'G.flags.shelfMoved'],
     [13.0, -33.2, 'D.nBack.panel', '!D.nBack.locked'], [13.0, -35.0], [12.0, -40.0], [8.0, -44.9, 'D.nGate.panel', 'D.nGate.open'], [8.0, -47.5], [8.0, -49.0]],
+  // chapter 2: out of the cellar through the coal chute, and out of the burning house
+  cellar: [[72.6, 2.6], [70.8, 2.6], [69.3, 2.6], [69.4, 5.8], [72.5, 9.4], [75.0, 10.5, 'PROPS.chuteHit', 'G.step === "c2_room" || !(player.pos.x > 60)']],
+  fire: [[8.2, 7.0], [9.3, 6.4], [9.3, 1.0], [8.0, 0.9], [8.0, -1.2], [8.0, -4.0]],
 };
-function runRoute(w, name, act = 1.0, limit = 60){
+function runRoute(w, name, act = 1.0, limit = 60, waitMon = true){
   const E = s => w.eval(s), keys = E('keys'), route = ROUTES[name];
-  let i = 0, wait = 0, t = 0, go = false;
+  let i = 0, wait = 0, t = 0, go = !waitMon;
   while (t < limit){
     t += 0.05; w.eval('tick(lastT + 50)');
     if (E('G.state') === 'dead') return { ok: false, t, why: 'caught at waypoint ' + i };
-    if (['escaped', 'end1'].includes(E('G.step'))){ keys.KeyW = keys.ShiftLeft = false; return { ok: true, t }; }
+    if (['escaped', 'end1', 'c2_room', 'c2_out'].includes(E('G.step'))){ keys.KeyW = keys.ShiftLeft = false; return { ok: true, t }; }
     if (!go){ go = E('MON.m.root.visible && !player.frozen && G.state === "playing"'); if (!go) continue; }
     if (E('player.frozen') || E('G.state') !== 'playing'){ keys.KeyW = false; continue; }
     if (wait > 0){ wait -= 0.05; keys.KeyW = false; continue; }

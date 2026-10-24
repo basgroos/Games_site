@@ -38,11 +38,11 @@ function hudUpdate(){
   $('bat').style.width = player.battery.toFixed(0) + '%'; $('batWrap').classList.toggle('low', player.battery < 20);
   $('lockhint').hidden = !(G.state === 'playing' && !G.noLock && !isLocked());
 }
-function storyUpdate(dt){ storyUpdateA(dt); storyUpdateB(dt); storyUpdateC(dt); }
+function storyUpdate(dt){ storyUpdateA(dt); storyUpdateB(dt); storyUpdateC(dt); storyUpdateD(dt); }
 
 // ---- screens ----
 function hideScreens(){ ['menu', 'mp', 'pause', 'dead', 'ending'].forEach(id => $(id).hidden = true); $('note').hidden = true; $('cine').hidden = true; cineData = null; }
-function refreshContinue(){ const s = savedCheckpoint(); const b = $('bCont'); b.disabled = !s || s === 'start'; b.textContent = s && s !== 'start' ? 'Continue (' + ({ night: 'the noise', chase1: 'the open room', police: 'the police', neighbor: 'across the street', chase2: 'the final escape' }[s] || s) + ')' : 'Continue from checkpoint'; }
+function refreshContinue(){ const s = savedCheckpoint(); const b = $('bCont'); b.disabled = !s || s === 'start'; b.textContent = s && s !== 'start' ? 'Continue (' + ({ night: 'the noise', chase1: 'the open room', police: 'the police', neighbor: 'across the street', chase2: 'the final escape', ...C2_LABELS }[s] || s) + ')' : 'Continue from checkpoint'; }
 function toMenu(){
   if (MP.status !== 'idle') MP.leave();
   hideScreens(); resetWorld(); G.state = 'menu'; $('menu').hidden = false; $('hud').hidden = true; fade(0, 0.3);
@@ -53,7 +53,7 @@ function toMenu(){
 function loadCheckpoint(name){
   hideScreens(); $('hud').hidden = false; fade(0, 0.2); G.state = 'playing';
   if (AU.ctx && AU.ctx.state === 'suspended') AU.ctx.resume();
-  ({ night: loadNight, chase1: loadChase1, police: loadPolice, neighbor: loadNeighbor, chase2: loadChase2 }[name] || startCh1)();
+  ({ night: loadNight, chase1: loadChase1, police: loadPolice, neighbor: loadNeighbor, chase2: loadChase2, ...C2_LOADERS }[name] || startCh1)();
   requestLock();
 }
 function pauseGame(){
@@ -122,7 +122,7 @@ function mergeStatic(){
 // ---- boot ----
 let lastT = performance.now(); G.dt = 0;
 function boot(){
-  buildHouse(); buildStreet(); buildNeighbor(); monInit(); storyInit(); initRain(); mergeStatic(); refreshRayTargets(); renderInv();
+  buildHouse(); buildStreet(); buildNeighbor(); monInit(); storyInit(); ch2Init(); initRain(); mergeStatic(); refreshRayTargets(); renderInv();
   resetWorld(); setHouseLights(['hall', 'porch']); FX.livLamp.on = true; refreshContinue();
   const home = window.HW_BUILD && window.HW_BUILD.home; if (home){ const a = $('bHome'); a.href = home; a.hidden = false; }
   netInit();
@@ -138,6 +138,7 @@ function tick(now){
     if (MP.guest) MP.guestWorld(dt); else { storyUpdate(dt); monUpdate(dt); }
   }
   MP.update(dt);
+  updateFireFx(dt);
   updateInteract(); updateDoors(dt); updateLights(dt); updateRain(dt); envUpdate(dt); audioUpdate(dt); audioListener(camera); hudUpdate();
   renderer.render(scene, camera);
 }

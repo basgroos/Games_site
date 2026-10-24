@@ -142,6 +142,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:non
   <div class="menu-btns">
     <button id="bNew">New game</button>
     <button id="bCont" disabled>Continue from checkpoint</button>
+    <button id="bCh2">Chapter 2: The Room</button>
     <button id="bMp" hidden>Play together (online)</button>
     <a id="bHome" class="home" href="../../" hidden>&larr; Back to Bas Games</a>
   </div>
@@ -184,7 +185,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:non
   <div id="mpRoom" class="mp-col" hidden>
     <div class="mp-code-wrap"><span class="lbl">ROOM CODE</span><span id="mpCodeShow" class="mp-code">----</span></div>
     <ul id="mpList"></ul>
-    <div class="menu-btns" id="mpHostBtns"><button id="mpGo">Start a new game</button><button id="mpGoCont" hidden>Continue from checkpoint</button></div>
+    <div class="menu-btns" id="mpHostBtns"><button id="mpGo">Start a new game</button><button id="mpGoCh2">Start chapter 2: The Room</button><button id="mpGoCont" hidden>Continue from checkpoint</button></div>
   </div>
   <p class="small" id="mpMsg"></p>
   <div class="menu-btns"><button id="mpBack">Back</button></div>
@@ -203,6 +204,6 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:non
   <div class="line" id="end1">YOU SURVIVED THE NIGHT.</div>
   <div class="line" id="end2">BUT YOU NEVER FOUND OUT WHO WAS HOUSE-SITTING FOR WHOM.</div>
   <h1 class="title" id="end3"><span>HOUSE</span><span>SITTING</span></h1>
-  <div class="menu-btns" id="end4"><button id="bEndMenu">Main menu</button></div>
+  <div class="menu-btns" id="end4"><button id="bEndCh2" hidden>Continue: Chapter 2</button><button id="bEndMenu">Main menu</button></div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

@@ -108,6 +108,16 @@ const near = (a, b, d = 1.5) => Math.hypot(a[0] - b[0], a[1] - b[1]) < d;
   EB("setPlayer(12.5, 0, -31, 0)"); both(0.5);
   check(EA("G.flags.kitSlam") && EA("D.nKitchen.hold") === 10 && !EB("D.nKitchen.open"), 'both in the kitchen: it slams shut (for the guest too)', EA("[G.flags.kitSlam, D.nKitchen.hold, D.nKitchen.open, G.state, G.step, MON.mode, player.pos.x, player.pos.z, JSON.stringify(Object.values(MP.remotes).map(r=>[r.tx,r.tz]))].join(' ')"));
 
+  // ---- chapter 2 together ----
+  EA("MP.hostStart('c2cellar')"); both(1);
+  check(EA("G.step") === 'c2_cellar' && EB("G.flags.ch2") && EB("player.pos.x") > 60, 'chapter 2 checkpoint: both in the cellar');
+  check(use(B, 'PROPS.ladderHit') === 'ok', 'guest climbs the ladder'); both(0.5);
+  check(EB("player.pos.x") < 5 && EA("player.pos.x") > 60, 'only the guest went up (the host is still in the cellar)', [EA("player.pos.x"), EB("player.pos.x")]);
+  EA("MP.hostStart('c2fire')"); both(1);
+  EA("setPlayer(8, 3, 7.7, Math.PI)"); use(A, 'PROPS.lightHit'); both(0.5); for (let i = 0; i < 40 && !EA("MON.burning"); i++) both(0.1);
+  EA("MON.mode = 'watch'"); both(0.5);
+  check(EB("PROPS.fireRoom.visible") && EB("MON.burning") && EB("PROPS.monFire.visible"), 'the fire and the burning monster show up for the guest');
+
   // ---- leaving ----
   EB("toMenu()"); both(0.3);
   check(EA("MP.members.length") === 1 && EA("Object.keys(MP.remotes).length") === 0, 'guest leaves: host keeps playing alone');

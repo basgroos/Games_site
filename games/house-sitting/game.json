@@ -2,8 +2,8 @@
   "id": "house-sitting",
   "name": "House Sitting",
   "tagline": "First-person horror",
-  "description": "Je past een weekend op het huis van de Hendersons. Doe de klusjes, houd je aan de drie regels en open nooit de deur met drie hangsloten. Een langzaam opbouwend horrorspel in 3D met twee achtervolgingen, alleen of online met 2 tot 4 spelers. Speel met toetsenbord, muis en koptelefoon.",
-  "version": "1.3.1",
+  "description": "Je past een weekend op het huis van de Hendersons. Doe de klusjes, houd je aan de drie regels en open nooit de deur met drie hangsloten. In hoofdstuk 2, The Room, ga je de volgende nacht terug: de kelder in, en de kamer moet branden. Een langzaam opbouwend horrorspel in 3D, alleen of online met 2 tot 4 spelers. Speel met toetsenbord, muis en koptelefoon.",
+  "version": "2.0.0",
   "status": "live",
   "color": "#8a1a17",
   "tags": [
@@ -15,6 +15,7 @@
   "order": 5,
   "tests": [
     "tests/smoke.js",
+    "tests/chapter2.js",
     "tests/coop.js"
   ]
 }

@@ -164,6 +164,7 @@ function resetWorld(){
   Object.assign(player, { hasFlash: false, flashOn: false, battery: 100, stamina: 100, exhausted: false, frozen: false, speedMul: 1, lookTarget: null, shake: 0, stumble: 0 });
   $('batWrap').hidden = true; $('danger').style.opacity = 0;
   G.prevStep = null;
+  if (typeof ch2Reset === 'function') ch2Reset();
 }
 function setHouseLights(onRooms){ fixtures.forEach(f => { if (f.group === 'house') f.on = onRooms.includes(f.room); }); }
 function stateChoresDone(){

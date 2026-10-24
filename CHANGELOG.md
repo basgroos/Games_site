@@ -1,5 +1,20 @@
 # Wijzigingen
 
+## House Sitting 2.0.0 (2026-10-24)
+- **Nieuw: Chapter 2, The Room.** Hoofdmenu → *Chapter 2: The Room* (ook na het einde van hoofdstuk 1, en in de co-oplobby: *Start chapter 2*). Eén nacht later gaat je terug naar 41 Alder Lane. Mevrouw Henderson belde: je hebt het lijstje niet afgemaakt.
+  - Het huis is weer helemaal heel, alsof er niets gebeurd is. Een nieuw briefje: *feed the room, lock the door again, don't go down to the cellar*.
+  - De Hendersons zitten boven op twee stoelen met hun gezicht naar de muur. Als je ze aanspreekt, draaien hun hoofden helemaal om. Kijk weg, en ze zijn verdwenen.
+  - Dana's dagboek: alles ligt in de kelder onder de waskamer; de sleutel ligt waar ze altijd de reservesleutel bewaren (de bloempot).
+  - **De kelder**: een nieuw gebied van bakstenen, een ketel, planken met potten, en de "eerste kamer" met een zoutcirkel en het grootboek van oppassers (1962, 1987, 2004, 2025... en een lege regel voor 2026). Zoek een koevoet, benzine en een aansteker.
+  - Heb je alles, dan komt het de ladder af. **Vlucht via de kolenschacht** in de verste hoek naar de tuin.
+  - Breek de drie sloten van de kamer open met de koevoet, giet benzine over de matras, de foto's en de stoel, stap terug de gang in en steek het aan.
+  - **Laatste achtervolging door het brandende huis**: de trap af en de voordeur uit, terwijl het vuur zich door het huis verspreidt. Buiten blijft het brandend in de deuropening staan; het kan het huis niet uit. Dan stort alles in, en aan de overkant gaat een verandalamp aan.
+  - Checkpoints: begin van het hoofdstuk, de kelder, de afgesloten kamer en het vuur.
+  - Samen spelen: alles werkt met 2–4 spelers. De ladder en de kolenschacht verplaatsen alleen de speler die ze gebruikt; het monster jaagt in de kelder alleen op wie in de kelder is.
+- **Het monster is veel realistischer**: een uitgemergeld, te lang lijf met een eigen huidtextuur (vlekkerig, aders, poriën), ribben en een ruggengraat die je kunt tellen, knokige knieën en ellebogen, handen met gelede vingers en donkere nagels, een schedelachtig hoofd met diepe oogkassen en tanden, en de resten van een zwarte jas. Het ademt (de borstkas gaat op en neer), de vingers krullen en trekken, en het staat scheef.
+- Samen spelen: een briefje dat voor één speler bedoeld is, kwam bij 3 of 4 spelers soms bij alle gasten binnen. Opgelost.
+- Tests: `tests/chapter2.js` speelt hoofdstuk 2 helemaal uit (met bots voor beide achtervolgingen, ook traag), en de co-op-test speelt een stuk hoofdstuk 2 samen.
+
 ## The House That Remembers 1.0.4 (2026-10-23)
 - **De naaikamerdeur gaat open met twee sleutels, ook als jullie ze samen vonden.** Elk spel telde zelf hoeveel sleutels er gevonden waren. Vond de één de sleutel in het nachtkastje en de ander die in het bad, dan dacht elk spel dat er maar één was, en bleef de deur met de derde sleutel dicht.
   - Het aantal komt nu uit de gedeelde sleutels zelf (sleutel I, II en III), dus het maakt niet uit wie welke vond.
