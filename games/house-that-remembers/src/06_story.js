@@ -204,8 +204,13 @@ Object.assign(Story.defs, {
 });
 
 // ---------------- state ----------------
-Story.newState = function (name) {
-  return { ch: 1, name: name || 'Sam', inv: [], journal: [], mem: {}, flags: {}, objective: '', playTime: 0, startedAt: Date.now() };
+Story.isP2 = () => !!(Story.S && Story.S.part === 2);
+Story.saveKey = () => Story.isP2() ? 'save2' : 'save';
+Story.memIds = () => Object.keys(MEMS).filter(k => (+k.slice(3) > 6) === Story.isP2());
+Story.memCount = () => Story.memIds().filter(k => Story.S.mem[k]).length;
+Story.memTotal = () => Story.memIds().length;
+Story.newState = function (name, part) {
+  return { part: part === 2 ? 2 : 1, ch: part === 2 ? 11 : 1, name: name || 'Sam', inv: [], journal: [], mem: {}, flags: {}, objective: '', playTime: 0, startedAt: Date.now() };
 };
 Story.has = id => Story.S.inv.includes(id);
 Story.give = function (id, silent) { if (!this.S.inv.includes(id)) { this.S.inv.push(id); this.S.invV = (this.S.invV || 0) + 1; } if (!silent) { SFX.pickup(); UI.notify('Taken: ' + ITEMS[id].name); } };
@@ -218,10 +223,10 @@ Story.findMemory = function (id) {
   const m = MEMS[id]; const first = !this.S.mem[id];
   this.S.mem[id] = true;
   if (first) {
-    const n = Object.keys(this.S.mem).length;
+    const n = Story.memCount();
     SFX.musicBox(null, { notes: 6, vol: .1, tempo: .5 });
     G.memFx = 2.6;
-    UI.notify(`A memory returns (${n} of 6)`);
+    UI.notify(`A memory returns (${n} of ${Story.memTotal()})`);
   }
   UI.inspect('Memory — ' + m.title, m.text, id === 'mem5' ? this.polaroid() : id === 'mem2' ? drawCrayon({ kind: 'house', stage: 1 }) : null);
 };

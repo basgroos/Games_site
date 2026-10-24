@@ -64,7 +64,7 @@ const UI = {
     $('lockHint').style.display = showHint ? 'block' : 'none';
   },
   chapter(n) {
-    const el = $('chapter'); el.querySelector('.n').textContent = 'Chapter ' + ROMAN[n]; el.querySelector('.t').textContent = CHAPTERS[n];
+    const el = $('chapter'); el.querySelector('.n').textContent = chapLabel(n); el.querySelector('.t').textContent = CHAPTERS[n];
     el.style.transition = 'opacity 2.2s'; el.style.opacity = 1; clearTimeout(this.chT); this.chT = setTimeout(() => el.style.opacity = 0, 4200);
   },
   fade(v, s = 1.5) { const f = $('fade'); f.style.transition = `opacity ${s}s`; f.style.opacity = v; },

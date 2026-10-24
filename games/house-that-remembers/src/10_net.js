@@ -36,7 +36,7 @@ const Net = {
     if (!games.length) { list.innerHTML = '<div class="hint" style="margin:0">No open houses right now.</div>'; return; }
     games.forEach(p => {
       const b = document.createElement('button'); const pr = p.presence;
-      b.textContent = `Join ${String(pr.nm || 'someone').slice(0, 16)}'s house · Ch. ${ROMAN[pr.ch] || 'I'} · ${pr.n || 1} inside`;
+      b.textContent = `Join ${String(pr.nm || 'someone').slice(0, 16)}'s house · ${pr.ch > 10 ? 'Part II · Ch. ' + (ROMAN[pr.ch - 10] || 'I') : 'Ch. ' + (ROMAN[pr.ch] || 'I')} · ${pr.n || 1} inside`;
       b.onclick = () => this.joinGame(String(pr.host).replace(/[^a-z0-9]/g, '')); list.appendChild(b);
     });
   },
@@ -59,8 +59,8 @@ const Net = {
     const code = Math.random().toString(36).slice(2, 6).replace(/[^a-z0-9]/g, 'x');
     try { await this.connectGame(code); } catch (e) { $('coopStatus').textContent = 'Could not open a co-op house (' + (e && e.code || 'error') + ').'; return; }
     this.isHost = true; this.active = true;
-    this.lobby.presence({ nm: this.nameIn(), host: code, ch: 1, n: 1 }).catch(() => {});
-    Game.newGame(this.nameIn());
+    this.lobby.presence({ nm: this.nameIn(), host: code, ch: Game.part === 2 ? 11 : 1, n: 1 }).catch(() => {});
+    Game.newGame(this.nameIn(), Game.part);
   },
   async joinGame(code) {
     $('coopStatus').textContent = 'Joining house ' + code + '…';
@@ -86,6 +86,8 @@ const Net = {
     else if (d.b === 'pedSolved') { if (!SF().pedSolved) S.pedSolved(true); }
     else if (d.b === 'tape') { if (!SF().tapePlaying && !SF().tapeDone) S.playTape(true); }
     else if (d.b === 'ending' && /^[ABC]$/.test(d.w)) { if (!SF().endingChosen) { UI.closeAll(); S['ending' + d.w](true); } }
+    else if (d.b === 'ending' && /^[DEF]$/.test(d.w)) { if (!SF().p2Ending) { UI.closeAll(); S['p2Ending' + d.w](true); } }
+    else if (d.b === 'p2wall') { if (!SF().wallDone) S.p2WallSolved(true); }
   },
   onChase(d, peer) {
     if (!d || !CHASES[d.id]) return;
@@ -99,7 +101,8 @@ const Net = {
     const S = Story.S, f = {};
     for (const k in S.flags) if (!/(T|CD|Look)$/.test(k)) f[k] = S.flags[k];
     const d = {}; for (const k in W.doors) { const D = W.doors[k]; d[k] = [D.open ? 1 : 0, D.locked ? 1 : 0, D.missing ? 1 : 0, D.netT || 0]; }
-    return { nm: S.name, ch: S.ch, f, inv: S.inv, iv: S.invV || 0, mem: S.mem, d, ped: W.pedestals.map(p => p.item), pv: S.pedV || 0, ps: [W.portraitStage.dining, W.portraitStage.hall] };
+    const ps = W.portraitStage || { dining: 0, hall: 0 };
+    return { pt: S.part || 1, nm: S.name, ch: S.ch, f, inv: S.inv, iv: S.invV || 0, mem: S.mem, d, ped: (W.pedestals || []).map(p => p.item), pv: S.pedV || 0, ps: [ps.dining, ps.hall] };
   },
   sendState(force) {
     if (!this.active || this.waiting || !Story.S || !W || G.state !== 'play') return;
@@ -112,7 +115,7 @@ const Net = {
     if (!st || typeof st !== 'object') return;
     if (this.waiting) { this.waiting = false; clearInterval(this.askT); Game.joinFromState(st, peer); return; }
     if (!Story.S || !W || G.state !== 'play') return;
-    const S = Story.S;
+    const S = Story.S; if ((st.pt === 2 ? 2 : 1) !== (S.part === 2 ? 2 : 1)) return;
     // flags: true wins, numbers take the larger
     for (const k in (st.f || {})) { const rv = st.f[k], lv = S.flags[k]; if (lv === undefined) S.flags[k] = rv; else if (typeof rv === 'boolean' || typeof lv === 'boolean') S.flags[k] = !!(lv || rv); else if (typeof rv === 'number' && typeof lv === 'number') S.flags[k] = Math.max(lv, rv); }
     // team inventory
@@ -128,11 +131,12 @@ const Net = {
     }
     // pedestals
     if (Array.isArray(st.ped) && st.pv > (S.pedV || 0)) { S.pedV = st.pv; st.ped.forEach((id, i) => { const p = W.pedestals[i]; if (!p || p.item === id) return; if (p.mesh) { p.holder.remove(p.mesh); p.mesh = null; } p.item = null; if (id && ITEMS[id]) Story.placeOnPedestal(i, id, true); }); }
-    if (Array.isArray(st.ps)) { if (st.ps[0] > W.portraitStage.dining) Story.setPortrait('dining', st.ps[0]); if (st.ps[1] > W.portraitStage.hall) Story.setPortrait('hall', st.ps[1]); }
-    if (st.ch > S.ch && st.ch <= 7) this.catchUp(st.ch, peer);
+    if (Array.isArray(st.ps) && !Story.isP2()) { if (st.ps[0] > W.portraitStage.dining) Story.setPortrait('dining', st.ps[0]); if (st.ps[1] > W.portraitStage.hall) Story.setPortrait('hall', st.ps[1]); }
+    if (st.ch > S.ch && st.ch <= (Story.isP2() ? 16 : 7)) this.catchUp(st.ch, peer);
     this.applyWorld();
   },
   applyWorld() {
+    if (Story.isP2()) return Story.p2ApplyWorld();
     const f = SF(), o = W.obj;
     if (f.gotFrontKey) o.frontKey.visible = false;
     if (f.gotPhotoA) o.photoA.visible = false; if (f.gotPhotoC) o.photoC.visible = false;
@@ -148,7 +152,7 @@ const Net = {
   },
   catchUp(ch, peer) {
     const pp = this.peerPos(peer); const room = Story.getRoom();
-    const needTp = P.outside || (ch === 6 && P.lv === 1) || (ch === 7 && room !== 'memory');
+    const needTp = Story.isP2() ? (P.outside || (pp && pp.lv !== P.lv) || (ch === 16 && room !== 'dayroom' && room !== 'liftT')) : (P.outside || (ch === 6 && P.lv === 1) || (ch === 7 && room !== 'memory'));
     Story.setupChapter(ch); this.applyWorld();
     if (needTp && pp) { UI.fade(1, .4); Story.after(.6, () => { P.pos.set(pp.x + .7, 0, pp.z + .4); P.lv = pp.lv; P.y = levelY(pp.lv); P.outside = P.lv === 0 && P.pos.z > 4.05; UI.fade(0, 1.2); UI.sub('', '[the house pulls you after them]', 3); }); }
     Story.startChapter(ch, true);

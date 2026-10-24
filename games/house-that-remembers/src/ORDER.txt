@@ -10,3 +10,5 @@
 08_ui.js
 09_game.js
 10_net.js
+12_p2world.js
+13_p2story.js

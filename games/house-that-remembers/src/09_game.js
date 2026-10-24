@@ -20,8 +20,8 @@ const Game = {
     this.disposeWorld();
     G.camera.children.slice().forEach(c => G.camera.remove(c));
     newWorld(); initLightPool();
-    buildExterior(); buildGround(); buildUpstairs(); buildBasement();
-    buildPlayerBody(); buildParticles(); decorateHouse();
+    if (Story.isP2()) { buildPart2(); buildPlayerBody(); buildParticles(); }
+    else { buildExterior(); buildGround(); buildUpstairs(); buildBasement(); buildPlayerBody(); buildParticles(); decorateHouse(); }
     Story.afterBuild(); rebuildRayList();
     try { G.renderer.compile(W.scene, G.camera); } catch (e) {}
   },
@@ -31,17 +31,20 @@ const Game = {
     $('objective').innerHTML = ''; if (Story.S) Story.S.objective = '';
     setTimeout(() => { try { fn(); } catch (e) { this.fatal(e); return; } G.state = 'play'; lockPointer(); setTimeout(() => UI.fade(0, 3), 200); }, 60);
   },
-  newGame(name) {
+  part: 1,
+  setPart(n) { this.part = n === 2 ? 2 : 1; try { localStorage.setItem('thtr_part', String(this.part)); } catch (e) {} $('part1').classList.toggle('on', this.part === 1); $('part2').classList.toggle('on', this.part === 2); $('partLen').textContent = this.part === 2 ? 'Part II about 35 minutes' : 'Part I about 20 minutes'; this.titleSetup(); },
+  newGame(name, part) {
+    part = part || this.part;
     this.begin(() => {
-      Story.S = Story.newState(name); Story.snaps = [];
-      this.buildWorld(); Story.placePlayer(1); G.time = 0;
-      Story.startChapter(1);
+      Story.S = Story.newState(name, part); Story.snaps = [];
+      this.buildWorld(); Story.placePlayer(Story.S.ch); G.time = 0;
+      Story.startChapter(Story.S.ch);
     });
   },
-  continueGame() {
-    const sv = Store.get('save'); if (!sv) return this.newGame($('nameIn').value);
+  continueGame(part) {
+    part = part || this.part; const sv = Store.get(part === 2 ? 'save2' : 'save'); if (!sv) return this.newGame($('nameIn').value, part);
     this.begin(() => {
-      Story.S = JSON.parse(JSON.stringify(sv.cp)); Story.S.mem = sv.mem || Story.S.mem; Story.S.playTime = sv.playTime || Story.S.playTime; Story.S.objective = '';
+      Story.S = JSON.parse(JSON.stringify(sv.cp)); Story.S.part = part; Story.S.mem = sv.mem || Story.S.mem; Story.S.playTime = sv.playTime || Story.S.playTime; Story.S.objective = '';
       this.buildWorld(); Story.setupChapter(Story.S.ch); Story.placePlayer(Story.S.ch);
       Story.startChapter(Story.S.ch, true);
     });
@@ -49,8 +52,8 @@ const Game = {
   joinFromState(st, peer) {
     const name = Net.nameIn();
     this.begin(() => {
-      Story.S = Story.newState(name); Story.snaps = []; const S = Story.S;
-      S.ch = Math.min(7, Math.max(1, st.ch | 0)); S.flags = Object.assign({}, st.f || {}); S.inv = (st.inv || []).filter(i => ITEMS[i]); S.invV = st.iv || 0;
+      const pt = st.pt === 2 ? 2 : 1; Story.S = Story.newState(name, pt); Story.snaps = []; const S = Story.S;
+      S.ch = pt === 2 ? Math.min(16, Math.max(11, st.ch | 0)) : Math.min(7, Math.max(1, st.ch | 0)); S.flags = Object.assign({}, st.f || {}); S.inv = (st.inv || []).filter(i => ITEMS[i]); S.invV = st.iv || 0;
       for (const k in (st.mem || {})) if (MEMS[k]) S.mem[k] = true;
       this.buildWorld(); Story.setupChapter(S.ch); Story.placePlayer(S.ch);
       G.state = 'play'; Net.onState(st, peer);
@@ -59,9 +62,9 @@ const Game = {
       UI.notify('You joined the house.');
     });
   },
-  restartChapter() { if (Store.get('save')) this.continueGame(); else this.newGame(Story.S ? Story.S.name : 'Sam'); },
+  restartChapter() { const pt = Story.S && Story.S.part === 2 ? 2 : 1; if (Store.get(pt === 2 ? 'save2' : 'save')) this.continueGame(pt); else this.newGame(Story.S ? Story.S.name : 'Sam', pt); },
   loopRestart() {
-    const S = Story.S; S.loop = true; S.ch = 1; S.flags = {}; S.inv = []; S.objective = '';
+    const S = Story.S; S.loop = true; S.part = 1; S.ch = 1; S.flags = {}; S.inv = []; S.objective = '';
     this.buildWorld(); Story.placePlayer(1); Story.enterLoop(); UI.fade(0, 4);
   },
   quitToTitle() {
@@ -73,17 +76,17 @@ const Game = {
     this.titleSetup(); $('title').style.display = 'flex';
   },
   titleSetup() {
-    const sv = Store.get('save'); const b = $('btnContinue');
-    if (sv && sv.cp) { b.style.display = 'block'; b.textContent = `Continue — Chapter ${ROMAN[sv.cp.ch]}: ${CHAPTERS[sv.cp.ch]}`; } else b.style.display = 'none';
+    const sv = Store.get(this.part === 2 ? 'save2' : 'save'); const b = $('btnContinue');
+    if (sv && sv.cp && CHAPTERS[sv.cp.ch]) { b.style.display = 'block'; b.textContent = `Continue — ${chapLabel(sv.cp.ch)}: ${CHAPTERS[sv.cp.ch]}`; } else b.style.display = 'none';
     if (sv && sv.cp && sv.cp.name) $('nameIn').value = sv.cp.name;
     const end = Store.get('endings'); let el = $('endFound');
     if (!el) { el = document.createElement('div'); el.id = 'endFound'; el.style.cssText = 'margin-top:22px;font-family:"Special Elite",monospace;font-size:12px;color:var(--faint);letter-spacing:.1em'; $('title').querySelector('.menu').after(el); }
-    el.textContent = end && Object.keys(end).length ? 'Endings found: ' + Object.keys(end).sort().join(' · ') + ' (of 3)' : '';
+    el.textContent = end && Object.keys(end).length ? 'Endings found: ' + Object.keys(end).sort().join(' · ') + ' (of 6)' : '';
   },
   interact() { if (P.look && P.look.use) P.look.use(); },
   onLock() { $('lockHint').style.display = 'none'; },
   onUnlock() { if (performance.now() - (Input.selfUnlock || 0) < 900) return; if (G.state === 'play' && !UI.modalOpen()) this.pause(); },
-  pause() { if (UI.modalOpen()) return; UI.open('pause'); this.pausedAt = performance.now(); $('pauseInfo').textContent = (Story.S.loop ? 'Chapter I — Arrival' : `Chapter ${ROMAN[CH()]} — ${CHAPTERS[CH()]}`) + (Net.active ? ' · Co-op: the house does not wait for you.' : ''); $('btnRestartCh').hidden = Net.active; },
+  pause() { if (UI.modalOpen()) return; UI.open('pause'); this.pausedAt = performance.now(); $('pauseInfo').textContent = (Story.S.loop ? 'Chapter I — Arrival' : `${chapLabel(CH())} — ${CHAPTERS[CH()]}`) + (Net.active ? ' · Co-op: the house does not wait for you.' : ''); $('btnRestartCh').hidden = Net.active; },
   resume() { UI.close('pause'); },
   onKey(e) {
     const k = e.code;
@@ -161,6 +164,8 @@ function boot() {
   Net.init();
   $('btnNew').onclick = () => { if (Net.active) Net.leave(); const n = ($('nameIn').value || '').trim().replace(/[^\p{L}\p{N} '\-]/gu, '').slice(0, 16) || 'Sam'; Game.newGame(n); };
   $('btnContinue').onclick = () => Game.continueGame();
+  $('part1').onclick = () => Game.setPart(1); $('part2').onclick = () => Game.setPart(2);
+  let pp = 1; try { pp = +localStorage.getItem('thtr_part') || 1; } catch (e) {} Game.setPart(pp);
   $('nameIn').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('btnNew').click(); });
   requestAnimationFrame(t => Game.loop(t));
   window.__thtr = { G, P, Story, get W() { return W; }, Game, UI, SFX, Ent, setDiningOffset, setHallLength };

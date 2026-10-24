@@ -78,7 +78,7 @@ function updateParticles(dt) {
       const a = W.rain.geometry.attributes.position, arr = a.array;
       for (let i = 0; i < arr.length; i += 6) {
         arr[i + 1] -= dt * 11; arr[i + 4] -= dt * 11;
-        if (arr[i + 4] < 0) { const x = P.pos.x + rand(-14, 14), z = P.pos.z + rand(-14, 14), y = 12 + rand(0, 3); arr[i] = x; arr[i + 1] = y; arr[i + 2] = z; arr[i + 3] = x + .02; arr[i + 4] = y - .45; arr[i + 5] = z + .02; }
+        if (arr[i + 4] < 0) { const x = P.pos.x + rand(-14, 14); let z = P.pos.z + rand(-14, 14); if (z < 4.2) z = 4.2 + rand(0, 12); const y = 12 + rand(0, 3); arr[i] = x; arr[i + 1] = y; arr[i + 2] = z; arr[i + 3] = x + .02; arr[i + 4] = y - .45; arr[i + 5] = z + .02; }
       }
       a.needsUpdate = true;
     }

@@ -64,14 +64,15 @@ Story.startChapter = function (n, load) {
 Story.saveCheckpoint = function () {
   const S = this.S; if (S.loop) return;
   const cp = JSON.parse(JSON.stringify(S));
-  Store.set('save', { cp, mem: S.mem, playTime: S.playTime, at: Date.now() });
+  Store.set(this.saveKey(), { cp, mem: S.mem, playTime: S.playTime, at: Date.now() });
 };
 Story.saveProgress = function () {
-  const sv = Store.get('save'); if (!sv || this.S.loop) return; sv.mem = this.S.mem; sv.playTime = this.S.playTime; Store.set('save', sv);
+  const sv = Store.get(this.saveKey()); if (!sv || this.S.loop) return; sv.mem = this.S.mem; sv.playTime = this.S.playTime; Store.set(this.saveKey(), sv);
 };
 Story.setIntensity = function (v) { W.intensity = v; };
 
 Story.getRoom = function () {
+  if (this.isP2()) return this.getRoom2();
   const p = P.pos, lv = P.lv, dx = W.diningDX || 0;
   if (P.outside) return 'outside';
   if (lv === 0) {
@@ -97,6 +98,7 @@ Story.getRoom = function () {
 };
 
 Story.afterBuild = function () {
+  if (this.isP2()) return this.afterBuild2();
   W.portraitStage = { dining: 0, hall: 0 };
   W.intensity = 0; W.raining = true; W.tvOn = false; W.radioOn = false; W.fx = { flash: 0, distort: 0, red: 0 };
   this.timers = []; this.ambT = 0; this.thunderT = rand(8, 16); this.chT = 0; this.room = 'outside'; this.roomT = 0; this.stopCD = 10;
@@ -114,6 +116,7 @@ Story.afterBuild = function () {
 };
 
 Story.setupChapter = function (n) {
+  if (this.isP2()) return this.setupChapter2(n);
   const D = W.doors, f = SF();
   W.obj.frontKey.visible = !f.gotFrontKey;
   if (n >= 2) { D.front.locked = true; D.front.key = null; D.front.setOpen(false, 50); W.obj.gfNoteSeen = true; }
@@ -148,6 +151,7 @@ Story.setupChapter = function (n) {
   for (const k in D) D[k].ang = D[k].target, D[k].pivot.rotation.y = D[k].ang, D[k].col.on = Math.abs(D[k].ang) < .35;
 };
 Story.placePlayer = function (n) {
+  if (this.isP2()) return this.placePlayer2(n);
   const spots = { 1: [0, 0, 27.5, 0], 2: [0, 0, 2.3, 0], 3: [-1.2, 0, -3, Math.PI / 2], 4: [.6, 1, -13.2, Math.PI], 5: [-1.3, 1, 0, Math.PI / 2], 6: [0, 0, -12.3, 0], 7: [0, -1, -46, 0] };
   const s = spots[n] || spots[1];
   P.pos.set(s[0], 0, s[2]); P.lv = s[1]; P.y = levelY(s[1]); P.yaw = s[3]; P.pitch = 0; P.crouch = false; P.stamina = 1; P.speed = 0; P.flashOn = true;
@@ -159,7 +163,7 @@ Story.update = function (dt) {
   const S = this.S; S.playTime += dt; this.chT += dt;
   for (let i = this.timers.length - 1; i >= 0; i--) { const t = this.timers[i]; if (!t) continue; t.t -= dt; if (t.t <= 0) { this.timers.splice(i, 1); try { t.fn(); } catch (e) { console.error(e); } } }
   Ent.update(dt); Chase.update(dt);
-  if (P.lv === -1 && P.pos.x > 7.05 && P.pos.x < 10 && P.pos.z > -26.45 && P.pos.z < -24) P.crouch = true;
+  if (S.part !== 2 && P.lv === -1 && P.pos.x > 7.05 && P.pos.x < 10 && P.pos.z > -26.45 && P.pos.z < -24) P.crouch = true;
   const r = this.getRoom(); if (r !== this.room) { this.prevRoom = this.room; this.room = r; this.roomT = 0; this.onRoom(r, this.prevRoom); } else this.roomT += dt;
   // ambience
   this.ambT -= dt;
@@ -178,11 +182,12 @@ Story.update = function (dt) {
   if (W.clockEm && W.obj.clockHands) { const ph = (G.time % 1); W.obj.clockHands[1].rotation.x = -(14 / 60) * TAU - (ph < .25 ? .1 : 0); }
   // tv
   if (W.tvOn) W.obj.tvMat.uniforms.time.value = G.time;
-  this.hallUpdate(dt);
+  this.hallUpdate(dt); if (S.part === 2) this.p2Common(dt);
   if (W.dawn) this.chEnd(dt);
   const fn = this['ch' + S.ch]; if (fn) fn.call(this, dt);
 };
 Story.onRoom = function (r, prev) {
+  if (this.isP2()) return this.onRoom2(r, prev);
   if (CH() === 1 && r === 'hall' && !SF().inside) { SF().inside = true; }
   if (CH() === 3 && r === 'uhall' && SF().letterRead) this.startChapter(4);
   if (CH() === 4 && r === 'elena' && !W.doors.elena.locked) this.startChapter(5);
@@ -202,7 +207,7 @@ Story.onStop = function (surf) {
 Story.hallUpdate = function (dt) {
   if (this.stopCD > 0) this.stopCD -= dt;
   // the passage to the dining room stretches while you are in there (chapter 3+)
-  if (CH() >= 3 && W.dining && !Net.active) {
+  if (CH() >= 3 && CH() <= 7 && W.dining && !Net.active) {
     const room = this.room;
     if (room === 'dining' && W.diningDX === 0 && SF().diningStretch !== false && P.pos.x < -7) {
       const door = V3(-2, 1.4, -3);
@@ -296,7 +301,7 @@ Story.toggleTV = function (silent) {
 Story.renderTV = function () {
   if (!W.tvImage || !W.tvRT) return;
   if (!W.tvCam) { W.tvCam = new THREE.PerspectiveCamera(64, 4 / 3, .05, 30); W.tvCam.layers.enable(2); }
-  W.tvCam.position.set(2.35, 2.95, 3.6); W.tvCam.lookAt(P.pos.x, 1.0, P.pos.z);
+  if (W.tvCamPos) W.tvCam.position.copy(W.tvCamPos); else W.tvCam.position.set(2.35, 2.95, 3.6); W.tvCam.lookAt(P.pos.x, 1.0, P.pos.z);
   const prev = W.flash.intensity; W.flash.intensity *= .4;
   G.renderer.setRenderTarget(W.tvRT); G.renderer.render(W.scene, W.tvCam); G.renderer.setRenderTarget(null);
   W.flash.intensity = prev;
@@ -946,7 +951,11 @@ Story.chEnd = function (dt) {
   if (W.dawn && this.birdsT <= 0) { this.birdsT = rand(1.5, 4); chirp(); }
   if (this.endingWalk && P.outside && !SF().farewell) {
     SF().farewell = true;
-    if (this.endingWalk === 'C') {
+    if (this.endingWalk === 'D') {
+      this.after(.5, () => UI.sub(NM(), 'Visiting hours are over.', 3));
+      this.after(4, () => this.ending('D'));
+    } else if (this.endingWalk === 'F') this.after(5, () => this.ending('F'));
+    else if (this.endingWalk === 'C') {
       this.after(.5, () => { UI.sub('Elena', `Goodbye, ${NM()}. Thank you for remembering me.`, 5); SFX.speak(`Goodbye, ${NM()}. Thank you for remembering me.`, { pitch: 1.85, rate: .8, volume: .55 }); });
       this.after(7, () => this.ending('C'));
     } else this.after(4, () => this.ending('A'));
@@ -960,16 +969,19 @@ function chirp() {
 Story.ending = function (which, fromLoop) {
   if (G.state === 'ending') return;
   const S = this.S;
-  const names = { A: 'Let Go', B: 'The New Memory', C: 'The House Remembers' };
+  const names = { A: 'Let Go', B: 'The New Memory', C: 'The House Remembers', D: 'Visiting Hours', E: 'Discharge', F: 'Going Home' };
   const texts = {
     A: 'The music box breaks with a sound like a held breath let out. The house stops.\n\nIn the morning there is only an old house on Alder Lane, with too many dust sheets and not enough furniture. In the hall, a photograph you have never seen before: Elena, laughing, not posing for anyone. Smiling the way she really smiled.',
     B: 'You sat down. Your plate was warm. Grandad passed the potatoes, and Elena rushed the third line of the song, and it was perfect.\n\nThe house has a new memory now. It will play it every night, for as long as it remembers. It remembers everything.',
+    D: 'You gave her the photograph. In the dayroom, an old woman and a girl in a yellow dress sat side by side at the window, and the music box played the song with the third line rushed, the way Elena always sang it.\n\nSt. Brigid\'s was demolished on the 15th. The workmen said the dayroom was the only room they could not bring themselves to knock down first. Somebody, they said, was still visiting.',
+    E: 'The photograph burned, and the thing that had learned Elena\'s face from it came apart in the flame. So did the ward, the lights, the bell that rang with no wires.\n\nSo, you think, did Margaret. You will never know whether you set her free or took the last thing she had. The building came down on the 15th. Nothing screamed.',
+    F: 'You did not give the photograph to the building, and you did not burn it. You gave Margaret back the pieces of Elena that had never been the building\'s to copy: the drawing, the ribbon, the postcard, the ring.\n\nAt dawn a girl and her mother walked out of the fire exit together and did not look back. You still have the photograph. Everyone in it is laughing.',
     C: 'Grandad kept the house awake because he was afraid of forgetting her. You found every piece of her the house was holding, and gave them back.\n\nThe music box sits on the hall table, closed. It is only a music box now. The portraits are just portraits. And on the porch, as the door opened on the morning, a voice you never heard and have always known said goodbye.',
   };
   const mins = Math.floor(S.playTime / 60), secs = Math.floor(S.playTime % 60);
   const end = Store.get('endings') || {}; end[which] = true; Store.set('endings', end);
-  Store.del('save');
-  UI.endScreen('Ending ' + which, names[which], this.endPhoto(which), texts[which], `Time in the house: ${mins}m ${String(secs).padStart(2, '0')}s · Memories recovered: ${Object.keys(S.mem).length} of 6 · Endings found: ${Object.keys(end).sort().join(' ')}`);
+  Store.del(this.saveKey()); const p2 = 'DEF'.includes(which);
+  UI.endScreen((p2 ? 'Part II · Ending ' : 'Ending ') + which, names[which], p2 ? this.p2EndPhoto(which) : this.endPhoto(which), texts[which], `Time ${p2 ? 'at St. Brigid\'s' : 'in the house'}: ${mins}m ${String(secs).padStart(2, '0')}s · Memories recovered: ${this.memCount()} of ${this.memTotal()} · Endings found: ${Object.keys(end).sort().join(' ')}`);
 };
 
 // ---------------- misc helpers ----------------

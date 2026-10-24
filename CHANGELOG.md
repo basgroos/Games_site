@@ -1,5 +1,19 @@
 # Wijzigingen
 
+## The House That Remembers 1.1.0 (2026-10-24)
+- **Nieuw: Deel II — St. Brigid's.** Kies in het titelscherm *Part II* (naast *Part I*) en speel alleen of host een co-ophuis. Een brief van het ziekenhuis: tussen de spullen van oma Margaret, die er tot 2009 woonde, staat jouw naam. Het gebouw wordt op de 15e gesloopt. Zes hoofdstukken, ongeveer 35 minuten:
+  - **The Grounds**: het terrein in de regen. Het wachthuisje met het logboek, de schuursleutel en een aansteker, de bewakingsmonitor (kijk er niet te lang naar), de schuur met de betonschaar en de ketting om de voordeuren.
+  - **Reception**: de telefoon gaat over. De code van het archief staat in het bezoekersboek (de dag waarop Elena verdween, eerst de dag). In Margarets dossier zit de pas voor Ward B.
+  - **Ward B**: een pikdonkere afdeling waar de kamernummers veranderen als je niet kijkt. Zoek drie zekeringen in de kamers, zet de stroom terug in de zekeringkast, en ren dan naar kamer 14, de deur met het gele lint.
+  - **Room 14**: Margarets kamer. Haar dagboek legt uit hoe je de echte foto's van Elena herkent; haal de twee namaakfoto's van de muur en vind de sleutel van het mortuarium.
+  - **The Morgue**: het register zegt welke la. Achter de la met de foto komt het de trap af: vlucht door de dienstgang naar de goederenlift en wacht tot de deuren opengaan.
+  - **Visiting Hours**: Margaret in de dagzaal, en een meisje in een gele jurk bij het raam. Drie eindes: **D** *Visiting Hours* (geef haar de foto), **E** *Discharge* (verbrand hem, en ren naar de nooduitgang) en het geheime einde **F** *Going Home* (vind alle vier herinneringen van deel II en lees haar dagboek).
+- **Meer verspreide schrikmomenten**, steeds een eind uit elkaar: de bewakingsmonitor die iemand achter je laat zien, iets op de dakrand, gebonk op de schuurdeur, een rollende rolstoel en een knappende tl-buis, iets in de deuropening van het archief, een patiënt die zijn hoofd draait, gebonk achter deur 17, een lichaam dat door het plafondluik valt, het spiegelbeeld in kamer 14, het laken in haar bed dat overeind komt, een hand uit een mortuariumla en het lijk dat naast de tafel staat. Plus voetstappen achter je als je stilstaat.
+- Drie nieuwe achtervolgingen (de afdelingsgang, het mortuarium naar de lift, de dagzaal naar de nooduitgang). Je wordt na gepakt worden weer een stukje terug gezet, net als in deel I.
+- Deel I en deel II hebben elk een eigen checkpoint, dus *Continue* werkt per deel. De gevonden eindes tellen samen (van de 6).
+- Samen spelen in deel II: de gast komt automatisch in het ziekenhuis, de lobby toont *Part II*, en de ketting, zekeringen, stroom, fotomuur, lift en eindes zijn gedeeld. Zekeringen tellen mee wie ze ook vond.
+- Regen viel binnen bij de voordeur als je vlak achter de deur stond. Opgelost (ook in deel I).
+- Tests: `tests/part2.js` speelt deel II helemaal uit met alle drie de nieuwe eindes, `tests/coop2.js` speelt een stuk deel II samen.
 ## House Sitting 2.1.0 (2026-10-24)
 - **Een enger monster**: een kale, gevlekte schedel met diepe, schuine oogkassen, twee kleine bleke pupillen die je in het donker ziet oplichten en een brede grijns vol ongelijke tanden. De huid is donker en gestreept, als blootliggende spiervezels met rood in de groeven. Benen die achteruit knikken (zoals bij een dier) met klauwen aan lange voeten, stekels langs de ruggengraat en achter de schenen, en armen tot op de grond met lange, gekromde klauwen. Het loopt voorovergebogen met een lange, vooruitgestoken nek.
 - **Chapter 2 is veel langer, met meer verhaal**:
