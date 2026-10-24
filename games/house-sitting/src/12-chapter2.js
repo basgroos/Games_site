@@ -157,6 +157,8 @@ function ch2Reset(){
   [FX.fire1, FX.fire2, FX.fire3, FX.fire4, FX.fire5].forEach(f => { f.on = false; });
   [FX.cel1, FX.cel2, FX.cel3, FX.cel4, FX.ladderLight].forEach(f => { f.on = true; });
   MON.burning = false; D.owners.maxAng = 1.7; MON.zone = null;
+  if (PROPS.tapes){ PROPS.tapes.forEach(g => { g.visible = true; }); PROPS.combo.visible = true; S.ringing = false; S.onAnswer = null; }
+  D.cellarRoom.locked = true; setDoor(D.cellarRoom, false, { instant: true, silent: true, force: true });
 }
 function stateC2(){
   G.flags.ch2 = true; G.power = true; G.npower = false;
@@ -168,7 +170,7 @@ function stateC2(){
   AMB.rain = 0.7;
 }
 function startCh2(){
-  resetWorld(); stateC2(); saveCheckpoint('c2'); G.step = 'c2_arrive';
+  resetWorld(); stateC2(); saveCheckpoint('c2'); G.step = 'c2_poster';
   setPlayer(8, 0, -13.2, Math.PI);
   cine([
     { t: 'CHAPTER 2', d: 2.4 },
@@ -179,7 +181,7 @@ function startCh2(){
     { who: 'MRS. HENDERSON', t: "You left before you finished the list, sweetheart. Come back tonight. We're home.", d: 5.5 },
     { t: 'You should not go back.', d: 3 },
     { t: 'You go back.', cls: 'rule', d: 3 },
-  ], () => { objective('Go inside 41 Alder Lane'); after(1.5, () => think('Every window is dark. Except the kitchen. And their bedroom, upstairs.', 4.5)); });
+  ], () => { objective('Read the posters on the pole by the sidewalk'); after(1.5, () => think('Every window is dark. Except the kitchen. And their bedroom, upstairs.', 4.5)); });
 }
 function c2Gone(){ HEN.forEach(h => { h.root.visible = false; }); PROPS.henChairs.forEach(g => { g.rotation.y = -Math.PI / 2; }); }
 function loadC2Cellar(){
@@ -209,15 +211,15 @@ function loadC2Fire(){
 function c2CellarEnter(){
   if (G.step === 'c2_cellar') return;
   saveCheckpoint('c2cellar'); G.step = 'c2_cellar'; ghostHide();
-  setObjectives([{ key: 'crow', text: 'Find something to break the locks' }, { key: 'gas', text: 'Find fuel' }, { key: 'lite', text: 'Find something to light it with' }, { key: 'ledger', text: 'Read the ledger (in the brick room)' }]); flashObj();
+  setObjectives([{ key: 'crow', text: 'Find something to break the locks' }, { key: 'gas', text: 'Find fuel' }, { key: 'code', text: 'Open the old room (combination lock: the year it started)' }, { key: 'lite', text: 'Find something to light it with' }, { key: 't4', text: 'Play the last tape' }, { key: 'ledger', text: 'Read the ledger' }]); flashObj();
   after(1.2, () => think('It smells of wet stone and old smoke. And something sweet underneath.', 4));
   after(14, () => { if (G.step === 'c2_cellar') SND.mStep(new V3(2.2, 0.3, 10.2), 0.6); });
   after(16, () => { if (G.step === 'c2_cellar') think('(Footsteps. Up in the laundry room. Right over the hatch.)', 3.5); });
 }
 function c2Take(prop, name, key, text){ prop.visible = false; addItem(name); markObj(key); think(text, 3); c2CheckHunt(); }
 function c2CheckHunt(){
-  if (G.step !== 'c2_cellar' || !hasItem('Crowbar') || !hasItem('Gas can') || !hasItem('Lighter')) return;
-  G.step = 'c2_hunt';
+  if (G.step !== 'c2_cellar' || S.busy || !hasItem('Crowbar') || !hasItem('Gas can') || !hasItem('Lighter') || !G.flags.t4 || !G.flags.c2ledger) return;
+  G.step = 'c2_hunt'; objective('You have everything. Get back to the ladder.');
   after(1.5, () => {
     [FX.cel1, FX.cel3, FX.ladderLight].forEach(f => { f.on = false; }); FX.cel2.unstable = 0.6; FX.cel4.unstable = 0.5; SND.pop(FX.cel1.pos); SND.pop(FX.cel3.pos);
     SND.doorClose(new V3(61.3, 2.6, 0.5), true); player.shake = 0.6;
@@ -286,7 +288,7 @@ function _finalEnding2(){
   G.state = 'ending'; player.flashOn = false; fade(1, 3); G.ignoreUnlock = true; if (document.exitPointerLock) document.exitPointerLock();
   try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
   $('end1').textContent = '41 ALDER LANE BURNED UNTIL MORNING.';
-  $('end2').textContent = 'THEY NEVER FOUND THE HENDERSONS. ACROSS THE STREET, THE PORCH LIGHT STAYED ON.';
+  $('end2').textContent = 'IN THE ASHES THEY FOUND A LEDGER. THE LINE FOR 2026 WAS STILL EMPTY.';
   $('end3').innerHTML = '<span>THE</span><span>ROOM</span>'; $('bEndCh2').hidden = true;
   setTimeout(() => { AMB.master = 0; $('hud').hidden = true; $('ending').hidden = false; }, 3200);
   setTimeout(() => $('end1').classList.add('on'), 4700);
@@ -316,7 +318,7 @@ function storyUpdateD(dt){
 
 // ---------- hook it all into the game ----------
 function ch2Init(){
-  buildCellar(); buildCh2House();
+  buildCellar(); buildCh2House(); ch2StoryInit();
   // the old interactions get a chapter-2 meaning
   const eFlower = PROPS.flowerpot.children[0].userData.inter, fUse = eFlower.use, fEn = eFlower.enabled;
   eFlower.text = () => G.step === 'c2_key' ? 'Look under the flowerpot' : 'Lift the flowerpot';
@@ -336,11 +338,19 @@ You left before you finished the list.
   - don't go down to the cellar
 
 We're upstairs. Come and say hello.
-        - D & R`, 'owner', () => { if (G.step === 'c2_note'){ G.step = 'c2_find'; objective('Find the Hendersons (upstairs, their bedroom)'); after(1.2, () => { for (let i = 0; i < 5; i++) after(i * 0.8, () => SND.step('wood', new V3(12 + i * 0.4, 3.05, 4), 0.6)); }); after(4, () => think('Footsteps. Upstairs. Then nothing.', 3)); } }); };
+        - D & R`, 'owner', () => { if (G.step === 'c2_note'){ G.step = 'c2_phone';
+          after(1.2, () => { for (let i = 0; i < 5; i++) after(i * 0.8, () => SND.step('wood', new V3(12 + i * 0.4, 3.05, 4), 0.6)); }); after(4, () => think('Footsteps. Upstairs. Then nothing.', 3));
+          after(7, () => { objective('The phone is ringing (hall, by the front door)'); ringPhone(3, () => {
+            dialog([['JESSE (PHONE)', 'Hello? ...Is someone there? Can you hear me?', 3.5], ['JESSE (PHONE)', "Don't go up to them. Not yet.", 3],
+              ['JESSE (PHONE)', 'I left tapes. Living room. Bathroom. Your bed upstairs. Play them first.', 5.5], ['JESSE (PHONE)', 'The last one is down where they keep the book.', 3.5], [null, null, 1.5]], () => {
+              think('(The line goes dead. Jesse. Jesse Brandt. The boy on the poster.)', 4.5); G.step = 'c2_tapes'; tapeObjectives();
+            });
+          }); });
+        } }); };
   // the locked room: in chapter 2 you pry the locks off
   const dl = D.locked;
-  dl.textFn = () => { if (G.flags.ch2 && G.step === 'c2_room' && dl.locked) return hasItem('Crowbar') ? 'Pry the locks off (' + (G.flags.pry || 0) + '/3)' : 'Locked'; return dl.jammed ? "It won't open" : dl.locked ? 'Locked' : (dl.open ? 'Close door' : 'Open door'); };
-  dl.useFn = () => { if (G.flags.ch2 && G.step === 'c2_room' && dl.locked && hasItem('Crowbar')) return c2Pry(); return toggleDoor(dl); };
+  dl.textFn = () => { if (G.flags.ch2 && G.step === 'c2_room' && dl.locked && G.flags.plea === 2) return hasItem('Crowbar') ? 'Pry the locks off (' + (G.flags.pry || 0) + '/3)' : 'Locked'; return dl.jammed ? "It won't open" : dl.locked ? 'Locked' : (dl.open ? 'Close door' : 'Open door'); };
+  dl.useFn = () => { if (G.flags.ch2 && G.step === 'c2_room' && dl.locked && G.flags.plea === 2 && hasItem('Crowbar')) return c2Pry(); return toggleDoor(dl); };
   // new interactions
   addInter(PROPS.c2hatch, () => PROPS.c2hole.visible ? 'Climb down the ladder' : (hasItem('Cellar key') ? 'Unlock the cellar hatch' : 'A hatch in the floor. Padlocked.'), () => {
     if (PROPS.c2hole.visible){ movePlayer(...LADDER_DOWN); SND.creak(new V3(2.2, 0.2, 10.4), 0.12, 1); return; }
@@ -355,7 +365,7 @@ We're upstairs. Come and say hello.
   addInter(PROPS.lighter, 'Take the lighter', () => c2Take(PROPS.lighter, 'Lighter', 'lite', 'A brass lighter. Engraved: D & R, 1962.'), () => G.step === 'c2_cellar' && PROPS.lighter.visible);
   addInter(PROPS.ledger, 'Read the ledger', () => showNote(`HOUSE-SITTERS, 41 ALDER LANE
 
-1962   M. Albers (14) ............ kept
+1962   Dana Albers (17), Rob Henderson (17) ... kept
 1987   T. Visser (16) ............ kept
 2004   S. de Wit (15) ............ kept
 2025   J. Brandt (17) ............ kept
@@ -364,7 +374,7 @@ We're upstairs. Come and say hello.
 It must never be empty. When the room is empty it goes looking.
 The room keeps it fed. The room keeps it here.
 If the room burns, there is nothing left to keep it.
-                                        - R. H.`, 'inspect', () => { G.flags.c2ledger = true; markObj('ledger'); after(0.4, () => think('2026. The line is empty. It was meant for you.', 4)); }), () => G.flags.ch2 && c2At('c2_cellar') && !c2At('c2_room'));
+                                        - R. H.`, 'inspect', () => { G.flags.c2ledger = true; markObj('ledger'); after(0.4, () => think('2026. The line is empty. It was meant for you.', 4)); c2CheckHunt(); }), () => G.flags.ch2 && c2At('c2_cellar') && !c2At('c2_room'));
   addInter(PROPS.henHit, 'Mrs. Henderson?', () => {
     G.step = 'c2_turn'; AMB.master = 0.3;
     dialog([['YOU', "Mrs. Henderson? Mr. Henderson? It's me. I came back.", 3.5], [null, null, 2.5]], () => {
@@ -403,5 +413,5 @@ We never had the courage.`, 'owner', () => { if (G.step === 'c2_diary'){ G.step 
   $('bEndCh2').onclick = () => { $('ending').hidden = true; ['end1', 'end2', 'end3', 'end4'].forEach(id => $(id).classList.remove('on')); if (MP.host && MP.started) MP.hostStart('c2'); else loadCheckpoint('c2'); };
   $('mpGoCh2').onclick = () => { if (MP.members.length >= 2){ try { localStorage.removeItem(SAVE_KEY); } catch (e) {} MP.hostStart('c2'); requestLock(); } };
 }
-const C2_LOADERS = { c2: startCh2, c2cellar: loadC2Cellar, c2room: loadC2Room, c2fire: loadC2Fire };
-const C2_LABELS = { c2: 'chapter 2', c2cellar: 'the cellar', c2room: 'the locked room', c2fire: 'the fire' };
+const C2_LOADERS = { c2: startCh2, c2find: () => loadC2Find(), c2cellar: loadC2Cellar, c2room: loadC2Room, c2fire: loadC2Fire };
+const C2_LABELS = { c2: 'chapter 2', c2find: 'chapter 2: the Hendersons', c2cellar: 'the cellar', c2room: 'the locked room', c2fire: 'the fire' };

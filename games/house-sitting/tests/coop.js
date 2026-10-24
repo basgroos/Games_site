@@ -111,6 +111,10 @@ const near = (a, b, d = 1.5) => Math.hypot(a[0] - b[0], a[1] - b[1]) < d;
   // ---- chapter 2 together ----
   EA("MP.hostStart('c2cellar')"); both(1);
   check(EA("G.step") === 'c2_cellar' && EB("G.flags.ch2") && EB("player.pos.x") > 60, 'chapter 2 checkpoint: both in the cellar');
+  EB("setPlayer(69.3, 0, 2.6, -Math.PI / 2)"); both(0.3);
+  check(use(B, 'D.cellarRoom.panel') === 'ok' && EB("G.state") === 'keypad' && EA("G.state") !== 'keypad', 'the combination lock opens on the guest\'s own screen');
+  EB("kpTry('1962')"); both(1);
+  check(!EA("D.cellarRoom.locked") && EB("D.cellarRoom.open"), 'guest types 1962: the old room opens for everyone');
   check(use(B, 'PROPS.ladderHit') === 'ok', 'guest climbs the ladder'); both(0.5);
   check(EB("player.pos.x") < 5 && EA("player.pos.x") > 60, 'only the guest went up (the host is still in the cellar)', [EA("player.pos.x"), EB("player.pos.x")]);
   EA("MP.hostStart('c2fire')"); both(1);

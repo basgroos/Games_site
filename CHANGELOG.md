@@ -1,5 +1,18 @@
 # Wijzigingen
 
+## House Sitting 2.1.0 (2026-10-24)
+- **Een enger monster**: een kale, gevlekte schedel met diepe, schuine oogkassen, twee kleine bleke pupillen die je in het donker ziet oplichten en een brede grijns vol ongelijke tanden. De huid is donker en gestreept, als blootliggende spiervezels met rood in de groeven. Benen die achteruit knikken (zoals bij een dier) met klauwen aan lange voeten, stekels langs de ruggengraat en achter de schenen, en armen tot op de grond met lange, gekromde klauwen. Het loopt voorovergebogen met een lange, vooruitgestoken nek.
+- **Chapter 2 is veel langer, met meer verhaal**:
+  - **Vermiste-posters** op een paal bij de stoep: Jesse Brandt (2025), Sanne de Wit (2004), Tom Visser (1987). Allemaal verdwenen terwijl ze op een huis aan Alder Lane pasten.
+  - **De telefoon gaat** in de gang: Jesse Brandt, de oppas van vorig jaar. "Don't go up to them. Not yet." Hij heeft bandjes verstopt.
+  - **Vier cassettebandjes**: drie in het huis (woonkamer, badkamer, jouw bed), af te spelen op de cassettespeler in de woonkamer. Na elk bandje gebeurt er iets: voetstappen en een deur die opengaat, een stroomstoring waarna de Hendersons glimlachend in de gang staan, en een tweede telefoontje van mevrouw Henderson ("And bring the tapes").
+  - **De kelder**: de oude kamer zit op een **cijferslot** (een toetsenblok, typ 4 cijfers; de hint zit in bandje 3). Daarbinnen het laatste bandje met de waarheid: Dana en Rob waren zelf de eerste oppassers, in 1962. Het ding hield ze, en laat ze "de Hendersons" spelen zolang ze het een nieuwe oppas brengen.
+  - **De Hendersons smeken** je voor de deur van de kamer, voordat je de sloten openbreekt: "We were seventeen. Like you." "If it burns... we burn with it."
+  - **Nieuw einde**: ze staan in het brandende bovenraam en glimlachen. *In the ashes they found a ledger. The line for 2026 was still empty.*
+  - Extra checkpoint na de bandjes (*chapter 2: the Hendersons*).
+  - Samen spelen: het cijferslot verschijnt alleen op het scherm van wie het gebruikt; de juiste code opent de deur voor iedereen. De houding van de Hendersons (zitten, staan, hoofden) is voor iedereen hetzelfde.
+- Tests: de hoofdstuk-2-test speelt het hele nieuwe verhaal uit (posters, telefoon, alle bandjes, slot, smeekbede, einde); de co-optest controleert het cijferslot met twee spelers.
+
 ## House Sitting 2.0.0 (2026-10-24)
 - **Nieuw: Chapter 2, The Room.** Hoofdmenu → *Chapter 2: The Room* (ook na het einde van hoofdstuk 1, en in de co-oplobby: *Start chapter 2*). Eén nacht later gaat je terug naar 41 Alder Lane. Mevrouw Henderson belde: je hebt het lijstje niet afgemaakt.
   - Het huis is weer helemaal heel, alsof er niets gebeurd is. Een nieuw briefje: *feed the room, lock the door again, don't go down to the cellar*.

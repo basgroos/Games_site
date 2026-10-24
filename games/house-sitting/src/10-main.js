@@ -38,10 +38,10 @@ function hudUpdate(){
   $('bat').style.width = player.battery.toFixed(0) + '%'; $('batWrap').classList.toggle('low', player.battery < 20);
   $('lockhint').hidden = !(G.state === 'playing' && !G.noLock && !isLocked());
 }
-function storyUpdate(dt){ storyUpdateA(dt); storyUpdateB(dt); storyUpdateC(dt); storyUpdateD(dt); }
+function storyUpdate(dt){ storyUpdateA(dt); storyUpdateB(dt); storyUpdateC(dt); storyUpdateD(dt); storyUpdateE(dt); }
 
 // ---- screens ----
-function hideScreens(){ ['menu', 'mp', 'pause', 'dead', 'ending'].forEach(id => $(id).hidden = true); $('note').hidden = true; $('cine').hidden = true; cineData = null; }
+function hideScreens(){ ['menu', 'mp', 'pause', 'dead', 'ending', 'keypad'].forEach(id => $(id).hidden = true); $('note').hidden = true; $('cine').hidden = true; cineData = null; }
 function refreshContinue(){ const s = savedCheckpoint(); const b = $('bCont'); b.disabled = !s || s === 'start'; b.textContent = s && s !== 'start' ? 'Continue (' + ({ night: 'the noise', chase1: 'the open room', police: 'the police', neighbor: 'across the street', chase2: 'the final escape', ...C2_LABELS }[s] || s) + ')' : 'Continue from checkpoint'; }
 function toMenu(){
   if (MP.status !== 'idle') MP.leave();
@@ -67,8 +67,8 @@ function resumeGame(){ $('pause').hidden = true; if (G.state === 'paused') G.sta
 const TIPS = ['Close doors behind you. It has to break them down.', 'Save your stamina for the straightaways. Exhausted, you are slow.', 'It speeds up in bursts. Keep moving, never stop to look back for long.', 'Sprinting into clutter in the dark will trip you.', 'It follows the exact path you took. Corners buy you time.'];
 // who: null = you were caught; otherwise the id of the player who was caught (co-op)
 function gameOver(who){
-  if (!(G.state === 'playing' || (MP.started && (G.state === 'paused' || G.state === 'note' || G.state === 'cine')))) return;
-  $('pause').hidden = true; $('note').hidden = true; G.state = 'dead';
+  if (!(G.state === 'playing' || G.state === 'keypad' || (MP.started && (G.state === 'paused' || G.state === 'note' || G.state === 'cine')))) return;
+  $('pause').hidden = true; $('note').hidden = true; $('keypad').hidden = true; G.state = 'dead';
   const name = who && who !== MP.me().id ? MP.nameOf(who) : '';
   $('deadTitle').textContent = name ? 'IT FOUND ' + name.toUpperCase() : 'IT FOUND YOU'; stopChaseMusic(); for (const k in keys) keys[k] = false;
   const f = new V3(); camera.getWorldDirection(f); f.y = 0; f.normalize();
@@ -133,7 +133,7 @@ function tick(now){
   let dt = Math.min(0.05, Math.max(0, (now - lastT) / 1000)); lastT = now; G.dt = dt;
   if (G.state === 'menu'){
     const t = now / 1000; camera.position.set(-1.5 + Math.sin(t * 0.07) * 1.2, 1.7 + Math.sin(t * 0.13) * 0.08, -17.5); camera.lookAt(9 + Math.sin(t * 0.05) * 1.5, 2.6, 2); flash.intensity = 0;
-  } else if (G.state === 'playing' || G.state === 'cine' || G.state === 'note' || (MP.started && G.state === 'paused')){
+  } else if (G.state === 'playing' || G.state === 'cine' || G.state === 'note' || G.state === 'keypad' || (MP.started && G.state === 'paused')){
     G.time += dt; updateTimers(); updateAnims(dt); updatePlayer(dt);
     if (MP.guest) MP.guestWorld(dt); else { storyUpdate(dt); monUpdate(dt); }
   }
