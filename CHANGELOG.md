@@ -1,5 +1,12 @@
 # Wijzigingen
 
+## The House That Remembers 1.1.3 (2026-10-25)
+- **Deel II, samen spelen: het doel bleef op *3/3 fuses* hangen.** Zette je medespeler de zekeringen in de kast, dan ging bij jou wel de stroom aan, maar je doel bleef op de zekeringen staan, en de kast zei alleen *The box hums like something asleep*. Het leek alsof het niet werkte.
+  - Nu schuift het doel bij iedereen mee als een ander iets doet: zekeringen vinden, de stroom aanzetten, maar ook de ketting, het archief, de pas en de fotomuur.
+  - Gaat de stroom aan door je medespeler, dan hoor je dat ook (*your friend got the power back on*) en gaan de lampen in de gang één voor één aan.
+  - De zekeringkast zegt nu duidelijk dat de stroom aan is en dat kamer 14 open gaat.
+- Test: in co-op moeten beide spelers na de zekeringen het doel *Room 14* krijgen.
+
 ## The House That Remembers 1.1.2 (2026-10-25)
 - **Deel II: duidelijker waar de zekeringen heen moeten.** Met drie zekeringen bleef het doel op *Find three fuses (3/3)* staan, zonder te zeggen wat je daarna moest doen. Nu staat er *Put the fuses in the fuse box, in the nurses' station at the far end of Ward B*, en tijdens het zoeken zegt het doel al waar de zekeringkast hangt.
 - De zekeringkast is beter te vinden: er hangt een geel bordje FUSE BOX boven en een knipperend rood lampje naast, dat uitgaat zodra de stroom terug is.

@@ -26,8 +26,10 @@ const both = async (sec) => { for (let t = 0; t < sec; t += .25) { a('T.step(.25
   a("T.close(); Story.S.ch = 13; Story.p2Fuse('fuseA','x'); Story.p2Fuse('fuseB','x')"); b("T.close(); Story.S.ch = 13; Story.p2Fuse('fuseC','x')");
   await both(1.5);
   check(a("Story.p2FuseCount()") === 3 && b("Story.p2FuseCount()") === 3, 'both count three fuses');
+  check(/Put the fuses/.test(a("Story.S.objective")) && /Put the fuses/.test(b("Story.S.objective")), 'both are told to put the fuses in the box', [a("Story.S.objective"), b("Story.S.objective")]);
   a("T.close(); T.tp(-45,0,-5,Math.PI/2); T.use('p2fusebox')"); await both(5);
   check(b("Story.S.flags.powerOn") && b("W.p2power") && b("!W.doors.r14.locked"), 'the power comes back for Bram too');
+  check(/Room 14/.test(b("Story.S.objective")), "Bram's objective moves on to room 14 as well (not stuck on the fuses)", b("Story.S.objective"));
   // the photo wall solved by one is solved for both
   a("T.close(); Story.p2WallSolved()"); await both(1.5);
   check(b("Story.S.flags.wallDone") && !b("W.obj.wallPanel.visible") && b("Story.has('basementKey')"), 'the photo wall and the mortuary key are shared');

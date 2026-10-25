@@ -171,11 +171,22 @@ Story.p2ApplyWorld = function () {
   const f = SF(), o = W.obj;
   if (f.gotShedKey) o.shedKey.visible = false; if (f.gotLighter) o.lighter.visible = false; if (f.gotCutters) o.boltCutters.visible = false;
   if (f.chainCut) o.chain.visible = false; if (f.fuseA) o.fuse1.visible = false;
-  if (f.powerOn && !W.p2power) this.p2ApplyPower(true);
+  if (f.powerOn && !W.p2power) { this.p2ApplyPower(CH() !== 13); if (CH() === 13) UI.sub('', '[a deep clunk — your friend got the power back on]', 3.5); }
   if (f.wallDone && o.wallPanel.visible) { [1, 3].forEach(i => W.p2.photoWall[i].g.visible = false); o.wallPanel.visible = false; }
   for (let i = 0; i < 12; i++) if (f['dr' + i] && W.p2.drawers[i].position.x < -49.5) W.p2.drawers[i].position.x = -49.74 + .7;
   if (f.liftCalled && !W.p2.liftCalling) this.p2CallLift();
   if (f.fusesIn) W.obj.fuseSlots.forEach((s, i) => { if (i < f.fusesIn) s.material = MAT.brass; });
+  // co-op: what the other player did also moves your objective on
+  const t = this.p2StateObjective();
+  if (t && t !== W.p2.lastObjTarget) { W.p2.lastObjTarget = t; if (!Chase.active) UI.objective(t); }
+};
+Story.p2StateObjective = function () {
+  const f = SF(), n = CH();
+  if (n === 11) return f.chainCut ? 'Go inside.' : f.gotCutters ? 'Cut the chain on the front doors.' : f.gotShedKey ? 'Find the bolt cutters in the groundskeeper\'s shed.' : null;
+  if (n === 12) return f.gotCard ? 'Go into Ward B.' : f.recordsOpen ? 'Find Margaret\'s file in the records room.' : null;
+  if (n === 13) return f.powerOn ? 'Room 14. Look for the ribbon.' : this.p2FuseCount() ? this.p2FuseObjective() : null;
+  if (n === 14) return f.wallDone ? 'The basement. The stairwell behind the nurses\' station.' : null;
+  return null;
 };
 
 // ---------------- chapter 11: the grounds ----------------
@@ -293,7 +304,7 @@ Story.p2FuseObjective = function () {
 };
 Story.p2FuseBox = function () {
   const f = SF();
-  if (f.powerOn) { UI.say('All three fuses are in. The box hums like something asleep.', 3); return; }
+  if (f.powerOn) { UI.say('All three fuses are in and the power is on. Room 14 will open now.', 3.5); if (CH() === 13) UI.objective('Room 14. Look for the ribbon.'); return; }
   f.fuseBoxSeen = true;
   // fuses count by who found them (team flags), so two players picking them up at once never loses one
   const found = this.p2FuseCount(), before = f.fusesIn || 0;
