@@ -193,7 +193,9 @@ function buildPart2() {
   makeDoor('records', { axis: 'z', c: 6, mid: -5, lv, dir: 1, locked: true, name: 'door', onUse: d => Story.p2RecordsDoor(d) });
   for (let i = 0; i < 5; i++) { box(.6, 1.35, .7, 11.55, 0, -7.4 + i * .85, MAT.steel, { cast: true }); }
   addCollider(11.2, 12, -7.8, -3.2, lv);
-  IT(box(.6, 1.35, .7, 11.55, 0, -7.4 + 2 * .85, new THREE.MeshBasicMaterial({ visible: false }), { occ: false }), 'p2files');
+  // the middle cabinet stands open, a buff folder sticking out: Margaret's file (the hit box sticks out past the cabinet front so it is found first)
+  box(.5, .24, .62, 11.0, .82, -5.7, MAT.steel, { occ: false, cast: true }); box(.36, .3, .03, 11.0, 1.0, -5.7, new THREE.MeshStandardMaterial({ color: 0xc8a86a, roughness: .9 }), { occ: false, ry: Math.PI / 2 });
+  IT(box(1.0, 1.45, .8, 11.35, 0, -5.7, new THREE.MeshBasicMaterial({ visible: false }), { occ: false }), 'p2files');
   table(8, -6.9, 1.4, .7, .76, 0); addCollider(7.25, 8.75, -7.3, -6.5, lv); chair(8, -6.2, Math.PI, 0);
   IT(box(.26, .02, .34, 8.2, .77, -6.9, MAT.paper, { occ: false }), 'p2staffMemo');
   tube(9, H, -5, 'rec', { flick: .25, on: false });
@@ -266,8 +268,8 @@ function buildPart2() {
   floorRect(-46, -38, -8, 0, 0, MAT.lino, { surf: 'tile', lv }); ceilRect(-46, -38, -8, 0, H);
   wallX(0, -46, -38, lv, MAT.paint); wallZ(-46, -8, 0, lv, MAT.paint); wallX(-8, -46, -38, lv, MAT.paint, [[-43.2, -41.8, 2.3]]);
   box(.6, 1.1, 4, -40.2, 0, -3.5, MAT.darkWood, { solid: true, lv, cast: true }); box(.8, .05, 4.2, -40.2, 1.1, -3.5, MAT.white, {});
-  IT(box(.24, .02, .32, -40.2, 1.13, -2.4, MAT.paper, { occ: false }), 'p2nurseNotes');
-  IT(box(.14, .01, .1, -40.25, 1.13, -4.6, new THREE.MeshStandardMaterial({ color: 0xd8b07a }), { occ: false }), 'mem9');
+  IT(box(.24, .02, .32, -40.2, 1.155, -2.4, MAT.paper, { occ: false }), 'p2nurseNotes');
+  IT(box(.14, .01, .1, -40.25, 1.155, -4.6, new THREE.MeshStandardMaterial({ color: 0xd8b07a }), { occ: false }), 'mem9');
   const fb = new THREE.Group(); fb.position.set(-45.85, 1.4, -5); fb.rotation.y = Math.PI / 2; add(fb);
   box(.6, .8, .15, 0, -.4, 0, MAT.steel, { parent: fb, cast: true }); W.obj.fuseSlots = [-.18, 0, .18].map(x => { const s = cyl(.03, .03, .1, x, -.05, .09, MAT.black, { parent: fb }); s.rotation.x = Math.PI / 2; return s; });
   IT(fb, 'p2fusebox');

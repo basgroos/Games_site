@@ -1,5 +1,10 @@
 # Wijzigingen
 
+## The House That Remembers 1.1.1 (2026-10-25)
+- **Deel II: *Read Margaret's file* verschijnt nu in het archief.** Het dossier zat precies in de zichtbare archiefkast, waardoor de kast zelf je blik tegenhield en de tekst nooit verscheen. Nu staat de middelste kast open met een bruine map die eruit steekt, en die is gewoon aan te klikken. Daar krijg je de pas voor Ward B.
+- Ook bij de verpleegpost lagen de nachtnotities en de ansichtkaart nét in het bureaublad; ze liggen er nu bovenop.
+- Nieuwe test `tests/reach2.js`: loopt in deel II naar elk ding waar je iets mee kunt doen, kijkt ernaar en controleert dat de tekst verschijnt.
+
 ## The House That Remembers 1.1.0 (2026-10-24)
 - **Nieuw: Deel II — St. Brigid's.** Kies in het titelscherm *Part II* (naast *Part I*) en speel alleen of host een co-ophuis. Een brief van het ziekenhuis: tussen de spullen van oma Margaret, die er tot 2009 woonde, staat jouw naam. Het gebouw wordt op de 15e gesloopt. Zes hoofdstukken, ongeveer 35 minuten:
   - **The Grounds**: het terrein in de regen. Het wachthuisje met het logboek, de schuursleutel en een aansteker, de bewakingsmonitor (kijk er niet te lang naar), de schuur met de betonschaar en de ketting om de voordeuren.
