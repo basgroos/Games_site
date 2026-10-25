@@ -77,7 +77,7 @@ Object.assign(Story.defs, {
   p2photo2: { prompt: () => 'Look at the photograph', use: () => Story.p2PhotoLook(2) }, p2photo3: { prompt: () => 'Look at the photograph', use: () => Story.p2PhotoLook(3) },
   p2mDiary: readDef('p2mdiary', 'Margaret\'s diary', TXT2.mDiary, 'Read Margaret\'s diary', { hand: true, after: () => { SF().mDiaryRead = true; if (!SF().wallDone) UI.objective('Take down the photographs that are not her.'); } }),
   p2mBox: { prompt: () => 'Look at the music box', use: () => insp('A music box', 'Not Elena\'s — a cheap copy from a seaside shop. It plays the same song. Margaret wore the key on a string; the string is still here, the key is gone.') },
-  p2nurseNotes: readDef('p2nurse', 'Night notes', TXT2.nurseNotes, 'Read the notes', { after: () => { if (!SF().powerOn) UI.objective(`Find three fuses for the fuse box (${Story.p2FuseCount()}/3).`); } }),
+  p2nurseNotes: readDef('p2nurse', 'Night notes', TXT2.nurseNotes, 'Read the notes', { after: () => { if (!SF().powerOn) UI.objective(Story.p2FuseObjective()); } }),
   mem9: memDef('mem9', 'Pick up the postcard'),
   p2fusebox: { prompt: () => SF().powerOn ? 'The fuse box' : 'Open the fuse box', use: () => Story.p2FuseBox() },
   p2tableBody: { prompt: () => 'Look at the body', use: () => UI.say(SF().bodySat ? 'It is standing beside the table now, facing you. You did not see it move.' : 'A shape under a sheet. Clearance staff left it here. It is the only thing in the room that is not covered in dust.', 4.5) },
@@ -120,7 +120,7 @@ Story.p2ApplyPower = function (instant) {
   W.p2power = true; const f = SF(); f.powerOn = true;
   ['w1', 'w2', 'w3', 'w4', 'w5'].forEach((n, i) => { const L = W.obj['lamp_' + n]; if (instant) setLamp(L, true); else this.after(.6 + i * .7, () => { setLamp(L, true); SFX.click(L.obj.getWorldPosition(new THREE.Vector3()), .6, 900); }); });
   Object.keys(W.p2rooms).forEach(n => setLamp(W.obj['lamp_room' + n], true)); ['nurse', 'rec'].forEach(n => setLamp(W.obj['lamp_' + n], true));
-  setLamp(W.obj.lamp_wEmerg, false);
+  setLamp(W.obj.lamp_wEmerg, false); setLamp(W.obj.lamp_fuseLed, false);
   Object.entries(W.p2plates).forEach(([n, p]) => p.set(+n));
   W.obj.fuseSlots.forEach(s => s.material = MAT.brass);
   const d = W.doors.r14; d.locked = false;
@@ -285,7 +285,11 @@ Story.enter13 = function (load) {
 Story.p2FuseCount = function () { const f = SF(); return ['fuseA', 'fuseB', 'fuseC'].filter(k => f[k]).length; };
 Story.p2Fuse = function (id, text) {
   const f = SF(); if (f[id]) return; f[id] = true; Story.give(id); UI.say(text, 4); if (id === 'fuseA') W.obj.fuse1.visible = false;
-  UI.objective(`Find three fuses for the fuse box (${this.p2FuseCount()}/3).`);
+  UI.objective(this.p2FuseObjective());
+};
+Story.p2FuseObjective = function () {
+  const n = this.p2FuseCount();
+  return n >= 3 ? 'Put the fuses in the fuse box, in the nurses\' station at the far end of Ward B.' : `Find three fuses (${n}/3). The fuse box is in the nurses' station at the far end of Ward B.`;
 };
 Story.p2FuseBox = function () {
   const f = SF();
@@ -297,7 +301,7 @@ Story.p2FuseBox = function () {
   if (f.fuseA) W.obj.fuse1.visible = false;
   f.fusesIn = Math.max(before, found); W.obj.fuseSlots.forEach((sl, i) => { if (i < f.fusesIn) sl.material = MAT.brass; });
   if (f.fusesIn < 3) { if (f.fusesIn > before) SFX.click(null, .4, 1400);
-    UI.say(`The main fuse box. ${3 - f.fusesIn} of the three fuse holders ${3 - f.fusesIn === 1 ? 'is' : 'are'} empty.`, 3.5); UI.objective(`Find three fuses for the fuse box (${found}/3).`); return; }
+    UI.say(`The main fuse box. ${3 - f.fusesIn} of the three fuse holders ${3 - f.fusesIn === 1 ? 'is' : 'are'} empty.`, 3.5); UI.objective(this.p2FuseObjective()); return; }
   SFX.click(null, .6, 1200); this.after(.4, () => { SFX.hit(.4); this.p2ApplyPower(false); UI.sub('', '[a deep clunk — and the hum of the lights, one after another]', 3.5); });
   this.after(4.5, () => { UI.objective('Room 14. Look for the ribbon.'); UI.sub(NM(), 'The numbers on the doors. They\'re... right again.', 3.5); });
 };

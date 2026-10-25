@@ -273,6 +273,8 @@ function buildPart2() {
   const fb = new THREE.Group(); fb.position.set(-45.85, 1.4, -5); fb.rotation.y = Math.PI / 2; add(fb);
   box(.6, .8, .15, 0, -.4, 0, MAT.steel, { parent: fb, cast: true }); W.obj.fuseSlots = [-.18, 0, .18].map(x => { const s = cyl(.03, .03, .1, x, -.05, .09, MAT.black, { parent: fb }); s.rotation.x = Math.PI / 2; return s; });
   IT(fb, 'p2fusebox');
+  textPlane(['FUSE BOX'], .5, .14, -45.9, 1.95, -5, Math.PI / 2, { bg: '#c9a227', fg: '#1a1a1a', size: 70 });
+  lamp(-45.7, 1.5, -4.62, { name: 'fuseLed', int: .3, dist: 3, color: 0xff3020, size: .02, flick: .2 });
   makeDoor('stairs2', { axis: 'x', c: -8, mid: -42.5, w: 1.4, h: 2.28, lv, dir: 1, locked: true, key: 'basementKey', name: 'stairwell door', mat: MAT.steel, lockMsg: () => Story.p2StairsMsg() });
   textPlane(['STAIRS · MORGUE', 'NO ADMITTANCE'], 1.2, .4, -42.5, 2.6, -7.9, 0, { bg: '#4a1a16', fg: '#e8d8c0', size: 40 });
   tube(-42, H, -4, 'nurse', { on: false, flick: .2 });

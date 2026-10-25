@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## The House That Remembers 1.1.2 (2026-10-25)
+- **Deel II: duidelijker waar de zekeringen heen moeten.** Met drie zekeringen bleef het doel op *Find three fuses (3/3)* staan, zonder te zeggen wat je daarna moest doen. Nu staat er *Put the fuses in the fuse box, in the nurses' station at the far end of Ward B*, en tijdens het zoeken zegt het doel al waar de zekeringkast hangt.
+- De zekeringkast is beter te vinden: er hangt een geel bordje FUSE BOX boven en een knipperend rood lampje naast, dat uitgaat zodra de stroom terug is.
+
 ## The House That Remembers 1.1.1 (2026-10-25)
 - **Deel II: *Read Margaret's file* verschijnt nu in het archief.** Het dossier zat precies in de zichtbare archiefkast, waardoor de kast zelf je blik tegenhield en de tekst nooit verscheen. Nu staat de middelste kast open met een bruine map die eruit steekt, en die is gewoon aan te klikken. Daar krijg je de pas voor Ward B.
 - Ook bij de verpleegpost lagen de nachtnotities en de ansichtkaart nét in het bureaublad; ze liggen er nu bovenop.
