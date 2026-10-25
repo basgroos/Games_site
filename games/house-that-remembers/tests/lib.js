@@ -66,9 +66,9 @@ function boot(name, errors, bus, supa){
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let failed = 0;
-function check(cond, label, extra){ console.log((cond ? 'OK   ' : 'FAIL ') + label + (extra !== undefined ? '  ' + JSON.stringify(extra) : '')); if (!cond) failed++; }
+function check(cond, label, extra){ console.log((cond ? 'OK   ' : 'FAIL ') + label + (extra !== undefined ? '  ' + JSON.stringify(extra) : '')); if (!cond) { failed++; if (process.env.GITHUB_ACTIONS) console.log(`::warning title=The House That Remembers check failed::${label} ${extra !== undefined ? JSON.stringify(extra).slice(0, 300) : ''}`); } }
 function done(errors, title){
-  if (errors.length){ console.log('Errors:\n  ' + errors.slice(0, 20).join('\n  ')); failed++; }
+  if (errors.length){ console.log('Errors:\n  ' + errors.slice(0, 20).join('\n  ')); failed++; if (process.env.GITHUB_ACTIONS) console.log(`::warning title=The House That Remembers page errors::${errors.slice(0, 3).join(' | ').slice(0, 600)}`); }
   if (failed){ console.log(`${title}: ${failed} check(s) failed`); process.exit(1); }
   console.log(`${title} passed`); process.exit(0);
 }
