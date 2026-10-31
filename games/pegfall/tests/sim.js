@@ -20,20 +20,26 @@ async function run(label, fn) {
     ok(r.same, 'same seed gave different results');
     return r;
   });
-  await run('machine: every bumper touch gives +1 of that fighter, three balls play at once', () => {
-    const r = E(`(()=>{const m=new Machine(['pip','gumbo','vex'],makeRng('m'));let bumps=0,inPlay=0;const per={};const rr=makeRng('x');
-      while(!m.done){m.movePaddle(steerTarget(m,rr,0,0),1/60,0);m.step(1/60);inPlay=Math.max(inPlay,m.balls.filter(b=>b.state==='play').length);
-        for(const e of m.events)if(e.k==='bump'){bumps++;per[e.id]=(per[e.id]||0)+1;}m.events.length=0;}
-      return {bumps,total:m.total,same:JSON.stringify(per)===JSON.stringify(m.counts),inPlay,sizes:m.bumpers.map(b=>b.r)};})()`);
-    ok(r.bumps > 0 && r.bumps === r.total && r.same, 'hits and counts disagree');
+  await run('machine: hits fill a card\'s cost dots, a full card gives +1, three balls play at once', () => {
+    const r = E(`(()=>{const m=new Machine(['pip','gumbo','vex'],makeRng('m'),{countdown:0});let inPlay=0;const rr=makeRng('x');
+      while(!m.done){m.movePaddle(steerTarget(m,rr,0,.8),1/60,0);m.step(1/60);inPlay=Math.max(inPlay,m.balls.filter(b=>b.state==='play').length);m.events.length=0;}
+      const rows=m.cards.map(c=>({id:c.id,cost:c.cost,hits:m.hits[c.id]||0,fighters:m.counts[c.id]||0,left:c.prog}));return {rows,inPlay};})()`);
     ok(r.inPlay === 3, 'three balls were never in play together');
-    ok(r.sizes[2] < r.sizes[0], 'mythic bumper is not smaller than common');
+    ok(r.rows.map((x) => x.cost).join() === '1,2,5', 'costs wrong: ' + r.rows.map((x) => x.cost));
+    ok(r.rows.every((x) => x.fighters === Math.floor(x.hits / x.cost) && x.left === x.hits % x.cost), 'fighters do not match hits/cost');
+    ok(r.rows[0].hits > 0, 'no hits at all');
+    return r.rows;
+  });
+  await run('countdown: balls wait 3 seconds before the round starts', () => {
+    const r = E(`(()=>{const m=new Machine(['pip'],makeRng('c'));for(let i=0;i<170;i++)m.step(1/60);const before=m.balls.every(b=>b.state==='wait')&&m.t===0;for(let i=0;i<60;i++)m.step(1/60);return {before,after:m.balls.some(b=>b.state==='play')};})()`);
+    ok(r.before && r.after, JSON.stringify(r));
     return r;
   });
   await run('impossible machine results are rejected', () => {
     const bad = E(`[validateCounts({pip:5,vex:2},['pip']),validateCounts({pip:999},['pip']),validateCounts({pip:1.5},['pip']),validateCounts({pip:-1},['pip']),validateCounts([3],['pip']),validateCounts(null,['pip'])]`);
     ok(bad.every(Boolean), 'bad results accepted: ' + JSON.stringify(bad));
     ok(E("validateCounts({pip:12,gumbo:3},['pip','gumbo'])") === null, 'valid results rejected');
+    ok(E("validateCounts({solaris:60},['solaris'])") === 'too many hits', 'expensive fighters not checked against their cost');
     return bad;
   });
   await run('bot skill matters: hard drops fewer balls and hits more than easy', () => {

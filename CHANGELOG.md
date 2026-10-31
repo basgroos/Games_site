@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## Pegfall Arena 1.2.0 (2026-10-31)
+- **De kast werkt nu zoals in de voorbeeldvideo.** Je troepen hangen als **vierkante kaarten** in de kast (gekleurd per rol, rand in de zeldzaamheidskleur). Boven elke kaart staan **bolletjes: de kosten** van die troep. Elke keer dat een bal de kaart raakt, wordt een bolletje groen; zijn alle bolletjes groen, dan krijg je **+1 van die troep** (×N naast de kaart) en begint de kaart opnieuw.
+- Kosten per zeldzaamheid: Common 1, Uncommon 2, Rare 2, Epic 3, Legendary 4, Mythic 5 treffers. Alle kaarten zijn even groot; dure troepen kosten gewoon meer treffers.
+- **Drie ballen tegelijk** met een komeetstaart. Elke paddle-treffer geeft die bal **+1 speed** (je ziet het boven de paddle). Een bal die valt komt na 3 seconden terug op beginsnelheid.
+- Elke ronde in de kast begint met **aftellen: 3, 2, 1, GO!**
+- **Kies een troep uit 3**: elke ronde krijg je drie willekeurige troepen uit je collectie te zien, met hun kosten. Bots kiezen ook uit drie.
+- Online wordt gecontroleerd dat je genoeg treffers kón hebben voor de troepen die je meldt.
+
 ## Pegfall Arena 1.1.0 (2026-10-31)
 - **De arcadekast werkt nu zoals bedoeld: de vechters zijn de bumpers.** De types in je leger staan als ronde poppetjes in de kast. Er stuiteren **drie ballen tegelijk**; elke keer dat een bal een poppetje raakt, krijg je **+1 van dat poppetje**. De zeldzaamheidsladder is weg.
 - Houd de ballen hoog met de paddle (muis, vinger of A/D en pijltjes); de rand van de paddle stuurt de bal schuin, het midden recht omhoog. Zo kun je mikken op het poppetje dat je wilt. Elke paddle-treffer maakt die bal sneller.

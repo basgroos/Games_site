@@ -122,7 +122,8 @@ function cardHTML(id,o={}){const c=CH[id];const owned=S.save.owned[id];const loc
   return `<button class="ccard r-${c.rarity}${locked?' locked':''}${o.sel?' sel':''}" data-card="${id}" ${o.disabled?'disabled':''}>
     <div class="ccard-art"><img src="${portrait(id)}" alt=""></div>
     <div class="ccard-name">${locked?'???':esc(c.name)}</div>
-    <div class="ccard-meta"><span class="rar">${RARITY[c.rarity].name}</span><span>${ROLES[c.role].name}</span></div>${o.badge||''}</button>`;}
+    <div class="ccard-meta"><span class="rar">${RARITY[c.rarity].name}</span><span>${ROLES[c.role].name}</span></div>${o.cost?costHTML(id):''}${o.badge||''}</button>`;}
+const costHTML=id=>`<div class="costdots" title="Hits needed per fighter">Cost ${'<i></i>'.repeat(costOf(id))}</div>`;
 function chipHTML(a,pop){const c=CH[a.id];return `<span class="chip r-${c.rarity}${pop?' pop':''}" title="${esc(c.name)}"><img src="${portrait(a.id,64)}" alt=""><span>${esc(c.name.split(' ')[0].replace(',',''))}</span><b>×${a.count}</b></span>`;}
 const main=()=>$('#main');
 function go(screen,arg){cleanupScreen();S.screen=screen;S.arg=arg;sfx('click');
@@ -151,10 +152,11 @@ window.addEventListener('keydown',e=>{const a=VIEWS.arcade&&!VIEWS.arcade.demo?V
   else if(e.key===' '||e.key==='Enter'||e.key==='ArrowUp'||e.key==='w'||e.key==='W'){a.m.launchAll();e.preventDefault();}});
 window.addEventListener('keyup',e=>{if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A')ARC_KEYS.l=false;if(e.key==='ArrowRight'||e.key==='d'||e.key==='D')ARC_KEYS.r=false;});
 const BALL_C=['#fff3b0','#9ff3ff','#ffb3d1'];
+const ROLE_C={warrior:'#5b8cff',archer:'#3fbf6f',mage:'#a35bff',tank:'#c98a4b',assassin:'#e0527a',healer:'#4fc8d6',support:'#e8b33f'};
 class ArcadeView{
   constructor(cv,o={}){this.cv=cv;this.g=fitCanvas(cv,AR.W,AR.H);this.demo=!!o.demo;this.types=o.types||[];
     this.onBump=o.onBump||(()=>{});this.onHud=o.onHud||(()=>{});this.onFinish=o.onFinish||(()=>{});
-    this.m=new Machine(this.types);this.target=AR.W/2;this.t=0;this.parts=[];this.texts=[];this.trails=[[],[],[]];this.finished=false;this.rt=0;this.shake=0;
+    this.m=new Machine(this.types,Math.random,{countdown:this.demo?0:AR.countdown});this.target=AR.W/2;this.t=0;this.parts=[];this.texts=[];this.trails=[[],[],[]];this.finished=false;this.rt=0;this.shake=0;
     this.imgs={};for(const id of this.types){const im=new Image();im.src=portrait(id,96);this.imgs[id]=im;}
     if(!this.demo){cv.style.touchAction='none';
       const aim=e=>{const r=cv.getBoundingClientRect();if(r.width)this.target=(e.clientX-r.left)/r.width*AR.W;};
@@ -162,45 +164,53 @@ class ArcadeView{
       cv.addEventListener('pointerdown',e=>{aim(e);try{cv.setPointerCapture(e.pointerId);}catch(_){}this.m.launchAll();});}}
   frame(dt){this.t+=dt;const m=this.m;
     if(this.demo){this.rt-=dt;if(this.rt<=0){this.rt=.1;this.target=steerTarget(m,Math.random,10,.6);}m.movePaddle(this.target,dt,520);
-      if(m.t>AR.roundTime-.5){this.m=new Machine(this.types);this.trails=[[],[],[]];}}
+      if(m.t>AR.roundTime-.5){this.m=new Machine(this.types,Math.random,{countdown:0});this.trails=[[],[],[]];}}
     else{if(ARC_KEYS.l)this.target-=620*dt;if(ARC_KEYS.r)this.target+=620*dt;this.target=Math.max(AR.padW/2,Math.min(AR.W-AR.padW/2,this.target));m.movePaddle(this.target,dt,0);}
     if(!m.done)m.step(dt);
     for(const e of m.events){
-      if(e.k==='bump'){const c=CH[e.id],col=RARITY[c.rarity].color;this.texts.push({x:e.x,y:e.y-34,s:'+1',c:col,l:.7});
-        for(let i=0;i<8;i++){const a=Math.random()*6.28,v=60+Math.random()*120;this.parts.push({x:e.x,y:e.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:.45,c:col});}
-        if(!this.demo){sfx('peg',2+RIDX[c.rarity]*2);this.onBump(e.id);}}
-      else if(e.k==='paddle'){for(let i=0;i<5;i++)this.parts.push({x:e.x,y:AR.padY,vx:(Math.random()-.5)*140,vy:-Math.random()*90,gr:300,l:.35,c:'#3fe0b0'});if(!this.demo)sfx('click');}
+      if(e.k==='bump'){const c=CH[e.id],col=RARITY[c.rarity].color;
+        for(let i=0;i<(e.unit?16:6);i++){const a=Math.random()*6.28,v=60+Math.random()*(e.unit?200:110);this.parts.push({x:e.x,y:e.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:.45,c:e.unit?'#7dff8a':col});}
+        if(e.unit)this.texts.push({x:e.x+AR.card+14,y:e.y-AR.card+4,s:'+1',c:'#7dff8a',l:.9});
+        if(!this.demo){sfx(e.unit?'land':'peg',2+e.prog*2);if(e.unit)this.onBump(e.id);}}
+      else if(e.k==='paddle'){for(let i=0;i<5;i++)this.parts.push({x:e.x,y:AR.padY,vx:(Math.random()-.5)*140,vy:-Math.random()*90,gr:300,l:.35,c:'#3fe0b0'});
+        if(e.speedUp)this.texts.push({x:Math.max(50,Math.min(AR.W-50,e.x)),y:AR.padY-26,s:'+1 speed',c:'#7dff8a',l:.7,small:true});if(!this.demo)sfx('click');}
+      else if(e.k==='count'&&!this.demo){if(e.n>0){this.texts.push({x:AR.W/2,y:AR.H*.5,s:String(e.n),c:'#ffd23f',l:.9,huge:true});sfx('click');}}
+      else if(e.k==='go'&&!this.demo){this.texts.push({x:AR.W/2,y:AR.H*.5,s:'GO!',c:'#7dff8a',l:.8,huge:true});sfx('double');}
       else if(e.k==='drop'){this.texts.push({x:Math.max(60,Math.min(AR.W-60,e.x)),y:AR.H-30,s:'Missed!',c:'#ff6a55',l:.9});this.shake=5;if(!this.demo)sfx('lose');}}
     m.events.length=0;
     if(m.done&&!this.finished&&!this.demo){this.finished=true;sfx('land');this.onFinish(Object.assign({},m.counts));}
-    m.balls.forEach((b,i)=>{const tr=this.trails[i];if(b.state==='play'){tr.push([b.x,b.y]);const max=3+Math.round((b.s-AR.speed0)/40);while(tr.length>max)tr.shift();}else tr.length=0;});
+    m.balls.forEach((b,i)=>{const tr=this.trails[i];if(b.state==='play'){tr.push([b.x,b.y]);const max=7+Math.round((b.s-AR.speed0)/25);while(tr.length>max)tr.shift();}else tr.length=0;});
     for(const p of this.parts){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=(p.gr||0)*dt;p.l-=dt;}this.parts=this.parts.filter(p=>p.l>0);
     for(const x of this.texts){x.y-=30*dt;x.l-=dt;}this.texts=this.texts.filter(x=>x.l>0);
     if(this.shake>0)this.shake=Math.max(0,this.shake-dt*30);
     this.draw();
-    if(!this.demo)this.onHud({left:Math.max(0,AR.roundTime-m.t),inPlay:m.balls.filter(b=>b.state==='play').length,waiting:m.balls.some(b=>b.state==='wait'),total:m.total,done:m.done});}
+    if(!this.demo)this.onHud({left:Math.max(0,AR.roundTime-m.t),pre:m.pre,inPlay:m.balls.filter(b=>b.state==='play').length,waiting:m.balls.some(b=>b.state==='wait'),total:m.total,done:m.done});}
   draw(){const g=this.g,W=AR.W,H=AR.H,m=this.m,R=AR.ballR;g.save();g.clearRect(0,0,W,H);if(this.shake>0)g.translate((Math.random()-.5)*this.shake,(Math.random()-.5)*this.shake);
     const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#123c44');gr.addColorStop(1,'#0b262b');g.fillStyle=gr;rrect(g,0,0,W,H,18);g.fill();
     g.strokeStyle='rgba(255,255,255,.05)';g.lineWidth=1;for(let y=40;y<H;y+=40){g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke();}
     g.strokeStyle='rgba(255,210,63,.45)';g.lineWidth=4;g.beginPath();g.moveTo(3,H);g.lineTo(3,3);g.lineTo(W-3,3);g.lineTo(W-3,H);g.stroke();
     g.fillStyle='rgba(255,106,85,.12)';g.fillRect(0,AR.padY+24,W,H-AR.padY-24);
-    for(const B of m.bumpers){const c=CH[B.id],col=RARITY[c.rarity].color,h=Math.max(0,B.hit),r=B.r*(1+h*.18),bob=Math.sin(this.t*2+B.x*.05)*1.5;
-      g.fillStyle='rgba(0,0,0,.3)';ell(g,B.x,B.y+B.r+3,B.r*.8,B.r*.22);g.fill();
-      g.fillStyle=h>0?col:'#0e2f35';g.shadowColor=col;g.shadowBlur=6+h*20;ell(g,B.x,B.y+bob,r,r);g.fill();g.shadowBlur=0;
-      g.lineWidth=3;g.strokeStyle=col;g.stroke();
-      const im=this.imgs[B.id];if(im&&im.complete){g.save();ell(g,B.x,B.y+bob,r-2,r-2);g.clip();g.drawImage(im,B.x-r*1.25,B.y+bob-r*1.3,r*2.5,r*2.5);g.restore();}
-      const n=m.counts[B.id]||0;if(n&&!this.demo){g.font='14px "Lilita One",sans-serif';g.textAlign='center';const tw=Math.max(22,String(n).length*9+14);
-        g.fillStyle=col;rrect(g,B.x-tw/2,B.y+B.r-4,tw,17,8);g.fill();g.fillStyle='#0a2226';g.fillText('×'+n,B.x,B.y+B.r+9);}}
+    for(const C of m.cards){const c=CH[C.id],col=RARITY[c.rarity].color,f=Math.max(0,C.flash),p=Math.max(0,C.pop),h=C.h*(1+p*.12);
+      g.fillStyle='rgba(0,0,0,.35)';rrect(g,C.x-h+3,C.y-h+5,h*2,h*2,7);g.fill();
+      g.fillStyle=f>0?'#ffffff':(ROLE_C[c.role]||col);g.globalAlpha=1;rrect(g,C.x-h,C.y-h,h*2,h*2,7);g.fill();g.lineWidth=3;g.strokeStyle=col;g.stroke();
+      if(f<=0){g.fillStyle='rgba(255,255,255,.25)';rrect(g,C.x-h,C.y-h,h*2,h*.7,7);g.fill();}
+      if(f>0){g.shadowColor='#fff';g.shadowBlur=18*f;g.strokeStyle='rgba(255,255,255,.9)';g.lineWidth=2;g.strokeRect(C.x-h-5,C.y-h-5,h*2+10,h*2+10);g.shadowBlur=0;}
+      const im=this.imgs[C.id];if(im&&im.complete){g.save();g.globalAlpha=f>0?.75:1;g.drawImage(im,C.x-h*1.15,C.y-h*1.2,h*2.3,h*2.3);g.restore();}
+      const dr=5.5,gap=14,x0=C.x-(C.cost-1)*gap/2;
+      for(let i=0;i<C.cost;i++){const on=i<C.prog,dx=x0+i*gap,dy=C.y-h-11;g.fillStyle=on?'#3bff6e':'#07181b';g.shadowColor='#3bff6e';g.shadowBlur=on?10:0;ell(g,dx,dy,dr+.5,dr+.5);g.fill();g.shadowBlur=0;
+        g.lineWidth=1.5;g.strokeStyle=on?'#c8ffd4':'rgba(255,255,255,.35)';g.stroke();}
+      const n=m.counts[C.id]||0;if(n&&!this.demo){g.font=(16+p*8)+'px "Lilita One",sans-serif';const right=C.x+h+40<=AR.W;g.textAlign=right?'left':'right';
+        g.lineWidth=4;g.strokeStyle='#0a2226';const tx=right?C.x+h+5:C.x-h-5;g.strokeText('x'+n,tx,C.y+6);g.fillStyle='#fff';g.fillText('x'+n,tx,C.y+6);g.textAlign='center';}}
     m.balls.forEach((b,i)=>{if(b.state==='down')return;const col=BALL_C[i],tr=this.trails[i],n=tr.length;
-      tr.forEach((p,j)=>{g.globalAlpha=(j/n)*.4;g.fillStyle=col;ell(g,p[0],p[1],R*(.4+.6*j/n),R*(.4+.6*j/n));g.fill();});g.globalAlpha=1;
+      if(n>1){for(let j=1;j<n;j++){const a=tr[j-1],c=tr[j];g.globalAlpha=(j/n)*.7;g.strokeStyle=col;g.lineWidth=R*2*(j/n);g.lineCap='round';g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(c[0],c[1]);g.stroke();}}g.globalAlpha=1;
       const hot=(b.s-AR.speed0)/(AR.speedMax-AR.speed0);g.fillStyle=col;g.shadowColor=hot>.6?'#ff6a55':col;g.shadowBlur=8+hot*16;ell(g,b.x,b.y,R,R);g.fill();g.shadowBlur=0;
       g.fillStyle='rgba(255,255,255,.8)';ell(g,b.x-R*.3,b.y-R*.35,R*.3,R*.3);g.fill();});
     const pw=AR.padW,px=m.px;g.fillStyle='#3fe0b0';g.shadowColor='#3fe0b0';g.shadowBlur=12;rrect(g,px-pw/2,AR.padY,pw,AR.padH,6);g.fill();g.shadowBlur=0;
     g.fillStyle='rgba(0,38,27,.55)';for(const f of [-.5,0,.5])g.fillRect(px+f*pw/2-1,AR.padY+3,2,AR.padH-6);
     for(const p of this.parts){g.globalAlpha=Math.max(0,Math.min(1,p.l*2));g.fillStyle=p.c;g.fillRect(p.x-2,p.y-2,4,4);}g.globalAlpha=1;
     g.textAlign='center';
-    for(const x of this.texts){g.globalAlpha=Math.min(1,x.l*2);g.font='24px "Lilita One",sans-serif';g.lineWidth=5;g.strokeStyle='#0a2226';g.strokeText(x.s,x.x,x.y);g.fillStyle=x.c;g.fillText(x.s,x.x,x.y);}g.globalAlpha=1;
-    if(!this.demo){if(m.balls.some(b=>b.state==='wait')&&!m.done){g.font='600 13px Rubik,sans-serif';g.fillStyle='rgba(242,247,238,.75)';g.fillText('Click, tap or press Space to launch',W/2,AR.padY-30);}
+    for(const x of this.texts){g.globalAlpha=Math.min(1,x.l*2);g.font=(x.huge?'96px':x.small?'15px':'24px')+' "Lilita One",sans-serif';g.lineWidth=5;g.strokeStyle='#0a2226';g.strokeText(x.s,x.x,x.y);g.fillStyle=x.c;g.fillText(x.s,x.x,x.y);}g.globalAlpha=1;
+    if(!this.demo){if(m.started&&m.balls.some(b=>b.state==='wait'&&b.wt>.3)&&!m.done){g.font='600 13px Rubik,sans-serif';g.fillStyle='rgba(242,247,238,.75)';g.fillText('Click, tap or press Space to launch',W/2,AR.padY-30);}
       if(m.done){g.font='36px "Lilita One",sans-serif';g.lineWidth=6;g.strokeStyle='#0a2226';g.strokeText('Time!',W/2,H*.47);g.fillStyle='#ffd23f';g.fillText('Time!',W/2,H*.47);}}
     g.restore();}
 }
@@ -295,8 +305,8 @@ class BattleView{
 /* ===================== MENU ===================== */
 function renderMenu(){const st=S.save.stats;const own=ownedIds().length;
   main().innerHTML=`<section class="hero">
-    <div><h1>Bounce. Bump.<span>Brawl.</span></h1>
-      <p>Collect little fighters. Your fighters stand in the arcade machine, and three balls bounce around at once: keep them up with the paddle, and every time a ball touches a fighter you get one more of it. Then the armies crash together. First to 3 round wins takes the match.</p>
+    <div><h1>Bounce. Build.<span>Brawl.</span></h1>
+      <p>Collect little fighters. They hang as cards in the arcade machine while three balls bounce around at once: keep the balls up with the paddle, fill a card's dots with hits, and you get one more of that troop. Then the armies crash together. First to 3 round wins takes the match.</p>
       <div class="stats-line">${own}/${CHARS.length} fighters collected · ${st.w} wins · ${st.l} losses</div></div>
     <canvas id="demo" aria-label="Arcade machine demo"></canvas></section>
   <section class="tiles">
@@ -332,7 +342,7 @@ function showDetail(id){const c=CH[id],owned=S.save.owned[id];const m=document.c
       <div class="sub" style="font-size:13px">${owned?`Owned ×${owned}`:`Summon to unlock · duplicates refund ${RARITY[c.rarity].refund} shards`}</div></div>
       ${bar('Health',c.hp,STATMAX.hp,c.hp)}${bar('Damage',c.atk,STATMAX.atk,c.atk)}${bar('Atk speed',c.as,1.3,c.as.toFixed(2)+'/s')}
       ${bar('Range',c.range,STATMAX.range,c.range>60?c.range:'Melee')}${bar('Move',c.spd,STATMAX.spd,c.spd)}
-      <div class="ability"><b>${esc(c.ab.name)}</b><div>${esc(c.ab.desc)}</div></div>
+      <div class="ability"><b>${esc(c.ab.name)}</b><div>${esc(c.ab.desc)}</div></div>${costHTML(id)}
       <div style="font-size:13px"><span style="color:var(--mint)">Strong:</span> ${ROLES[c.role].good}. <span style="color:var(--coral)">Weak:</span> ${ROLES[c.role].bad}.</div>
     </div></div></div>`;
   document.body.appendChild(m);const close=()=>{VIEWS.detail=null;m.remove();};
@@ -406,7 +416,7 @@ function renderPrep(arg){if(arg.kind==='botpick'){main().innerHTML=`<div class="
   const own=ownedIds();let sel=(S.save.starters||[]).filter(id=>S.save.owned[id]).slice(0,2);
   const label={bot:`Fight ${BOTNAMES[arg.diff]} (${arg.diff})`,quick:'Find a match',mm:'Find a match',create:'Create match',join:'Join match'}[arg.kind];
   main().innerHTML=`<div class="shead"><h2>Choose 2 starters</h2><button class="btn sm ghost" data-act="home">Back</button></div>
-    <p class="note" style="margin:-6px 0 14px">These two fighters start the match. A third fighter is added at random from your collection. Each type joins with ${BASE_FIGHTERS} fighter and stands in the arcade machine as a bumper: every ball that touches it earns you another. Each later round you add one more type.</p>
+    <p class="note" style="margin:-6px 0 14px">These two fighters start the match. A third fighter is added at random from your collection. Each type joins with ${BASE_FIGHTERS} fighter and hangs in the arcade machine as a card: hit it with the balls to fill its dots and earn more. Each later round you add one more type.</p>
     <div class="grid" id="pg"></div>
     <div class="row" style="margin-top:16px;justify-content:flex-end"><span class="sub" id="pcount"></span><button class="btn mint" id="go">${esc(label)}</button></div>`;
   const draw=()=>{$('#pg').innerHTML=own.map(id=>cardHTML(id,{sel:sel.includes(id),badge:sel.includes(id)?`<span class="badge">${sel.indexOf(id)+1}</span>`:''})).join('');
@@ -546,11 +556,11 @@ function renderArmies(m){const me=m.side,op=m.oppSide;let mine=m.army[me];
 function buildStage(m){const st=$('#stage');if(m.phase!=='arcade'&&m.phase!=='arcadeWait')VIEWS.arcade=null;if(m.phase!=='battle')VIEWS.battle=null;MV.deadline=null;MV.musterAt=null;
   const isBot=S.mode&&S.mode.kind==='bot';
   if(m.phase==='waiting'){st.innerHTML=`<div class="center"><div class="spin"></div><h3>Exchanging rosters…</h3></div>`;return;}
-  if(m.phase==='pick'){const elig=eligiblePicks(m.me.coll,m.army[m.side]);let sel=null;
-    const tip=botPick('hard',makeRng('tip'+m.round),m.me.coll,m.army[m.side],m.army[m.oppSide]);
-    st.innerHTML=`<div class="pickhead"><h3>Round ${m.round}: add one fighter type</h3><span class="oppstat" id="opst"></span><span class="timer" id="ptimer"></span></div>
-      <p class="note" style="margin:-4px 0 12px">Your pick joins with ${BASE_FIGHTERS} fighter and stands in the arcade machine as a new bumper. Every ball that touches it gives you +1 more. Rarer fighters are smaller targets.</p>
-      <div class="grid" id="pkg">${elig.map(id=>cardHTML(id,{badge:id===tip?'<span class="badge l">Suggested</span>':''})).join('')}</div>
+  if(m.phase==='pick'){const elig=pickOptions(m.me.coll,m.army[m.side],Math.random);let sel=null;
+    const tip=botPick('hard',makeRng('tip'+m.round),elig,m.army[m.side],m.army[m.oppSide]);
+    st.innerHTML=`<div class="pickhead"><h3>Round ${m.round}: choose a troop</h3><span class="oppstat" id="opst"></span><span class="timer" id="ptimer"></span></div>
+      <p class="note" style="margin:-4px 0 12px">Your troop joins with ${BASE_FIGHTERS} fighter and hangs in the arcade machine as a new card. The dots are its cost: each ball hit lights one dot, and when all dots are lit you get +1 of that troop.</p>
+      <div class="grid pick3" id="pkg">${elig.map(id=>cardHTML(id,{cost:true,badge:id===tip?'<span class="badge l">Suggested</span>':''})).join('')}</div>
       <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn mint" id="lock" disabled>Lock in</button></div>`;
     $('#pkg').onclick=e=>{const c=e.target.closest('[data-card]');if(!c)return;sel=c.dataset.card;sfx('click');$('#pkg').querySelectorAll('.ccard').forEach(x=>x.classList.toggle('sel',x.dataset.card===sel));$('#lock').disabled=false;};
     $('#lock').onclick=()=>{if(sel)m.choosePick(sel);};
@@ -575,11 +585,11 @@ function tickMatch(){const m=S.match;if(!m)return;
 function countsChips(counts,types,popId){const ids=types.filter(id=>counts[id]);return ids.length?ids.map(id=>chipHTML({id,count:counts[id]},id===popId)).join(''):'<span class="sub" style="font-size:13px">No hits yet</span>';}
 function buildArcade(m){const st=$('#stage');MV.counts={};const isBot=S.mode&&S.mode.kind==='bot';const types=m.machine[m.side];
   st.innerHTML=`<div class="arc"><div class="arc-l"><div class="arc-cv"><canvas id="acv" aria-label="Arcade machine: move the paddle to keep the balls bouncing into your fighters"></canvas></div>
-      <div class="note arc-help">Every time a ball touches a fighter, you get +1 of that fighter. Move the mouse, drag with your finger, or use A/D or ←/→. The edge of the paddle sends a ball sideways, the middle straight up. Smaller (rarer) fighters are harder to hit.</div></div>
+      <div class="note arc-help">Every ball hit lights a dot on that card; when all its dots are lit you get +1 of that troop. Move the mouse, drag with your finger, or use A/D or ←/→. The edge of the paddle sends a ball sideways, the middle straight up. Each paddle hit gives that ball +1 speed.</div></div>
     <div class="arc-r">
-      <div class="hudgrid"><div><span>Time</span><b class="num" id="aTimeN">${AR.roundTime}s</b></div><div><span>Balls in play</span><b class="num" id="aBalls">0/3</b></div><div><span>Hits</span><b class="num" id="aHits">0</b></div></div>
+      <div class="hudgrid"><div><span>Time</span><b class="num" id="aTimeN">${AR.roundTime}s</b></div><div><span>Balls in play</span><b class="num" id="aBalls">0/3</b></div><div><span>Ball hits</span><b class="num" id="aHits">0</b></div></div>
       <div class="tbar"><i id="aTime" style="width:100%"></i></div>
-      <div class="lastbox" id="aLast"><span class="sub">Three balls, ${AR.roundTime} seconds. Bounce them into your fighters!</span></div>
+      <div class="lastbox" id="aLast"><span class="sub">Three balls, ${AR.roundTime} seconds. Bounce them into your cards!</span></div>
       <div><h4 class="mini-h">Your fighters this round <span class="num" id="aCnt">0</span></h4><div class="chips" id="aEarn"></div></div>
       <div class="oppbox"><h4 class="mini-h"><span id="oName">Opponent</span> <span class="num" id="oTot"></span></h4><div class="chips" id="oEarn"></div></div>
     </div></div>`;
@@ -591,14 +601,14 @@ function buildArcade(m){const st=$('#stage');MV.counts={};const isBot=S.mode&&S.
       if(Date.now()-(MV.liveAt||0)>300){MV.liveAt=Date.now();m.setLive({counts:Object.assign({},MV.counts)});}
       renderArmies(m);},
     onHud:h=>{const t=$('#aTime');if(!t)return;const f=h.left/AR.roundTime;t.style.width=(f*100)+'%';t.style.background=f<.25?'var(--coral)':'var(--sun)';
-      $('#aTimeN').textContent=Math.ceil(h.left)+'s';$('#aBalls').textContent=h.inPlay+'/3';$('#aHits').textContent=h.total;},
+      $('#aTimeN').textContent=h.pre>0?'Get ready':Math.ceil(h.left)+'s';$('#aBalls').textContent=h.inPlay+'/3';$('#aHits').textContent=h.total;},
     onFinish:counts=>{m.setLive({counts,done:true});setTimeout(()=>m.arcadeDone(counts),900);}});
   VIEWS.arcade=view;$('#oName').textContent=isBot?BOTNAMES[S.mode.diff]:(m.oppInfo?m.oppInfo.name:'Opponent');$('#aEarn').innerHTML=countsChips({},types);renderOppArcade(m);}
 function arcadeWaiting(m){const l=$('#aLast');if(l&&!l.dataset.wait){l.dataset.wait=1;l.className='lastbox';l.innerHTML='<div class="spin" style="width:26px;height:26px;border-width:4px"></div><span class="sub">Time is up for you. Waiting for your opponent to finish…</span>';}}
 function renderOppArcade(m){const o=m.opp;const lv=o&&o.lv&&o.lv.r===m.round?o.lv:null;const el=$('#oEarn');if(!el)return;
   const types=m.machine[m.oppSide],raw=lv&&lv.counts&&typeof lv.counts==='object'?lv.counts:{};const counts={};
   for(const id of types)if(Number.isInteger(raw[id])&&raw[id]>0)counts[id]=raw[id];
-  const tot=Object.values(counts).reduce((a,b)=>a+b,0);$('#oTot').textContent=lv&&lv.done?tot+' hits · done':tot+' hits';
+  const tot=Object.values(counts).reduce((a,b)=>a+b,0);$('#oTot').textContent=lv&&lv.done?tot+' fighters · done':tot+' fighters';
   const html=countsChips(counts,types);if(el.innerHTML!==html)el.innerHTML=html;}
 function buildMuster(m){const st=$('#stage');VIEWS.arcade=null;const me=m.side,op=m.oppSide;
   const col=(s,title)=>{const r=m.rewards[s];const tot=Object.values(r).reduce((a,b)=>a+b,0);

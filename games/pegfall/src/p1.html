@@ -181,6 +181,11 @@ h2{font-size:30px} h3{font-size:20px}
 .muster-col{background:var(--bg2);border-radius:16px;padding:14px;border-top:4px solid var(--mint);display:flex;flex-direction:column;gap:8px;min-width:0}
 .muster-col.op{border-top-color:var(--coral)}
 .rarline{font-size:14px;font-weight:700}
+.costdots{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.costdots i{width:10px;height:10px;border-radius:50%;background:#3bff6e;box-shadow:0 0 6px rgba(59,255,110,.6)}
+.detail .costdots{justify-content:flex-start}
+.grid.pick3{grid-template-columns:repeat(3,minmax(0,200px));justify-content:center}
+@media (max-width:520px){.grid.pick3{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .home-link{color:var(--muted);text-decoration:none;font-weight:700;font-size:14px;padding:6px 10px;border-radius:10px;background:var(--panel)}
 .home-link:hover{color:var(--text)}
 .bwrap{position:relative}

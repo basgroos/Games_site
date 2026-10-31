@@ -105,28 +105,38 @@ function randHex(n=16){const a=new Uint8Array(n);(globalThis.crypto&&crypto.getR
 async function sha(s){try{if(globalThis.crypto&&crypto.subtle){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}}catch(e){}return 'f'+hashStr(s).map(x=>x.toString(16).padStart(8,'0')).join('');}
 
 /* ===================== ARCADE MACHINE (shared by the player's screen, the bots and validation) =====================
- Your army's fighter types stand in the machine as round bumpers. Three balls bounce around at the same time;
- every time a ball touches a fighter, you get +1 of that fighter. Keep the balls up with the paddle: each paddle
- hit makes that ball faster. A ball that falls comes back to the paddle at starting speed (you never lose a ball),
- it just costs time. The round lasts AR.roundTime seconds. Rarer fighters are smaller bumpers, so harder to hit. */
-const AR={W:400,H:560,padY:518,padW:96,padH:12,ballR:8,balls:3,roundTime:20,speed0:290,speedUp:16,speedMax:520,
-  respawn:3,autoLaunch:.8,hitCooldown:.35,maxTypes:10,maxHits:220};
-const BUMPER_SLOTS=[[200,100],[100,148],[300,148],[200,196],[62,240],[338,240],[132,290],[268,290],[200,262],[200,340]];
-const BUMPER_R={common:27,uncommon:25,rare:23,epic:20,legendary:18,mythic:16};
+ Your army's fighter types hang in the machine as square cards. Three balls bounce around at the same time.
+ Every card has a row of dots: its cost. Each time a ball touches the card one dot lights up; when all dots are lit
+ you get +1 of that fighter and the dots reset. Cheap fighters (1 dot) come fast, expensive ones take more hits.
+ Keep the balls up with the paddle: every paddle hit gives that ball +1 speed. A ball that falls comes back to the
+ paddle at starting speed (you never lose a ball), it just costs time. A 3-2-1 countdown starts the round. */
+const AR={W:400,H:560,padY:518,padW:100,padH:12,ballR:8,balls:3,roundTime:20,countdown:3,speed0:290,speedUp:16,speedMax:520,
+  respawn:3,autoLaunch:.6,hitCooldown:.3,card:30,maxTypes:10,maxHits:240};
+const COST={common:1,uncommon:2,rare:2,epic:3,legendary:4,mythic:5};
+const costOf=id=>COST[CH[id].rarity]||1;
+const CARD_SLOTS=[[125,105],[275,105],[200,210],[60,225],[340,225],[130,320],[270,320],[200,415],[50,415],[350,415]];
 const machineTypes=army=>army.map(a=>a.id).slice(-AR.maxTypes);
 class Machine{
-  constructor(types,rng=Math.random){this.rng=rng;this.types=types.slice(0,AR.maxTypes);this.t=0;this.done=false;this.counts={};this.total=0;this.paddleHits=0;this.drops=0;this.events=[];
-    this.bumpers=this.types.map((id,i)=>({id,x:BUMPER_SLOTS[i][0],y:BUMPER_SLOTS[i][1],r:BUMPER_R[CH[id].rarity]||22,hit:0}));
+  constructor(types,rng=Math.random,o={}){this.rng=rng;this.types=types.slice(0,AR.maxTypes);this.pre=o.countdown===undefined?AR.countdown:o.countdown;
+    this.t=0;this.done=false;this.counts={};this.hits={};this.total=0;this.paddleHits=0;this.drops=0;this.events=[];
+    this.cards=this.types.map((id,i)=>({id,x:CARD_SLOTS[i][0],y:CARD_SLOTS[i][1],h:AR.card,cost:costOf(id),prog:0,flash:0,pop:0}));
     this.px=AR.W/2;this.pv=0;
-    this.balls=[0,1,2].map(i=>({i,state:'wait',wt:.5+i*.45,x:AR.W/2,y:AR.padY-AR.ballR-1,vx:0,vy:0,s:AR.speed0,cool:{}}));}
+    this.balls=[0,1,2].map(i=>({i,state:'wait',wt:i*.25,x:AR.W/2,y:AR.padY-AR.ballR-1,vx:0,vy:0,s:AR.speed0,cool:{}}));}
+  get bumpers(){return this.cards;}
+  get started(){return this.pre<=0;}
   movePaddle(target,dt,maxSpeed){const hw=AR.padW/2;target=Math.max(hw,Math.min(AR.W-hw,target));const prev=this.px;
     if(maxSpeed){const d=target-this.px,m=maxSpeed*dt;this.px+=Math.max(-m,Math.min(m,d));}else this.px+=(target-this.px)*Math.min(1,dt*24);
     this.pv=(this.px-prev)/Math.max(dt,1e-3);}
-  launchAll(){for(const b of this.balls)if(b.state==='wait')b.wt=0;}
-  launch(b){const a=(b.i-1)*.32+Math.max(-.3,Math.min(.3,this.pv*.001))+(this.rng()-.5)*.12;b.s=AR.speed0;b.vx=Math.sin(a)*b.s;b.vy=-Math.cos(a)*b.s;b.state='play';b.cool={};}
-  step(dt){if(this.done)return;this.t+=dt;if(this.t>=AR.roundTime){this.done=true;this.events.push({k:'end'});return;}
-    for(const B of this.bumpers)if(B.hit>0)B.hit-=dt*4;
-    const R=AR.ballR;
+  launchAll(){if(this.pre>0)return;for(const b of this.balls)if(b.state==='wait')b.wt=0;}
+  launch(b){const a=(b.i-1)*.34+Math.max(-.3,Math.min(.3,this.pv*.001))+(this.rng()-.5)*.12;b.s=AR.speed0;b.vx=Math.sin(a)*b.s;b.vy=-Math.cos(a)*b.s;b.state='play';b.cool={};}
+  hitCard(C,b){if(b.cool[C.id]||this.total>=AR.maxHits)return;b.cool[C.id]=AR.hitCooldown;C.flash=1;this.total++;this.hits[C.id]=(this.hits[C.id]||0)+1;
+    C.prog++;let unit=false;if(C.prog>=C.cost){C.prog=0;C.pop=1;unit=true;this.counts[C.id]=(this.counts[C.id]||0)+1;}
+    this.events.push({k:'bump',id:C.id,x:C.x,y:C.y,b:b.i,unit,prog:C.prog,cost:C.cost});}
+  step(dt){if(this.done)return;const R=AR.ballR;
+    if(this.pre>0){const before=Math.ceil(this.pre);this.pre-=dt;if(Math.ceil(this.pre)!==before)this.events.push({k:'count',n:Math.max(0,Math.ceil(this.pre))});
+      for(const b of this.balls){b.x=Math.max(R,Math.min(AR.W-R,this.px+(b.i-1)*24));b.y=AR.padY-R-1;}if(this.pre>0)return;this.events.push({k:'go'});}
+    this.t+=dt;if(this.t>=AR.roundTime){this.done=true;this.events.push({k:'end'});return;}
+    for(const C of this.cards){if(C.flash>0)C.flash-=dt*5;if(C.pop>0)C.pop-=dt*1.6;}
     for(const b of this.balls){
       if(b.state==='down'){b.wt-=dt;if(b.wt<=0){b.state='wait';b.wt=AR.autoLaunch;}continue;}
       if(b.state==='wait'){b.x=Math.max(R,Math.min(AR.W-R,this.px+(b.i-1)*24));b.y=AR.padY-R-1;b.wt-=dt;if(b.wt<=0)this.launch(b);continue;}
@@ -135,15 +145,18 @@ class Machine{
       for(let n=0;n<steps;n++){const pby=b.y;b.x+=b.vx*h;b.y+=b.vy*h;
         if(b.x<R){b.x=R;b.vx=Math.abs(b.vx);}else if(b.x>AR.W-R){b.x=AR.W-R;b.vx=-Math.abs(b.vx);}
         if(b.y<R){b.y=R;b.vy=Math.abs(b.vy);}
-        for(const B of this.bumpers){const dx=b.x-B.x,dy=b.y-B.y,d=Math.sqrt(dx*dx+dy*dy);
-          if(d<R+B.r&&d>0){const nx=dx/d,ny=dy/d,dot=b.vx*nx+b.vy*ny;if(dot<0){b.vx-=2*dot*nx;b.vy-=2*dot*ny;}
-            b.x=B.x+nx*(R+B.r+.5);b.y=B.y+ny*(R+B.r+.5);
-            if(!b.cool[B.id]&&this.total<AR.maxHits){b.cool[B.id]=AR.hitCooldown;B.hit=1;this.counts[B.id]=(this.counts[B.id]||0)+1;this.total++;this.events.push({k:'bump',id:B.id,x:B.x,y:B.y,b:b.i});}}}
+        for(const C of this.cards){const cx=Math.max(C.x-C.h,Math.min(C.x+C.h,b.x)),cy=Math.max(C.y-C.h,Math.min(C.y+C.h,b.y));
+          let dx=b.x-cx,dy=b.y-cy,d=Math.sqrt(dx*dx+dy*dy);
+          if(d<R){let nx,ny;if(d<1e-6){const ox=b.x-C.x,oy=b.y-C.y;if(Math.abs(ox)>Math.abs(oy)){nx=ox<0?-1:1;ny=0;}else{nx=0;ny=oy<0?-1:1;}d=0;}else{nx=dx/d;ny=dy/d;}
+            const dot=b.vx*nx+b.vy*ny;if(dot<0){b.vx-=2*dot*nx;b.vy-=2*dot*ny;}
+            if(d===0){b.x=nx?C.x+nx*(C.h+R+.5):b.x;b.y=ny?C.y+ny*(C.h+R+.5):b.y;}else{b.x=cx+nx*(R+.5);b.y=cy+ny*(R+.5);}
+            this.hitCard(C,b);}}
         const m=Math.sqrt(b.vx*b.vx+b.vy*b.vy)||1;b.vx=b.vx/m*b.s;b.vy=b.vy/m*b.s;
         if(Math.abs(b.vy)<b.s*.3){b.vy=(b.vy<0?-1:1)*b.s*.3;b.vx=(b.vx<0?-1:1)*Math.sqrt(b.s*b.s-b.vy*b.vy);}
         if(b.vy>0&&pby+R<=AR.padY+2&&b.y+R>=AR.padY&&Math.abs(b.x-this.px)<=AR.padW/2+R){
           const off=Math.max(-1,Math.min(1,(b.x-this.px)/(AR.padW/2+R)));let a=off*1.05+Math.max(-.2,Math.min(.2,this.pv*.00045));a=Math.max(-1.15,Math.min(1.15,a));
-          b.s=Math.min(AR.speedMax,b.s+AR.speedUp);b.vx=Math.sin(a)*b.s;b.vy=-Math.cos(a)*b.s;b.y=AR.padY-R-.5;this.paddleHits++;this.events.push({k:'paddle',b:b.i,x:b.x});break;}
+          const up=b.s<AR.speedMax;b.s=Math.min(AR.speedMax,b.s+AR.speedUp);b.vx=Math.sin(a)*b.s;b.vy=-Math.cos(a)*b.s;b.y=AR.padY-R-.5;this.paddleHits++;
+          this.events.push({k:'paddle',b:b.i,x:b.x,speedUp:up});break;}
         if(b.y-R>AR.H){b.state='down';b.wt=AR.respawn;b.s=AR.speed0;this.drops++;this.events.push({k:'drop',b:b.i,x:b.x});break;}}}}
 }
 // Where the paddle should go: under the ball that will reach the paddle first (folding in wall bounces), plus aiming error.
@@ -151,19 +164,20 @@ function steerTarget(m,rng,err,aim){let best=null,bt=Infinity;const R=AR.ballR;
   for(const b of m.balls)if(b.state==='play'&&b.vy>0){const tt=(AR.padY-R-b.y)/b.vy;if(tt<bt){bt=tt;best=b;}}
   if(!best){const p=m.balls.filter(b=>b.state==='play');if(!p.length)return AR.W/2;best=p.reduce((a,b)=>b.y>a.y?b:a);return best.x+(rng()-.5)*2*err;}
   const L=R,span=AR.W-2*R;let x=best.x+best.vx*bt-L;x=((x%(2*span))+2*span)%(2*span);if(x>span)x=2*span-x;x+=L;
-  // skilled players aim: hit the ball off-centre so it flies toward a fighter
-  if(aim&&m.bumpers.length){if(best._aimFor===undefined||best._aimAt!==Math.round(bt*10)){best._aimAt=Math.round(bt*10);best._aimFor=rng()<aim?Math.floor(rng()*m.bumpers.length):-1;}
-    const B=m.bumpers[best._aimFor];if(B){const a=Math.atan((B.x-x)/Math.max(40,AR.padY-B.y));const off=Math.max(-.85,Math.min(.85,a/1.05));x-=off*(AR.padW/2+R);}}
+  // skilled players aim: hit the ball off-centre so it flies toward a card
+  if(aim&&m.cards.length){if(best._aimFor===undefined||best._aimAt!==Math.round(bt*10)){best._aimAt=Math.round(bt*10);best._aimFor=rng()<aim?Math.floor(rng()*m.cards.length):-1;}
+    const C=m.cards[best._aimFor];if(C){const a=Math.atan((C.x-x)/Math.max(40,AR.padY-C.y));const off=Math.max(-.85,Math.min(.85,a/1.05));x-=off*(AR.padW/2+R);}}
   return x+(rng()-.5)*2*err;}
 const BOT_SKILL={easy:{spd:200,err:62,react:.45,aim:0},medium:{spd:340,err:26,react:.2,aim:.45},hard:{spd:640,err:6,react:.07,aim:.9}};
 // A bot plays the real machine physics with a limited paddle speed, reaction time and aiming error.
-function botMachineRun(diff,rng,types){const m=new Machine(types,rng),sk=BOT_SKILL[diff]||BOT_SKILL.medium,dt=1/60,hits=[];let target=AR.W/2,rt=0;
+function botMachineRun(diff,rng,types){const m=new Machine(types,rng,{countdown:0}),sk=BOT_SKILL[diff]||BOT_SKILL.medium,dt=1/60,hits=[];let target=AR.W/2,rt=0;
   while(!m.done){rt-=dt;if(rt<=0){rt=sk.react;target=steerTarget(m,rng,sk.err,sk.aim);}m.movePaddle(target,dt,sk.spd);m.step(dt);
-    for(const e of m.events)if(e.k==='bump')hits.push({t:m.t,id:e.id});m.events.length=0;}
-  return {hits,counts:m.counts,drops:m.drops};}
-function validateCounts(counts,types){if(!counts||typeof counts!=='object'||Array.isArray(counts))return 'bad results';let sum=0;
-  for(const k of Object.keys(counts)){const n=counts[k];if(!types.includes(k))return 'fighter not in machine';if(!Number.isInteger(n)||n<0)return 'bad count';sum+=n;}
-  if(sum>AR.maxHits)return 'too many hits';return null;}
+    for(const e of m.events)if(e.k==='bump')hits.push({t:m.t,id:e.id,unit:e.unit});m.events.length=0;}
+  return {hits,counts:m.counts,drops:m.drops,total:m.total};}
+// counts = fighters earned per card. Checks: only cards in this machine, whole numbers, and enough hits possible to pay for them.
+function validateCounts(counts,types){if(!counts||typeof counts!=='object'||Array.isArray(counts))return 'bad results';let hits=0;
+  for(const k of Object.keys(counts)){const n=counts[k];if(!types.includes(k))return 'fighter not in machine';if(!Number.isInteger(n)||n<0)return 'bad count';hits+=n*costOf(k);}
+  if(hits>AR.maxHits)return 'too many hits';return null;}
 
 /* ===================== COMBAT (deterministic, fixed timestep) ===================== */
 const ARENA={W:1000,H:560},DT=.05,MAXT=75;
@@ -303,6 +317,7 @@ const COUNTERS={warrior:{archer:1,mage:1,healer:1,support:.7},archer:{mage:1,hea
   mage:{warrior:1,assassin:.8,tank:.35,archer:.4,support:.4},tank:{assassin:1.2,warrior:.6},
   assassin:{archer:1.2,mage:1.2,healer:1.4,support:1},healer:{warrior:.2,tank:.2},support:{}};
 function roleCounts(army){const m={};for(const a of army){const r=CH[a.id].role;m[r]=(m[r]||0)+a.count;}return m;}
+function pickOptions(coll,army,rng,n=3){const e=eligiblePicks(coll,army).slice().sort();for(let i=e.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[e[i],e[j]]=[e[j],e[i]];}return e.slice(0,n);}
 function eligiblePicks(coll,army){const have=new Set(army.map(a=>a.id));const c=coll.filter(id=>!have.has(id));return c.length?c:coll.slice();}
 function botPick(diff,rng,coll,myArmy,oppArmy){const cands=eligiblePicks(coll,myArmy);
   if(diff==='easy')return cands[Math.floor(rng()*cands.length)];
@@ -338,9 +353,9 @@ const BOTNAMES={easy:'Pebble',medium:'Clank',hard:'Grimbolt'};
     d:roundDone,h:resultHash}
  Per round: commit = SHA256(nonce|pick) is published first, nonce+pick only after BOTH commits are seen,
  so nobody can see the other's pick or bias the shared random seed. seed = SHA256(nonce0|nonce1).
- Each player then plays their own arcade machine, where their army's fighter types are the bumpers, and
- publishes how often each fighter was hit. The other side checks that only fighters standing in that machine
- were hit and that the total fits what the machine allows. The battle is deterministic from the seed, and
+ Each player then plays their own arcade machine, where their army's fighter types hang as cards, and
+ publishes how many of each fighter they earned. The other side checks that only cards in that machine
+ paid out and that the hits needed to pay for them fit what the machine allows. The battle is deterministic from the seed, and
  each side publishes a result hash that the other checks. */
 const BASE_FIGHTERS=1;
 function validateRoster(o){if(!o||typeof o!=='object')return 'no state';
@@ -374,7 +389,7 @@ class Match{
   async beginRound(r){this.round=r;this.pick=null;
     if(r===1){await this.commit(null);return;}
     this.phase='pick';this.emit();
-    if(this.headless&&this.ai){const id=botPick(this.ai.diff,this.ai.rng,this.me.coll,this.army[this.side],this.army[this.oppSide]);
+    if(this.headless&&this.ai){const opts=pickOptions(this.me.coll,this.army[this.side],this.ai.rng);const id=botPick(this.ai.diff,this.ai.rng,opts,this.army[this.side],this.army[this.oppSide]);
       this.later(()=>this.choosePick(id),this.ai.fast?0:700+this.ai.rng()*1400);}}
   canPick(id){return !validatePick(this.me.coll,this.army[this.side],id);}
   async choosePick(id){if(this.phase!=='pick'||!this.canPick(id))return false;this.phase='locking';await this.commit(id);return true;}
@@ -403,7 +418,7 @@ class Match{
     if(this.headless)this.later(()=>this.battleDone(runBattleHeadless(this.battleArmies,this.seed)),this.ai&&this.ai.fast?0:20);}
   runBotArcade(){const run=botMachineRun(this.ai.diff,this.ai.rng,this.machine[this.side]),fast=this.ai.fast,live={};
     this.setLive({counts:{}});let lastSent=-1;
-    run.hits.forEach((h,i)=>{live[h.id]=(live[h.id]||0)+1;const snap=Object.assign({},live);const sec=Math.floor(h.t*3);
+    run.hits.forEach((h,i)=>{if(h.unit)live[h.id]=(live[h.id]||0)+1;const snap=Object.assign({},live);const sec=Math.floor(h.t*3);
       if(sec!==lastSent||i===run.hits.length-1){lastSent=sec;this.later(()=>{if(this.phase==='arcade')this.setLive({counts:snap});},fast?0:h.t*1000);}});
     this.later(()=>{this.setLive({counts:run.counts,done:true});this.arcadeDone(run.counts);},fast?0:AR.roundTime*1000+300);}
   battleDone(res){if(this.phase!=='battle')return;this.result=res;const w=res.winner;

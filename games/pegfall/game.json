@@ -2,8 +2,8 @@
   "id": "pegfall",
   "name": "Pegfall Arena",
   "tagline": "Gacha auto-battler",
-  "description": "Verzamel 24 vechters met gacha's. Je vechters staan als bumpers in een arcadekast: houd drie ballen tegelijk hoog met de paddle, en elke keer dat een bal een vechter raakt krijg je er één bij. Daarna vechten de legers automatisch. Als eerste 3 rondes winnen, tegen bots of online tegen vrienden.",
-  "version": "1.1.0",
+  "description": "Verzamel 24 vechters met gacha's. Je troepen hangen als kaarten in een arcadekast: houd drie ballen tegelijk hoog met de paddle, vul met treffers de bolletjes van een kaart en je krijgt er een troep bij. Daarna vechten de legers automatisch. Als eerste 3 rondes winnen, tegen bots of online tegen vrienden.",
+  "version": "1.2.0",
   "status": "live",
   "color": "#3fe0b0",
   "tags": [
