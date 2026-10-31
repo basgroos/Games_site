@@ -104,34 +104,66 @@ function makeRng(seed){const h=hashStr(String(seed));const r=sfc32(h[0],h[1],h[2
 function randHex(n=16){const a=new Uint8Array(n);(globalThis.crypto&&crypto.getRandomValues)?crypto.getRandomValues(a):a.forEach((_,i)=>a[i]=Math.random()*256|0);return [...a].map(x=>x.toString(16).padStart(2,'0')).join('');}
 async function sha(s){try{if(globalThis.crypto&&crypto.subtle){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}}catch(e){}return 'f'+hashStr(s).map(x=>x.toString(16).padStart(8,'0')).join('');}
 
-/* ===================== ARCADE MACHINE (rules shared by player, bot and validation) =====================
- Each round you get 3 balls. Each ball is live for AR.ballTime seconds. Every paddle hit climbs the rarity
- ladder and awards one fighter of that rarity right away. Missing the ball ends the streak (you keep what you
- earned) and the ball comes back to the paddle at starting speed. Reaching Mythic (hit 6) cashes the streak out
- and the ladder starts again from Common. Rarity is never rolled: it is purely the number of hits in a streak. */
-const LADDER=["common","uncommon","rare","epic","legendary","mythic"];
-const AR={W:400,H:560,padY:518,padW:94,padShrink:4,padH:12,ballR:9,ballTime:20,autoLaunch:1.6,
-  speeds:[310,350,405,470,545,625,710],maxHitsPerBall:40,maxStreaks:20};
-const SPEED_LABEL=["Slow","Slow","Comfortable","Moderate","Fast","Very fast","Extremely fast"];
-// Which fighter a rarity step awards: a type of that rarity already in your army first, else one you own, else any.
-function rewardPools(coll,armyTypes){const o={};for(const r of LADDER){const inArmy=armyTypes.filter(id=>CH[id]&&CH[id].rarity===r).sort();
-  const owned=coll.filter(id=>CH[id]&&CH[id].rarity===r).sort();o[r]=inArmy.length?inArmy:owned.length?owned:CHARS.filter(c=>c.rarity===r).map(c=>c.id);}return o;}
-function makePicker(seed,side,pools){const rng=makeRng(seed+"|arc|"+side);return {next(r){const p=pools[r];return p[Math.floor(rng()*p.length)];}};}
-function validateLog(log){if(!Array.isArray(log)||log.length!==3)return "needs 3 balls";
-  for(const b of log){if(!Array.isArray(b)||b.length>AR.maxStreaks)return "bad ball";let sum=0;
-    for(const k of b){if(!Number.isInteger(k)||k<1||k>6)return "bad streak";sum+=k;}if(sum>AR.maxHitsPerBall)return "too many hits";}
-  return null;}
-function rewardsFromLog(seed,side,pools,log){const pk=makePicker(seed,side,pools),out=[];
-  log.forEach((ball,bi)=>ball.forEach(k=>{for(let l=1;l<=k;l++){const r=LADDER[l-1];out.push({id:pk.next(r),rarity:r,ball:bi});}}));return out;}
-// Bot plays the same machine: a simulated timeline of catches and misses with real ball speeds.
-const BOT_CATCH={easy:[.86,.76,.64,.52,.42,.34],medium:[.93,.87,.79,.7,.6,.52],hard:[.97,.95,.92,.87,.81,.75]};
-function botArcadePlan(diff,rng){const P=BOT_CATCH[diff]||BOT_CATCH.medium,events=[],log=[[],[],[]];
-  for(let b=0;b<3;b++){const t0=b*(AR.ballTime+2);let t=1+rng()*.8,hits=0;
-    while(true){const flight=2*430/AR.speeds[hits]*(.8+rng()*.4);if(t+flight>=AR.ballTime)break;t+=flight;
-      if(rng()<P[hits]){hits++;events.push({t:t0+t,ball:b,type:"hit",hits});if(hits===6){log[b].push(6);hits=0;t+=1.4;}}
-      else{if(hits)log[b].push(hits);events.push({t:t0+t,ball:b,type:"drop",hits});hits=0;t+=1.2;}}
-    if(hits)log[b].push(hits);events.push({t:t0+AR.ballTime,ball:b,type:"end",hits:0});}
-  return {events,log};}
+/* ===================== ARCADE MACHINE (shared by the player's screen, the bots and validation) =====================
+ Your army's fighter types stand in the machine as round bumpers. Three balls bounce around at the same time;
+ every time a ball touches a fighter, you get +1 of that fighter. Keep the balls up with the paddle: each paddle
+ hit makes that ball faster. A ball that falls comes back to the paddle at starting speed (you never lose a ball),
+ it just costs time. The round lasts AR.roundTime seconds. Rarer fighters are smaller bumpers, so harder to hit. */
+const AR={W:400,H:560,padY:518,padW:96,padH:12,ballR:8,balls:3,roundTime:20,speed0:290,speedUp:16,speedMax:520,
+  respawn:3,autoLaunch:.8,hitCooldown:.35,maxTypes:10,maxHits:220};
+const BUMPER_SLOTS=[[200,100],[100,148],[300,148],[200,196],[62,240],[338,240],[132,290],[268,290],[200,262],[200,340]];
+const BUMPER_R={common:27,uncommon:25,rare:23,epic:20,legendary:18,mythic:16};
+const machineTypes=army=>army.map(a=>a.id).slice(-AR.maxTypes);
+class Machine{
+  constructor(types,rng=Math.random){this.rng=rng;this.types=types.slice(0,AR.maxTypes);this.t=0;this.done=false;this.counts={};this.total=0;this.paddleHits=0;this.drops=0;this.events=[];
+    this.bumpers=this.types.map((id,i)=>({id,x:BUMPER_SLOTS[i][0],y:BUMPER_SLOTS[i][1],r:BUMPER_R[CH[id].rarity]||22,hit:0}));
+    this.px=AR.W/2;this.pv=0;
+    this.balls=[0,1,2].map(i=>({i,state:'wait',wt:.5+i*.45,x:AR.W/2,y:AR.padY-AR.ballR-1,vx:0,vy:0,s:AR.speed0,cool:{}}));}
+  movePaddle(target,dt,maxSpeed){const hw=AR.padW/2;target=Math.max(hw,Math.min(AR.W-hw,target));const prev=this.px;
+    if(maxSpeed){const d=target-this.px,m=maxSpeed*dt;this.px+=Math.max(-m,Math.min(m,d));}else this.px+=(target-this.px)*Math.min(1,dt*24);
+    this.pv=(this.px-prev)/Math.max(dt,1e-3);}
+  launchAll(){for(const b of this.balls)if(b.state==='wait')b.wt=0;}
+  launch(b){const a=(b.i-1)*.32+Math.max(-.3,Math.min(.3,this.pv*.001))+(this.rng()-.5)*.12;b.s=AR.speed0;b.vx=Math.sin(a)*b.s;b.vy=-Math.cos(a)*b.s;b.state='play';b.cool={};}
+  step(dt){if(this.done)return;this.t+=dt;if(this.t>=AR.roundTime){this.done=true;this.events.push({k:'end'});return;}
+    for(const B of this.bumpers)if(B.hit>0)B.hit-=dt*4;
+    const R=AR.ballR;
+    for(const b of this.balls){
+      if(b.state==='down'){b.wt-=dt;if(b.wt<=0){b.state='wait';b.wt=AR.autoLaunch;}continue;}
+      if(b.state==='wait'){b.x=Math.max(R,Math.min(AR.W-R,this.px+(b.i-1)*24));b.y=AR.padY-R-1;b.wt-=dt;if(b.wt<=0)this.launch(b);continue;}
+      for(const k in b.cool)if((b.cool[k]-=dt)<=0)delete b.cool[k];
+      const steps=Math.max(1,Math.ceil(b.s*dt/5)),h=dt/steps;
+      for(let n=0;n<steps;n++){const pby=b.y;b.x+=b.vx*h;b.y+=b.vy*h;
+        if(b.x<R){b.x=R;b.vx=Math.abs(b.vx);}else if(b.x>AR.W-R){b.x=AR.W-R;b.vx=-Math.abs(b.vx);}
+        if(b.y<R){b.y=R;b.vy=Math.abs(b.vy);}
+        for(const B of this.bumpers){const dx=b.x-B.x,dy=b.y-B.y,d=Math.sqrt(dx*dx+dy*dy);
+          if(d<R+B.r&&d>0){const nx=dx/d,ny=dy/d,dot=b.vx*nx+b.vy*ny;if(dot<0){b.vx-=2*dot*nx;b.vy-=2*dot*ny;}
+            b.x=B.x+nx*(R+B.r+.5);b.y=B.y+ny*(R+B.r+.5);
+            if(!b.cool[B.id]&&this.total<AR.maxHits){b.cool[B.id]=AR.hitCooldown;B.hit=1;this.counts[B.id]=(this.counts[B.id]||0)+1;this.total++;this.events.push({k:'bump',id:B.id,x:B.x,y:B.y,b:b.i});}}}
+        const m=Math.sqrt(b.vx*b.vx+b.vy*b.vy)||1;b.vx=b.vx/m*b.s;b.vy=b.vy/m*b.s;
+        if(Math.abs(b.vy)<b.s*.3){b.vy=(b.vy<0?-1:1)*b.s*.3;b.vx=(b.vx<0?-1:1)*Math.sqrt(b.s*b.s-b.vy*b.vy);}
+        if(b.vy>0&&pby+R<=AR.padY+2&&b.y+R>=AR.padY&&Math.abs(b.x-this.px)<=AR.padW/2+R){
+          const off=Math.max(-1,Math.min(1,(b.x-this.px)/(AR.padW/2+R)));let a=off*1.05+Math.max(-.2,Math.min(.2,this.pv*.00045));a=Math.max(-1.15,Math.min(1.15,a));
+          b.s=Math.min(AR.speedMax,b.s+AR.speedUp);b.vx=Math.sin(a)*b.s;b.vy=-Math.cos(a)*b.s;b.y=AR.padY-R-.5;this.paddleHits++;this.events.push({k:'paddle',b:b.i,x:b.x});break;}
+        if(b.y-R>AR.H){b.state='down';b.wt=AR.respawn;b.s=AR.speed0;this.drops++;this.events.push({k:'drop',b:b.i,x:b.x});break;}}}}
+}
+// Where the paddle should go: under the ball that will reach the paddle first (folding in wall bounces), plus aiming error.
+function steerTarget(m,rng,err,aim){let best=null,bt=Infinity;const R=AR.ballR;
+  for(const b of m.balls)if(b.state==='play'&&b.vy>0){const tt=(AR.padY-R-b.y)/b.vy;if(tt<bt){bt=tt;best=b;}}
+  if(!best){const p=m.balls.filter(b=>b.state==='play');if(!p.length)return AR.W/2;best=p.reduce((a,b)=>b.y>a.y?b:a);return best.x+(rng()-.5)*2*err;}
+  const L=R,span=AR.W-2*R;let x=best.x+best.vx*bt-L;x=((x%(2*span))+2*span)%(2*span);if(x>span)x=2*span-x;x+=L;
+  // skilled players aim: hit the ball off-centre so it flies toward a fighter
+  if(aim&&m.bumpers.length){if(best._aimFor===undefined||best._aimAt!==Math.round(bt*10)){best._aimAt=Math.round(bt*10);best._aimFor=rng()<aim?Math.floor(rng()*m.bumpers.length):-1;}
+    const B=m.bumpers[best._aimFor];if(B){const a=Math.atan((B.x-x)/Math.max(40,AR.padY-B.y));const off=Math.max(-.85,Math.min(.85,a/1.05));x-=off*(AR.padW/2+R);}}
+  return x+(rng()-.5)*2*err;}
+const BOT_SKILL={easy:{spd:200,err:62,react:.45,aim:0},medium:{spd:340,err:26,react:.2,aim:.45},hard:{spd:640,err:6,react:.07,aim:.9}};
+// A bot plays the real machine physics with a limited paddle speed, reaction time and aiming error.
+function botMachineRun(diff,rng,types){const m=new Machine(types,rng),sk=BOT_SKILL[diff]||BOT_SKILL.medium,dt=1/60,hits=[];let target=AR.W/2,rt=0;
+  while(!m.done){rt-=dt;if(rt<=0){rt=sk.react;target=steerTarget(m,rng,sk.err,sk.aim);}m.movePaddle(target,dt,sk.spd);m.step(dt);
+    for(const e of m.events)if(e.k==='bump')hits.push({t:m.t,id:e.id});m.events.length=0;}
+  return {hits,counts:m.counts,drops:m.drops};}
+function validateCounts(counts,types){if(!counts||typeof counts!=='object'||Array.isArray(counts))return 'bad results';let sum=0;
+  for(const k of Object.keys(counts)){const n=counts[k];if(!types.includes(k))return 'fighter not in machine';if(!Number.isInteger(n)||n<0)return 'bad count';sum+=n;}
+  if(sum>AR.maxHits)return 'too many hits';return null;}
 
 /* ===================== COMBAT (deterministic, fixed timestep) ===================== */
 const ARENA={W:1000,H:560},DT=.05,MAXT=75;
@@ -302,15 +334,15 @@ const BOTNAMES={easy:'Pebble',medium:'Clank',hard:'Grimbolt'};
 /* ===================== MATCH PROTOCOL =====================
  Both players run this same state machine. Each publishes ONE state object (via a transport):
    {app,v,name,st:[2 starters],coll:[owned ids],r:round,c:commit,n:nonce,p:pick,
-    lv:{r,ball,hits,earned:[ladder steps],done} (live arcade progress), a:arcadeRound,log:[[streaks],[..],[..]],
+    lv:{r,counts,done} (live machine progress), a:arcadeRound,log:{fighterId:hits},
     d:roundDone,h:resultHash}
  Per round: commit = SHA256(nonce|pick) is published first, nonce+pick only after BOTH commits are seen,
  so nobody can see the other's pick or bias the shared random seed. seed = SHA256(nonce0|nonce1).
- Each player then plays their own arcade machine and publishes a log of streak lengths. The other side
- validates the log against the machine's limits and derives the exact fighters from it with the shared seed,
- so nobody can choose which fighter a rarity step gives. The battle is deterministic from the seed too, and
+ Each player then plays their own arcade machine, where their army's fighter types are the bumpers, and
+ publishes how often each fighter was hit. The other side checks that only fighters standing in that machine
+ were hit and that the total fits what the machine allows. The battle is deterministic from the seed, and
  each side publishes a result hash that the other checks. */
-const BASE_FIGHTERS=2;
+const BASE_FIGHTERS=1;
 function validateRoster(o){if(!o||typeof o!=='object')return 'no state';
   if(!Array.isArray(o.coll)||o.coll.length<2||o.coll.length>40)return 'bad collection';
   if(new Set(o.coll).size!==o.coll.length||!o.coll.every(id=>CH[id]))return 'bad collection';
@@ -352,32 +384,28 @@ class Match{
     if(await commitHash(r,o.n,o.p)!==o.c)return this.abort('Your opponent\'s reveal did not match their commitment.',this.side);
     if(r>1){const e=validatePick(this.oppInfo.coll,this.army[this.oppSide],o.p);if(e)return this.abort('Your opponent made an illegal pick ('+e+').',this.side);}
     const nonces=[],picks=[];nonces[this.side]=this.nonce;nonces[this.oppSide]=String(o.n);picks[this.side]=this.pick;picks[this.oppSide]=o.p||null;
-    this.seed=await sha('seed|'+r+'|'+nonces[0]+'|'+nonces[1]);this.newTypes=[[],[]];this.pools=[];
+    this.seed=await sha('seed|'+r+'|'+nonces[0]+'|'+nonces[1]);this.newTypes=[[],[]];this.machine=[[],[]];
     for(const s of [0,1]){const info=s===this.side?this.me:this.oppInfo;let types;
       if(r===1){const pool=info.coll.filter(id=>!info.st.includes(id)).sort();const rr=makeRng(this.seed+'|rand|'+s);types=[info.st[0],info.st[1],pool.length?pool[Math.floor(rr()*pool.length)]:info.st[0]];}
       else types=[picks[s]];
       this.armyBefore[s]=clone(this.army[s]);types.forEach(id=>addToArmy(this.army[s],id,BASE_FIGHTERS));this.newTypes[s]=types;
-      this.pools[s]=rewardPools(info.coll,this.army[s].map(a=>a.id));}
-    this.picker=makePicker(this.seed,this.side,this.pools[this.side]);
+      this.machine[s]=machineTypes(this.army[s]);}
     this.phase='arcade';this.emit();if(this.headless)this.runBotArcade();}
   // live progress for the opponent's screen; never trusted for rewards
   setLive(lv){this.t.setMine({lv:Object.assign({r:this.round},lv)});}
-  arcadeDone(log){if(this.phase!=='arcade')return;const e=validateLog(log);if(e){console.error('own log invalid',e);return;}
-    this.myLog=clone(log);this.t.setMine({a:this.round,log:this.myLog});this.phase='arcadeWait';this.emit();this.pump();}
-  collect(oppLog){const e=validateLog(oppLog);if(e)return this.abort('Your opponent\'s machine results were impossible ('+e+').',this.side);
-    const logs=[];logs[this.side]=this.myLog;logs[this.oppSide]=oppLog;this.logs=logs;this.rewards=[[],[]];
-    for(const s of [0,1]){this.rewards[s]=rewardsFromLog(this.seed,s,this.pools[s],logs[s]);for(const w of this.rewards[s])addToArmy(this.army[s],w.id,1);}
+  arcadeDone(counts){if(this.phase!=='arcade')return;const e=validateCounts(counts,this.machine[this.side]);if(e){console.error('own results invalid',e);return;}
+    this.myLog=clone(counts);this.t.setMine({a:this.round,log:this.myLog});this.phase='arcadeWait';this.emit();this.pump();}
+  collect(oppCounts){const e=validateCounts(oppCounts,this.machine[this.oppSide]);if(e)return this.abort('Your opponent\'s machine results were impossible ('+e+').',this.side);
+    const logs=[];logs[this.side]=this.myLog;logs[this.oppSide]=oppCounts;this.logs=logs;this.rewards=[{},{}];
+    for(const s of [0,1])for(const id of this.machine[s]){const n=logs[s][id]||0;if(n){this.rewards[s][id]=n;addToArmy(this.army[s],id,n);}}
     this.phase='muster';this.emit();if(this.headless)this.toBattle();}
   toBattle(){if(this.phase!=='muster')return;this.phase='battle';this.battleArmies=clone(this.army);this.emit();
     if(this.headless)this.later(()=>this.battleDone(runBattleHeadless(this.battleArmies,this.seed)),this.ai&&this.ai.fast?0:20);}
-  runBotArcade(){const plan=botArcadePlan(this.ai.diff,this.ai.rng),fast=this.ai.fast,earned=[];
-    this.setLive({ball:1,hits:0,earned:[]});
-    for(const ev of plan.events){this.later(()=>{if(this.phase!=='arcade')return;
-        if(ev.type==='hit')earned.push(ev.hits-1);
-        const ball=ev.type==='end'?Math.min(3,ev.ball+2):ev.ball+1;
-        this.setLive({ball,hits:ev.type==='hit'&&ev.hits<6?ev.hits:0,earned:earned.slice()});},fast?0:ev.t*1000);}
-    const end=plan.events.length?plan.events[plan.events.length-1].t:0;
-    this.later(()=>{this.setLive({ball:3,hits:0,earned:earned.slice(),done:true});this.arcadeDone(plan.log);},fast?0:end*1000+400);}
+  runBotArcade(){const run=botMachineRun(this.ai.diff,this.ai.rng,this.machine[this.side]),fast=this.ai.fast,live={};
+    this.setLive({counts:{}});let lastSent=-1;
+    run.hits.forEach((h,i)=>{live[h.id]=(live[h.id]||0)+1;const snap=Object.assign({},live);const sec=Math.floor(h.t*3);
+      if(sec!==lastSent||i===run.hits.length-1){lastSent=sec;this.later(()=>{if(this.phase==='arcade')this.setLive({counts:snap});},fast?0:h.t*1000);}});
+    this.later(()=>{this.setLive({counts:run.counts,done:true});this.arcadeDone(run.counts);},fast?0:AR.roundTime*1000+300);}
   battleDone(res){if(this.phase!=='battle')return;this.result=res;const w=res.winner;
     if(w>=0){this.score[w]++;this.lastLoser=1-w;}else this.lastLoser=-1;
     this.history.push({round:this.round,winner:w});this.myHash=resultHash(res);this.phase='roundOver';this.emit();if(this.headless)this.ready();}

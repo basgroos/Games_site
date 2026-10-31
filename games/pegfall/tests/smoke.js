@@ -43,16 +43,17 @@ const phase = () => E('S.match&&S.match.phase');
     if ($('#go').disabled) { click('#pg .ccard:not(.sel)'); }
     ok(!$('#go').disabled, 'could not choose 2 starters'); click('#go');
     E('S.bot.ai.fast=true');
-    let rounds = 0, mythics = 0, earned = 0;
+    let rounds = 0, drops = 0, earned = 0;
     while (rounds < 9) {
       await waitFor(() => ['arcade', 'pick', 'over'].includes(phase()), 8000, 'arcade or pick');
       if (phase() === 'over') break;
       if (phase() === 'pick') { await waitFor(() => $('#pkg .ccard'), 3000, 'pick cards'); click('#pkg .ccard'); click('#lock'); continue; }
       await waitFor(() => E('!!VIEWS.arcade'), 3000, 'arcade view');
-      for (let f = 0; f < 6000 && E("VIEWS.arcade&&VIEWS.arcade.state!=='done'"); f++) E('VIEWS.arcade.target=VIEWS.arcade.bx;VIEWS.arcade.frame(1/60)');
-      ok(E("VIEWS.arcade.state") === 'done', 'arcade never finished');
-      earned += E('MV.earned.length'); mythics += E("MV.earned.filter(e=>e.rarity==='mythic').length");
-      ok(E('VIEWS.arcade.log.length') === 3, 'log should have 3 balls');
+      E('VIEWS.arcade.m.launchAll()');
+      for (let f = 0; f < 3000 && E('!VIEWS.arcade.m.done'); f++) E('VIEWS.arcade.target=steerTarget(VIEWS.arcade.m,Math.random,0,.8);VIEWS.arcade.frame(1/60)');
+      E('VIEWS.arcade.frame(1/60)');
+      ok(E('VIEWS.arcade.m.done'), 'arcade never finished');
+      earned += E('Object.values(MV.counts).reduce((a,b)=>a+b,0)'); drops += E('VIEWS.arcade.m.drops');
       await waitFor(() => phase() === 'muster', 5000, 'muster');
       ok(w.document.querySelectorAll('.muster-col').length === 2, 'muster screen missing');
       click('#tobattle');
@@ -65,10 +66,9 @@ const phase = () => E('S.match&&S.match.phase');
     await waitFor(() => phase() === 'over', 8000, 'match over');
     const score = E('S.match.score');
     ok(Math.max(...score) === 3, 'nobody reached 3 points');
-    ok(earned > 0, 'perfect paddle play earned nothing');
-    ok(mythics > 0, 'perfect paddle play never reached Mythic');
+    ok(earned > 20, 'good paddle play earned only ' + earned);
     ok($('.big.win') || $('.big.lose'), 'no result screen');
-    return { rounds, score, earned, mythics, reward: E('S.match.reward') };
+    return { rounds, score, hits: earned, drops, reward: E('S.match.reward') };
   });
   await run('multiplayer screen works offline (no backend in tests)', () => {
     click('#tomenu'); E("go('mp')"); ok($('#mq'), 'no quick match button'); click('#mb'); ok(E('S.screen') === 'prep', 'bot fallback broken');

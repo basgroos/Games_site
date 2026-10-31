@@ -9,7 +9,7 @@ async function run(label, fn) {
 }
 (async () => {
   await run('roster has every rarity, rates add up to 100%', () => {
-    const r = E('({n:CHARS.length, per:LADDER.map(x=>CHARS.filter(c=>c.rarity===x).length), sum:Object.values(RARITY).reduce((a,b)=>a+b.w,0)})');
+    const r = E('({n:CHARS.length, per:RORDER.map(x=>CHARS.filter(c=>c.rarity===x).length), sum:Object.values(RARITY).reduce((a,b)=>a+b.w,0)})');
     ok(r.per.every((n) => n >= 2), 'a rarity has fewer than 2 fighters');
     ok(Math.abs(r.sum - 100) < 1e-9, 'rates sum to ' + r.sum);
     return r;
@@ -20,25 +20,25 @@ async function run(label, fn) {
     ok(r.same, 'same seed gave different results');
     return r;
   });
-  await run('arcade rewards follow the ladder exactly (6 hits = one of each rarity, Mythic last)', () => {
-    const r = E(`(()=>{const pools=rewardPools(['pip','bramble','gumbo'],['pip','gumbo']);const out=rewardsFromLog('seed',0,pools,[[6],[2,1],[]]);
-      const live=makePicker('seed',0,pools);const order=[1,2,3,4,5,6,1,2,1];const same=order.every((l,i)=>live.next(LADDER[l-1])===out[i].id);
-      return {n:out.length,rar:out.map(o=>o.rarity),same,commonsAreArmyTypes:out.filter(o=>o.rarity==='common').every(o=>['pip'].includes(o.id)),uncommonIsGumbo:out.filter(o=>o.rarity==='uncommon').every(o=>o.id==='gumbo')};})()`);
-    ok(r.n === 9, 'expected 9 fighters');
-    ok(r.rar.slice(0, 6).join() === 'common,uncommon,rare,epic,legendary,mythic', 'ladder order wrong');
-    ok(r.same, 'live picker and log replay disagree');
-    ok(r.commonsAreArmyTypes && r.uncommonIsGumbo, 'rewards ignored army types');
-    return { n: r.n, first6: r.rar.slice(0, 6) };
+  await run('machine: every bumper touch gives +1 of that fighter, three balls play at once', () => {
+    const r = E(`(()=>{const m=new Machine(['pip','gumbo','vex'],makeRng('m'));let bumps=0,inPlay=0;const per={};const rr=makeRng('x');
+      while(!m.done){m.movePaddle(steerTarget(m,rr,0,0),1/60,0);m.step(1/60);inPlay=Math.max(inPlay,m.balls.filter(b=>b.state==='play').length);
+        for(const e of m.events)if(e.k==='bump'){bumps++;per[e.id]=(per[e.id]||0)+1;}m.events.length=0;}
+      return {bumps,total:m.total,same:JSON.stringify(per)===JSON.stringify(m.counts),inPlay,sizes:m.bumpers.map(b=>b.r)};})()`);
+    ok(r.bumps > 0 && r.bumps === r.total && r.same, 'hits and counts disagree');
+    ok(r.inPlay === 3, 'three balls were never in play together');
+    ok(r.sizes[2] < r.sizes[0], 'mythic bumper is not smaller than common');
+    return r;
   });
-  await run('impossible machine logs are rejected', () => {
-    const bad = E(`[validateLog([[7],[],[]]),validateLog([[1],[2]]),validateLog([[6,6,6,6,6,6,6],[],[]]),validateLog([[1.5],[],[]]),validateLog([['6'],[],[]])]`);
-    ok(bad.every(Boolean), 'a bad log was accepted: ' + JSON.stringify(bad));
-    ok(E('validateLog([[6,6,3],[2],[]])') === null, 'a valid log was rejected');
+  await run('impossible machine results are rejected', () => {
+    const bad = E(`[validateCounts({pip:5,vex:2},['pip']),validateCounts({pip:999},['pip']),validateCounts({pip:1.5},['pip']),validateCounts({pip:-1},['pip']),validateCounts([3],['pip']),validateCounts(null,['pip'])]`);
+    ok(bad.every(Boolean), 'bad results accepted: ' + JSON.stringify(bad));
+    ok(E("validateCounts({pip:12,gumbo:3},['pip','gumbo'])") === null, 'valid results rejected');
     return bad;
   });
-  await run('bot skill matters: hard reaches Mythic far more often than easy', () => {
-    const r = E(`(()=>{const m={};for(const d of ['easy','hard']){let my=0;for(let i=0;i<200;i++){const p=botArcadePlan(d,makeRng(d+i));if(validateLog(p.log))throw new Error('bot made invalid log');my+=p.log.flat().filter(k=>k===6).length;}m[d]=my/200;}return m;})()`);
-    ok(r.hard > r.easy * 3, 'hard not clearly better');
+  await run('bot skill matters: hard drops fewer balls and hits more than easy', () => {
+    const r = E(`(()=>{const o={};for(const d of ['easy','hard']){let h=0,dr=0;for(let i=0;i<30;i++){const x=botMachineRun(d,makeRng(d+i),['pip','bramble','cinder','gumbo','wren']);h+=x.hits.length;dr+=x.drops;}o[d]={hits:h/30,drops:dr/30};}return o;})()`);
+    ok(r.hard.hits > r.easy.hits && r.hard.drops < r.easy.drops, 'hard is not better');
     return r;
   });
   await run('gacha: Epic+ within 10 pulls, Legendary+ within 50', () => {

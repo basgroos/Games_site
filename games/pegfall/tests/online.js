@@ -39,8 +39,10 @@ async function playRound(p) {
   if (ph === 'over') return false;
   if (ph === 'pick' && $(p, '#pkg .ccard') && !p.__picked) { p.__picked = 1; $(p, '#pkg .ccard').click(); $(p, '#lock').click(); }
   if (ph !== 'pick') p.__picked = 0;
-  if (ph === 'arcade' && p.E('!!VIEWS.arcade') && p.E("VIEWS.arcade.state!=='done'")) {
-    for (let f = 0; f < 6000 && p.E("VIEWS.arcade.state!=='done'"); f++) p.E('VIEWS.arcade.target=VIEWS.arcade.bx+(Math.random()-.5)*30;VIEWS.arcade.frame(1/60)');
+  if (ph === 'arcade' && p.E('!!VIEWS.arcade') && p.E('!VIEWS.arcade.m.done')) {
+    p.E('VIEWS.arcade.m.launchAll()');
+    for (let f = 0; f < 3000 && p.E('!VIEWS.arcade.m.done'); f++) p.E('VIEWS.arcade.target=steerTarget(VIEWS.arcade.m,Math.random,12,.5);VIEWS.arcade.frame(1/60)');
+    p.E('VIEWS.arcade.frame(1/60)');
   }
   if (ph === 'muster' && $(p, '#tobattle')) $(p, '#tobattle').click();
   if (ph === 'battle' && p.E('!!VIEWS.battle&&!VIEWS.battle.reported')) p.E('VIEWS.battle.intro=0;VIEWS.battle.skip();VIEWS.battle.frame(0.016)');
@@ -61,8 +63,9 @@ async function playRound(p) {
   });
   await run('opponent sees live arcade progress', async () => {
     await waitFor(() => phase(A) === 'arcade' && phase(B) === 'arcade', 8000, 'both at the arcade');
-    for (let f = 0; f < 400; f++) A.E('VIEWS.arcade.target=VIEWS.arcade.bx;VIEWS.arcade.frame(1/60)');
-    await waitFor(() => B.E('(S.match.opp&&S.match.opp.lv&&S.match.opp.lv.earned||[]).length') > 0, 3000, 'live progress on the other page');
+    A.E('VIEWS.arcade.m.launchAll()');
+    for (let f = 0; f < 600; f++) A.E('VIEWS.arcade.target=steerTarget(VIEWS.arcade.m,Math.random,0,.8);VIEWS.arcade.frame(1/60)');
+    await waitFor(() => B.E('Object.keys((S.match.opp&&S.match.opp.lv&&S.match.opp.lv.counts)||{}).length') > 0, 3000, 'live progress on the other page');
     return { seenByFriend: B.E('S.match.opp.lv') };
   });
   await run('both pages play the match to the end and agree on everything', async () => {
@@ -83,7 +86,7 @@ async function playRound(p) {
   });
   await run('a forged machine log is rejected by the other player', async () => {
     const r = A.E(`(()=>{const [tA,tB]=makeLoopback();const m=new Match({transport:tA,side:0,me:{name:'x',st:['pip','bramble'],coll:ownedIds()}});
-      m.phase='arcadeWait';m.round=1;m.myLog=[[],[],[]];m.seed='s';m.pools=[rewardPools(ownedIds(),[]),rewardPools(ownedIds(),[])];m.collect([[6,6,6,6,6,6,6,6],[],[]]);return m.forfeit&&m.forfeit.msg;})()`);
+      m.phase='arcadeWait';m.round=1;m.myLog={};m.seed='s';m.machine=[['pip'],['pip','bramble']];m.collect({pip:3,vex:40});return m.forfeit&&m.forfeit.msg;})()`);
     ok(/impossible/.test(r || ''), 'forged log was accepted');
     return r;
   });

@@ -1,8 +1,17 @@
 # Wijzigingen
 
+## Pegfall Arena 1.1.0 (2026-10-31)
+- **De arcadekast werkt nu zoals bedoeld: de vechters zijn de bumpers.** De types in je leger staan als ronde poppetjes in de kast. Er stuiteren **drie ballen tegelijk**; elke keer dat een bal een poppetje raakt, krijg je **+1 van dat poppetje**. De zeldzaamheidsladder is weg.
+- Houd de ballen hoog met de paddle (muis, vinger of A/D en pijltjes); de rand van de paddle stuurt de bal schuin, het midden recht omhoog. Zo kun je mikken op het poppetje dat je wilt. Elke paddle-treffer maakt die bal sneller.
+- Een bal die valt komt na 3 seconden terug op de paddle, op beginsnelheid. Je verliest nooit een bal, alleen tijd. Een ronde in de kast duurt 20 seconden.
+- Zeldzamere poppetjes zijn kleinere bumpers en dus lastiger te raken. Elk nieuw type komt met 1 vechter in je leger en staat vanaf dan in de kast.
+- Bots spelen dezelfde kast met echte natuurkunde: Easy is traag en mikt slecht, Hard laat de bal bijna nooit vallen en mikt op poppetjes.
+- Je ziet live hoeveel treffers je tegenstander per poppetje heeft. Online wordt gecontroleerd dat alleen poppetjes uit de kast geraakt zijn en dat het totaal kan.
+- Tests aangepast: drie ballen tegelijk, +1 per treffer, validatie, botvaardigheid, en een heel potje in de kast (los en online).
+
 ## Pegfall Arena 1.0.0 (2026-10-31)
 - **Nieuw spel: Pegfall Arena**, een gacha-auto-battler. Verzamel 24 vechters in zes zeldzaamheden (Common, Uncommon, Rare, Epic, Legendary, Mythic), kies twee starters en win als eerste 3 rondes.
-- **De arcadekast** (in plaats van Plinko): elke ronde krijg je 3 ballen van elk 20 seconden. Houd de bal hoog met de paddle (muis, vinger of A/D en pijltjes). Elke geraakte bal klimt een trede op de ladder: 1 = Common, 2 = Uncommon … 6 = Mythic, en levert meteen een vechter van die zeldzaamheid op. Mis je de bal, dan houd je alles wat je verdiende, maar begint de ladder en de snelheid opnieuw. Bij Mythic wordt de reeks verzilverd en begint de ladder weer bij Common. Waar je de paddle raakt bepaalt de richting; de bal wordt bij elke treffer sneller.
+- **De arcadekast** (in plaats van Plinko, vervangen in 1.1.0): elke ronde krijg je 3 ballen van elk 20 seconden. Houd de bal hoog met de paddle (muis, vinger of A/D en pijltjes). Elke geraakte bal klimt een trede op de ladder: 1 = Common, 2 = Uncommon … 6 = Mythic, en levert meteen een vechter van die zeldzaamheid op. Mis je de bal, dan houd je alles wat je verdiende, maar begint de ladder en de snelheid opnieuw. Bij Mythic wordt de reeks verzilverd en begint de ladder weer bij Common. Waar je de paddle raakt bepaalt de richting; de bal wordt bij elke treffer sneller.
 - Zeldzaamheid wordt nooit gerold: alleen je aantal treffers telt. Welke vechter je krijgt komt eerst uit de types in je leger, anders uit je collectie.
 - Daarna vechten de legers automatisch: melee, boogschutters, magiërs met vlakschade, tanks, sluipmoordenaars, healers en een support, met speciale aanvallen als meteoren, kettingbliksem, zwarte gaten en een herrijzenis.
 - **Bots** (Easy, Medium, Hard) spelen dezelfde kast; Hard haalt veel vaker Mythic en plant synergieën.

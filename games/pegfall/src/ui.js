@@ -142,109 +142,66 @@ function loop(now){const dt=Math.min(.05,(now-lastT)/1000);lastT=now;
 requestAnimationFrame(loop);
 function fitCanvas(cv,w,h){const dpr=Math.min(2,window.devicePixelRatio||1);cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);return g;}
 
-/* ===================== ARCADE VIEW (skill-based paddle machine) ===================== */
+/* ===================== ARCADE VIEW (fighters are the bumpers, 3 balls at once) ===================== */
 const ARC_KEYS={l:false,r:false};
 const isTyping=e=>e.target&&e.target.closest&&e.target.closest('input,select,textarea');
 window.addEventListener('keydown',e=>{const a=VIEWS.arcade&&!VIEWS.arcade.demo?VIEWS.arcade:null;if(!a||isTyping(e))return;
   if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A'){ARC_KEYS.l=true;e.preventDefault();}
   else if(e.key==='ArrowRight'||e.key==='d'||e.key==='D'){ARC_KEYS.r=true;e.preventDefault();}
-  else if(e.key===' '||e.key==='Enter'||e.key==='ArrowUp'||e.key==='w'||e.key==='W'){a.launch();e.preventDefault();}});
+  else if(e.key===' '||e.key==='Enter'||e.key==='ArrowUp'||e.key==='w'||e.key==='W'){a.m.launchAll();e.preventDefault();}});
 window.addEventListener('keyup',e=>{if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A')ARC_KEYS.l=false;if(e.key==='ArrowRight'||e.key==='d'||e.key==='D')ARC_KEYS.r=false;});
-const clampN=(v,a,b)=>Math.max(a,Math.min(b,v));
-const ballColor=h=>h<=0?'#f2f7ee':RARITY[LADDER[Math.min(6,h)-1]].color;
+const BALL_C=['#fff3b0','#9ff3ff','#ffb3d1'];
 class ArcadeView{
-  constructor(cv,o={}){this.cv=cv;this.g=fitCanvas(cv,AR.W,AR.H);this.demo=!!o.demo;this.picker=o.picker||null;
-    this.onAward=o.onAward||(()=>{});this.onLive=o.onLive||(()=>{});this.onFinish=o.onFinish||(()=>{});this.onHud=o.onHud||(()=>{});
-    this.ball=0;this.time=AR.ballTime;this.hits=0;this.shown=0;this.log=[[],[],[]];this.earned=[];this.state='ready';this.stT=0;this.t=0;
-    this.px=AR.W/2;this.target=AR.W/2;this.pv=0;this.bx=AR.W/2;this.by=AR.padY-AR.ballR-1;this.vx=0;this.vy=0;
-    this.trail=[];this.parts=[];this.texts=[];this.flash=0;this.flashC='#fff';this.shake=0;this.mythicT=0;
-    this.bumpers=[{x:96,y:178,r:15,g:0},{x:304,y:178,r:15,g:0},{x:200,y:276,r:17,g:0}];
+  constructor(cv,o={}){this.cv=cv;this.g=fitCanvas(cv,AR.W,AR.H);this.demo=!!o.demo;this.types=o.types||[];
+    this.onBump=o.onBump||(()=>{});this.onHud=o.onHud||(()=>{});this.onFinish=o.onFinish||(()=>{});
+    this.m=new Machine(this.types);this.target=AR.W/2;this.t=0;this.parts=[];this.texts=[];this.trails=[[],[],[]];this.finished=false;this.rt=0;this.shake=0;
+    this.imgs={};for(const id of this.types){const im=new Image();im.src=portrait(id,96);this.imgs[id]=im;}
     if(!this.demo){cv.style.touchAction='none';
       const aim=e=>{const r=cv.getBoundingClientRect();if(r.width)this.target=(e.clientX-r.left)/r.width*AR.W;};
       cv.addEventListener('pointermove',aim);
-      cv.addEventListener('pointerdown',e=>{aim(e);try{cv.setPointerCapture(e.pointerId);}catch(_){}if(this.state==='ready')this.launch();});}
-    this.hudSig='';}
-  get padW(){return AR.padW-AR.padShrink*Math.min(6,this.hits);}
-  get speed(){return AR.speeds[Math.min(6,this.hits)];}
-  launch(){if(this.state!=='ready')return;const a=clampN(this.pv*.0012,-.45,.45)+(this.demo?(Math.random()-.5)*.6:0);
-    this.vx=Math.sin(a)*AR.speeds[0];this.vy=-Math.cos(a)*AR.speeds[0];this.state='play';if(!this.demo)sfx('click');}
-  frame(dt){this.t+=dt;const R=AR.ballR;
-    if(this.demo){const tx=this.state==='play'?this.bx+(this.vy>0?0:Math.sin(this.t*.9)*30):AR.W/2+Math.sin(this.t*.7)*60;this.target=tx+Math.sin(this.t*2.3)*(10+this.hits*3);}
-    else{if(ARC_KEYS.l)this.target-=600*dt;if(ARC_KEYS.r)this.target+=600*dt;}
-    const hw=this.padW/2;this.target=clampN(this.target,hw,AR.W-hw);const prev=this.px;
-    this.px+=(this.target-this.px)*Math.min(1,dt*(this.demo?7:24));this.px=clampN(this.px,hw,AR.W-hw);this.pv=(this.px-prev)/Math.max(dt,1e-3);
-    if(!this.demo&&(this.state==='ready'||this.state==='play'||this.state==='drop'||this.state==='cashout')){this.time-=dt;if(this.time<=0){this.time=0;this.endBall();}}
-    if(this.state==='ready'){this.bx=this.px;this.by=AR.padY-R-1;this.stT+=dt;if(this.stT>(this.demo?.6:AR.autoLaunch))this.launch();}
-    else if(this.state==='play')this.physics(dt);
-    else if(this.state==='drop'||this.state==='cashout'){this.stT+=dt;if(this.stT>(this.state==='cashout'?1.3:.8)){this.state='ready';this.stT=0;this.shown=0;}}
-    else if(this.state==='between'){this.stT+=dt;if(this.stT>1.5){this.time=AR.ballTime;this.state='ready';this.stT=0;this.shown=0;}}
-    if(this.state==='play'||this.state==='ready'){this.trail.push([this.bx,this.by]);const max=4+this.hits*2;while(this.trail.length>max)this.trail.shift();}else this.trail.length=0;
-    for(const b of this.bumpers)if(b.g>0)b.g-=dt*3;
+      cv.addEventListener('pointerdown',e=>{aim(e);try{cv.setPointerCapture(e.pointerId);}catch(_){}this.m.launchAll();});}}
+  frame(dt){this.t+=dt;const m=this.m;
+    if(this.demo){this.rt-=dt;if(this.rt<=0){this.rt=.1;this.target=steerTarget(m,Math.random,10,.6);}m.movePaddle(this.target,dt,520);
+      if(m.t>AR.roundTime-.5){this.m=new Machine(this.types);this.trails=[[],[],[]];}}
+    else{if(ARC_KEYS.l)this.target-=620*dt;if(ARC_KEYS.r)this.target+=620*dt;this.target=Math.max(AR.padW/2,Math.min(AR.W-AR.padW/2,this.target));m.movePaddle(this.target,dt,0);}
+    if(!m.done)m.step(dt);
+    for(const e of m.events){
+      if(e.k==='bump'){const c=CH[e.id],col=RARITY[c.rarity].color;this.texts.push({x:e.x,y:e.y-34,s:'+1',c:col,l:.7});
+        for(let i=0;i<8;i++){const a=Math.random()*6.28,v=60+Math.random()*120;this.parts.push({x:e.x,y:e.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:.45,c:col});}
+        if(!this.demo){sfx('peg',2+RIDX[c.rarity]*2);this.onBump(e.id);}}
+      else if(e.k==='paddle'){for(let i=0;i<5;i++)this.parts.push({x:e.x,y:AR.padY,vx:(Math.random()-.5)*140,vy:-Math.random()*90,gr:300,l:.35,c:'#3fe0b0'});if(!this.demo)sfx('click');}
+      else if(e.k==='drop'){this.texts.push({x:Math.max(60,Math.min(AR.W-60,e.x)),y:AR.H-30,s:'Missed!',c:'#ff6a55',l:.9});this.shake=5;if(!this.demo)sfx('lose');}}
+    m.events.length=0;
+    if(m.done&&!this.finished&&!this.demo){this.finished=true;sfx('land');this.onFinish(Object.assign({},m.counts));}
+    m.balls.forEach((b,i)=>{const tr=this.trails[i];if(b.state==='play'){tr.push([b.x,b.y]);const max=3+Math.round((b.s-AR.speed0)/40);while(tr.length>max)tr.shift();}else tr.length=0;});
     for(const p of this.parts){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=(p.gr||0)*dt;p.l-=dt;}this.parts=this.parts.filter(p=>p.l>0);
-    for(const x of this.texts){x.y-=26*dt;x.l-=dt;}this.texts=this.texts.filter(x=>x.l>0);
-    if(this.flash>0)this.flash-=dt*2.5;if(this.shake>0)this.shake=Math.max(0,this.shake-dt*30);if(this.mythicT>0)this.mythicT-=dt;
-    this.draw();this.hud();}
-  physics(dt){const R=AR.ballR,s=this.speed,steps=Math.max(1,Math.ceil(s*dt/5)),h=dt/steps;
-    for(let i=0;i<steps;i++){const pby=this.by;this.bx+=this.vx*h;this.by+=this.vy*h;
-      if(this.bx<R){this.bx=R;this.vx=Math.abs(this.vx);}else if(this.bx>AR.W-R){this.bx=AR.W-R;this.vx=-Math.abs(this.vx);}
-      if(this.by<R){this.by=R;this.vy=Math.abs(this.vy);}
-      for(const b of this.bumpers){const dx=this.bx-b.x,dy=this.by-b.y,d=Math.hypot(dx,dy);
-        if(d<R+b.r&&d>0){const nx=dx/d,ny=dy/d,dot=this.vx*nx+this.vy*ny;if(dot<0){this.vx-=2*dot*nx;this.vy-=2*dot*ny;}
-          this.bx=b.x+nx*(R+b.r+.5);this.by=b.y+ny*(R+b.r+.5);b.g=1;if(!this.demo)sfx('peg',6);}}
-      const m=Math.hypot(this.vx,this.vy)||1;this.vx=this.vx/m*s;this.vy=this.vy/m*s;
-      if(Math.abs(this.vy)<s*.32){this.vy=(this.vy<0?-1:1)*s*.32;this.vx=(this.vx<0?-1:1)*Math.sqrt(s*s-this.vy*this.vy);}
-      if(this.vy>0&&pby+R<=AR.padY+2&&this.by+R>=AR.padY&&Math.abs(this.bx-this.px)<=this.padW/2+R){this.paddleHit();return;}
-      if(this.by-R>AR.H){this.miss();return;}}}
-  paddleHit(){const R=AR.ballR,off=clampN((this.bx-this.px)/(this.padW/2+R),-1,1);this.hits++;const lvl=Math.min(6,this.hits);
-    let a=off*1.0+clampN(this.pv*.00045,-.2,.2);if(lvl>=3)a+=(Math.random()-.5)*.035*lvl;a=clampN(a,-1.15,1.15);
-    const s=AR.speeds[lvl];this.vx=Math.sin(a)*s;this.vy=-Math.cos(a)*s;this.by=AR.padY-R-.5;this.shown=lvl;
-    for(let i=0;i<8;i++)this.parts.push({x:this.bx,y:AR.padY,vx:(Math.random()-.5)*160,vy:-Math.random()*120,gr:300,l:.4,c:ballColor(lvl)});
-    this.award(lvl);
-    if(lvl===6){if(!this.demo)this.log[this.ball].push(6);this.hits=0;this.state='cashout';this.stT=0;}
-    this.live();}
-  award(lvl){const r=LADDER[lvl-1],col=RARITY[r].color;let id;
-    if(this.demo||!this.picker){const pool=CHARS.filter(c=>c.rarity===r);id=pool[Math.floor(Math.random()*pool.length)].id;}else id=this.picker.next(r);
-    this.earned.push({id,rarity:r});
-    this.texts.push({x:clampN(this.bx,90,AR.W-90),y:AR.padY-60,s:RARITY[r].name.toUpperCase(),c:col,l:1.1,big:lvl>=5});
-    this.flash=lvl>=4?.5:.25;this.flashC=col;
-    for(let i=0;i<10+lvl*4;i++){const a=Math.random()*6.28,v=60+Math.random()*120*lvl/3;this.parts.push({x:this.bx,y:this.by,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:.6,c:col});}
-    if(lvl===6){this.mythicT=1.6;this.shake=12;this.flash=1;
-      for(let i=0;i<80;i++){const a=Math.random()*6.28,v=80+Math.random()*320;this.parts.push({x:this.bx,y:this.by,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:1.2,c:`hsl(${Math.random()*360},95%,65%)`});}
-      this.texts.push({x:AR.W/2,y:AR.H*.42,s:'MYTHIC!',c:'#ff4f8b',l:1.8,huge:true});}
-    if(!this.demo){sfx(lvl===6?'win':'reveal',Math.min(3,lvl-1));this.onAward({id,rarity:r,lvl});}}
-  miss(){if(this.hits>0&&!this.demo)this.log[this.ball].push(this.hits);
-    this.texts.push({x:AR.W/2,y:AR.H*.55,s:this.hits?'Missed! Streak kept':'Missed!',c:'#ff6a55',l:1});if(!this.demo)sfx('lose');
-    this.hits=0;this.state='drop';this.stT=0;this.live();}
-  endBall(){if(this.state==='play'&&this.hits>0)this.log[this.ball].push(this.hits);this.hits=0;this.shown=0;this.ball++;
-    if(this.ball>=3){this.state='done';this.live(true);sfx('land');this.onFinish(this.log);}
-    else{this.state='between';this.stT=0;this.texts.push({x:AR.W/2,y:AR.H*.45,s:`Ball ${this.ball+1} of 3`,c:'#ffd23f',l:1.4,big:true});sfx('land');this.live();}}
-  live(done){if(this.demo)return;this.onLive({ball:Math.min(3,this.ball+1),hits:this.hits,earned:this.earned.map(e=>RIDX[e.rarity]-RIDX.common),done:!!done});}
-  hud(){if(this.demo)return;const sig=[this.ball,this.hits,this.shown,this.state].join('|');const tf=this.time/AR.ballTime;
-    this.onHud({ball:Math.min(3,this.ball+1),hits:this.hits,shown:this.shown,state:this.state,timeFrac:this.state==='done'?0:tf,time:this.time,changed:sig!==this.hudSig});this.hudSig=sig;}
-  draw(){const g=this.g,W=AR.W,H=AR.H,R=AR.ballR;g.save();g.clearRect(0,0,W,H);if(this.shake>0)g.translate((Math.random()-.5)*this.shake,(Math.random()-.5)*this.shake);
+    for(const x of this.texts){x.y-=30*dt;x.l-=dt;}this.texts=this.texts.filter(x=>x.l>0);
+    if(this.shake>0)this.shake=Math.max(0,this.shake-dt*30);
+    this.draw();
+    if(!this.demo)this.onHud({left:Math.max(0,AR.roundTime-m.t),inPlay:m.balls.filter(b=>b.state==='play').length,waiting:m.balls.some(b=>b.state==='wait'),total:m.total,done:m.done});}
+  draw(){const g=this.g,W=AR.W,H=AR.H,m=this.m,R=AR.ballR;g.save();g.clearRect(0,0,W,H);if(this.shake>0)g.translate((Math.random()-.5)*this.shake,(Math.random()-.5)*this.shake);
     const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#123c44');gr.addColorStop(1,'#0b262b');g.fillStyle=gr;rrect(g,0,0,W,H,18);g.fill();
     g.strokeStyle='rgba(255,255,255,.05)';g.lineWidth=1;for(let y=40;y<H;y+=40){g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke();}
-    const lv=Math.max(this.hits,this.state==='cashout'?6:0),col=ballColor(lv);
-    if(lv>0){g.fillStyle=col;g.globalAlpha=.08;g.font='64px "Lilita One",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(RARITY[LADDER[lv-1]].name.toUpperCase(),W/2,H*.62);g.globalAlpha=1;g.textBaseline='alphabetic';}
-    g.strokeStyle=col;g.globalAlpha=.35+lv*.08;g.lineWidth=4;g.shadowColor=col;g.shadowBlur=lv*4;g.beginPath();g.moveTo(3,H);g.lineTo(3,3);g.lineTo(W-3,3);g.lineTo(W-3,H);g.stroke();g.shadowBlur=0;g.globalAlpha=1;
-    for(const b of this.bumpers){g.fillStyle=b.g>0?'#ffe36b':'#d7ecea';g.shadowColor='#ffd23f';g.shadowBlur=b.g*18;ell(g,b.x,b.y,b.r+b.g*3,b.r+b.g*3);g.fill();g.shadowBlur=0;
-      g.fillStyle='rgba(12,42,47,.5)';ell(g,b.x,b.y,b.r*.45,b.r*.45);g.fill();}
+    g.strokeStyle='rgba(255,210,63,.45)';g.lineWidth=4;g.beginPath();g.moveTo(3,H);g.lineTo(3,3);g.lineTo(W-3,3);g.lineTo(W-3,H);g.stroke();
     g.fillStyle='rgba(255,106,85,.12)';g.fillRect(0,AR.padY+24,W,H-AR.padY-24);
-    const pw=this.padW,px=this.px;g.fillStyle='#3fe0b0';g.shadowColor='#3fe0b0';g.shadowBlur=12;rrect(g,px-pw/2,AR.padY,pw,AR.padH,6);g.fill();g.shadowBlur=0;
+    for(const B of m.bumpers){const c=CH[B.id],col=RARITY[c.rarity].color,h=Math.max(0,B.hit),r=B.r*(1+h*.18),bob=Math.sin(this.t*2+B.x*.05)*1.5;
+      g.fillStyle='rgba(0,0,0,.3)';ell(g,B.x,B.y+B.r+3,B.r*.8,B.r*.22);g.fill();
+      g.fillStyle=h>0?col:'#0e2f35';g.shadowColor=col;g.shadowBlur=6+h*20;ell(g,B.x,B.y+bob,r,r);g.fill();g.shadowBlur=0;
+      g.lineWidth=3;g.strokeStyle=col;g.stroke();
+      const im=this.imgs[B.id];if(im&&im.complete){g.save();ell(g,B.x,B.y+bob,r-2,r-2);g.clip();g.drawImage(im,B.x-r*1.25,B.y+bob-r*1.3,r*2.5,r*2.5);g.restore();}
+      const n=m.counts[B.id]||0;if(n&&!this.demo){g.font='14px "Lilita One",sans-serif';g.textAlign='center';const tw=Math.max(22,String(n).length*9+14);
+        g.fillStyle=col;rrect(g,B.x-tw/2,B.y+B.r-4,tw,17,8);g.fill();g.fillStyle='#0a2226';g.fillText('×'+n,B.x,B.y+B.r+9);}}
+    m.balls.forEach((b,i)=>{if(b.state==='down')return;const col=BALL_C[i],tr=this.trails[i],n=tr.length;
+      tr.forEach((p,j)=>{g.globalAlpha=(j/n)*.4;g.fillStyle=col;ell(g,p[0],p[1],R*(.4+.6*j/n),R*(.4+.6*j/n));g.fill();});g.globalAlpha=1;
+      const hot=(b.s-AR.speed0)/(AR.speedMax-AR.speed0);g.fillStyle=col;g.shadowColor=hot>.6?'#ff6a55':col;g.shadowBlur=8+hot*16;ell(g,b.x,b.y,R,R);g.fill();g.shadowBlur=0;
+      g.fillStyle='rgba(255,255,255,.8)';ell(g,b.x-R*.3,b.y-R*.35,R*.3,R*.3);g.fill();});
+    const pw=AR.padW,px=m.px;g.fillStyle='#3fe0b0';g.shadowColor='#3fe0b0';g.shadowBlur=12;rrect(g,px-pw/2,AR.padY,pw,AR.padH,6);g.fill();g.shadowBlur=0;
     g.fillStyle='rgba(0,38,27,.55)';for(const f of [-.5,0,.5])g.fillRect(px+f*pw/2-1,AR.padY+3,2,AR.padH-6);
-    if(this.state!=='done'&&this.state!=='between'&&this.state!=='drop'&&this.state!=='cashout'){
-      const n=this.trail.length;this.trail.forEach((p,i)=>{g.globalAlpha=(i/n)*.45;g.fillStyle=lv>=6?`hsl(${(this.t*400+i*25)%360},95%,65%)`:col;ell(g,p[0],p[1],R*(.4+.6*i/n),R*(.4+.6*i/n));g.fill();});g.globalAlpha=1;
-      const bc=lv>=6?`hsl(${(this.t*400)%360},95%,65%)`:col;g.fillStyle=bc;g.shadowColor=bc;g.shadowBlur=8+lv*5;ell(g,this.bx,this.by,R,R);g.fill();g.shadowBlur=0;
-      g.fillStyle='rgba(255,255,255,.75)';ell(g,this.bx-R*.3,this.by-R*.35,R*.3,R*.3);g.fill();}
     for(const p of this.parts){g.globalAlpha=Math.max(0,Math.min(1,p.l*2));g.fillStyle=p.c;g.fillRect(p.x-2,p.y-2,4,4);}g.globalAlpha=1;
-    if(this.mythicT>0){g.globalAlpha=Math.min(.35,this.mythicT*.3);const rg=g.createRadialGradient(W/2,H/2,0,W/2,H/2,H*.7);rg.addColorStop(0,`hsl(${(this.t*300)%360},90%,60%)`);rg.addColorStop(1,'transparent');g.fillStyle=rg;g.fillRect(0,0,W,H);g.globalAlpha=1;}
-    if(this.flash>0){g.globalAlpha=Math.min(.5,this.flash*.5);g.fillStyle=this.flashC;g.fillRect(0,0,W,H);g.globalAlpha=1;}
     g.textAlign='center';
-    for(const x of this.texts){g.globalAlpha=Math.min(1,x.l*2);g.font=(x.huge?'58px':x.big?'34px':'26px')+' "Lilita One",sans-serif';g.lineWidth=6;g.strokeStyle='#0a2226';g.strokeText(x.s,x.x,x.y);
-      g.fillStyle=x.huge?`hsl(${(this.t*300)%360},95%,68%)`:x.c;g.fillText(x.s,x.x,x.y);}g.globalAlpha=1;
-    if(!this.demo){g.font='600 13px Rubik,sans-serif';g.fillStyle='rgba(242,247,238,.75)';
-      if(this.state==='ready')g.fillText('Click, tap or press Space to launch',W/2,AR.padY-34);
-      if(this.state==='done'){g.font='34px "Lilita One",sans-serif';g.fillStyle='#ffd23f';g.fillText('All 3 balls used!',W/2,H*.45);}}
+    for(const x of this.texts){g.globalAlpha=Math.min(1,x.l*2);g.font='24px "Lilita One",sans-serif';g.lineWidth=5;g.strokeStyle='#0a2226';g.strokeText(x.s,x.x,x.y);g.fillStyle=x.c;g.fillText(x.s,x.x,x.y);}g.globalAlpha=1;
+    if(!this.demo){if(m.balls.some(b=>b.state==='wait')&&!m.done){g.font='600 13px Rubik,sans-serif';g.fillStyle='rgba(242,247,238,.75)';g.fillText('Click, tap or press Space to launch',W/2,AR.padY-30);}
+      if(m.done){g.font='36px "Lilita One",sans-serif';g.lineWidth=6;g.strokeStyle='#0a2226';g.strokeText('Time!',W/2,H*.47);g.fillStyle='#ffd23f';g.fillText('Time!',W/2,H*.47);}}
     g.restore();}
 }
 
@@ -338,8 +295,8 @@ class BattleView{
 /* ===================== MENU ===================== */
 function renderMenu(){const st=S.save.stats;const own=ownedIds().length;
   main().innerHTML=`<section class="hero">
-    <div><h1>Bounce. Climb.<span>Brawl.</span></h1>
-      <p>Collect little fighters, then keep the ball alive in the arcade machine: every paddle hit climbs the rarity ladder from Common to Mythic and adds a fighter to your army. Then the armies crash together. First to 3 round wins takes the match.</p>
+    <div><h1>Bounce. Bump.<span>Brawl.</span></h1>
+      <p>Collect little fighters. Your fighters stand in the arcade machine, and three balls bounce around at once: keep them up with the paddle, and every time a ball touches a fighter you get one more of it. Then the armies crash together. First to 3 round wins takes the match.</p>
       <div class="stats-line">${own}/${CHARS.length} fighters collected · ${st.w} wins · ${st.l} losses</div></div>
     <canvas id="demo" aria-label="Arcade machine demo"></canvas></section>
   <section class="tiles">
@@ -350,7 +307,7 @@ function renderMenu(){const st=S.save.stats;const own=ownedIds().length;
     <button class="tile" data-go="gacha"><span class="glyph">✦</span><b>Summon</b><span>${GACHA.cost1} shards per pull</span></button>
     <button class="tile" data-go="settings"><span class="glyph">⚙</span><b>Settings</b><span>Name, sound, battle speed</span></button>
   </section>`;
-  VIEWS.menuDemo=new ArcadeView($('#demo'),{demo:true});
+  VIEWS.menuDemo=new ArcadeView($('#demo'),{demo:true,types:CHARS.map(c=>c.id).sort(()=>Math.random()-.5).slice(0,7)});
   main().querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const k=b.dataset.go;
     if(k==='play'){if(NET.status==='off'){toast('Online play is unavailable here — starting a Medium bot match.');go('prep',{kind:'bot',diff:'medium'});}else go('prep',{kind:'quick'});}
     else if(k==='bot')go('prep',{kind:'botpick'});else go(k);});}
@@ -449,7 +406,7 @@ function renderPrep(arg){if(arg.kind==='botpick'){main().innerHTML=`<div class="
   const own=ownedIds();let sel=(S.save.starters||[]).filter(id=>S.save.owned[id]).slice(0,2);
   const label={bot:`Fight ${BOTNAMES[arg.diff]} (${arg.diff})`,quick:'Find a match',mm:'Find a match',create:'Create match',join:'Join match'}[arg.kind];
   main().innerHTML=`<div class="shead"><h2>Choose 2 starters</h2><button class="btn sm ghost" data-act="home">Back</button></div>
-    <p class="note" style="margin:-6px 0 14px">These two fighters start the match. A third fighter is added at random from your collection. Each type joins with ${BASE_FIGHTERS} fighters, and the arcade machine earns you more every round. Each later round you add one more type.</p>
+    <p class="note" style="margin:-6px 0 14px">These two fighters start the match. A third fighter is added at random from your collection. Each type joins with ${BASE_FIGHTERS} fighter and stands in the arcade machine as a bumper: every ball that touches it earns you another. Each later round you add one more type.</p>
     <div class="grid" id="pg"></div>
     <div class="row" style="margin-top:16px;justify-content:flex-end"><span class="sub" id="pcount"></span><button class="btn mint" id="go">${esc(label)}</button></div>`;
   const draw=()=>{$('#pg').innerHTML=own.map(id=>cardHTML(id,{sel:sel.includes(id),badge:sel.includes(id)?`<span class="badge">${sel.indexOf(id)+1}</span>`:''})).join('');
@@ -549,9 +506,9 @@ function startBotMatch(diff){const [tA,tB]=makeLoopback();const rng=Math.random;
   S.match=me;S.bot=bot;S.mode={kind:'bot',diff};go('match');me.start();bot.start();}
 
 /* ===================== MATCH SCREEN ===================== */
-const MV={phase:null,round:-1,earned:null,pick:null,timer:null,tick:null};
+const MV={phase:null,round:-1,counts:null,pick:null,timer:null,tick:null};
 function onMatchEvent(m){if(S.screen==='match'&&m===S.match)syncMatch();}
-function renderMatch(){Object.assign(MV,{phase:null,round:-1,earned:null,pick:null});clearInterval(MV.tick);
+function renderMatch(){Object.assign(MV,{phase:null,round:-1,counts:null,pick:null});clearInterval(MV.tick);
   main().innerHTML=`<div class="scorebar"><div class="pcard me"><div class="stack" style="gap:4px;min-width:0"><span class="nm" id="nmMe"></span><div class="pips" id="pipMe"></div></div></div>
     <div class="rnd"><b id="rlabel">Round 1</b><span id="plabel"></span></div>
     <div class="pcard op"><div class="stack" style="gap:4px;min-width:0;align-items:flex-end"><span class="nm" id="nmOp"></span><div class="pips" id="pipOp"></div></div></div></div>
@@ -582,7 +539,7 @@ function syncMatch(){const m=S.match;if(!m)return;const me=m.side,op=m.oppSide;
   renderArmies(m);}
 function sumArmy(a){return a.reduce((x,y)=>x+y.count,0);}
 function renderArmies(m){const me=m.side,op=m.oppSide;let mine=m.army[me];
-  if((m.phase==='arcade'||m.phase==='arcadeWait')&&MV.earned){mine=clone(m.army[me]);for(const e of MV.earned)addToArmy(mine,e.id,1);}
+  if((m.phase==='arcade'||m.phase==='arcadeWait')&&MV.counts){mine=clone(m.army[me]);for(const id in MV.counts)addToArmy(mine,id,MV.counts[id]);}
   $('#armyMe').innerHTML=mine.length?mine.map(a=>chipHTML(a,MV.popId===a.id)).join(''):'<span class="sub" style="font-size:13px">Your fighters appear here once the round starts</span>';
   $('#armyOp').innerHTML=m.army[op].length?m.army[op].map(a=>chipHTML(a)).join(''):'<span class="sub" style="font-size:13px">Hidden until revealed</span>';
   $('#cntMe').textContent=sumArmy(mine)+' fighters';$('#cntOp').textContent=sumArmy(m.army[op])+' fighters';MV.popId=null;}
@@ -592,7 +549,7 @@ function buildStage(m){const st=$('#stage');if(m.phase!=='arcade'&&m.phase!=='ar
   if(m.phase==='pick'){const elig=eligiblePicks(m.me.coll,m.army[m.side]);let sel=null;
     const tip=botPick('hard',makeRng('tip'+m.round),m.me.coll,m.army[m.side],m.army[m.oppSide]);
     st.innerHTML=`<div class="pickhead"><h3>Round ${m.round}: add one fighter type</h3><span class="oppstat" id="opst"></span><span class="timer" id="ptimer"></span></div>
-      <p class="note" style="margin:-4px 0 12px">Your pick joins with ${BASE_FIGHTERS} fighters. In the arcade machine, rarity steps that match a type in your army give you more of that type, so picking a rarity you're good at reaching pays off.</p>
+      <p class="note" style="margin:-4px 0 12px">Your pick joins with ${BASE_FIGHTERS} fighter and stands in the arcade machine as a new bumper. Every ball that touches it gives you +1 more. Rarer fighters are smaller targets.</p>
       <div class="grid" id="pkg">${elig.map(id=>cardHTML(id,{badge:id===tip?'<span class="badge l">Suggested</span>':''})).join('')}</div>
       <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn mint" id="lock" disabled>Lock in</button></div>`;
     $('#pkg').onclick=e=>{const c=e.target.closest('[data-card]');if(!c)return;sel=c.dataset.card;sfx('click');$('#pkg').querySelectorAll('.ccard').forEach(x=>x.classList.toggle('sel',x.dataset.card===sel));$('#lock').disabled=false;};
@@ -615,45 +572,41 @@ function tickMatch(){const m=S.match;if(!m)return;
   if(m.phase==='roundOver'&&MV.autoReady&&Date.now()>MV.autoReady){MV.autoReady=null;m.ready();}
   if(VIEWS.battle&&m.phase==='battle'){const c=VIEWS.battle.counts(),me=m.side,op=m.oppSide;const el=$('#hud');
     if(el)el.innerHTML=`<span class="num" style="color:var(--mint)">${c.a[me]}</span><div class="hb"><i style="width:${c.f[me]/(c.f[me]+c.f[op]||1)*100}%;background:var(--mint)"></i><i style="flex:1;background:var(--coral)"></i></div><span class="num" style="color:var(--coral)">${c.a[op]}</span>`;}}
-const ladderHTML=(id,mini)=>`<div class="ladder${mini?' mini':''}" id="${id}">${LADDER.map((r,i)=>`<span class="step r-${r}" style="--rc:${RARITY[r].color}"><b>${i+1}</b><em>${RARITY[r].name}</em></span>`).join('')}</div>`;
-function setLadder(el,hits){if(!el)return;el.querySelectorAll('.step').forEach((s,i)=>{s.classList.toggle('lit',i<hits);s.classList.toggle('next',i===hits&&hits<6);});}
-function buildArcade(m){const st=$('#stage');MV.earned=[];const isBot=S.mode&&S.mode.kind==='bot';
-  st.innerHTML=`<div class="arc"><div class="arc-l">${ladderHTML('ladMe')}<div class="arc-cv"><canvas id="acv" aria-label="Arcade machine: move the paddle to keep the ball alive"></canvas></div>
-      <div class="note arc-help">Move the mouse, drag with your finger, or use A/D or ←/→. Click, tap or Space launches. The edge of the paddle sends the ball sideways; the middle sends it straight up.</div></div>
+function countsChips(counts,types,popId){const ids=types.filter(id=>counts[id]);return ids.length?ids.map(id=>chipHTML({id,count:counts[id]},id===popId)).join(''):'<span class="sub" style="font-size:13px">No hits yet</span>';}
+function buildArcade(m){const st=$('#stage');MV.counts={};const isBot=S.mode&&S.mode.kind==='bot';const types=m.machine[m.side];
+  st.innerHTML=`<div class="arc"><div class="arc-l"><div class="arc-cv"><canvas id="acv" aria-label="Arcade machine: move the paddle to keep the balls bouncing into your fighters"></canvas></div>
+      <div class="note arc-help">Every time a ball touches a fighter, you get +1 of that fighter. Move the mouse, drag with your finger, or use A/D or ←/→. The edge of the paddle sends a ball sideways, the middle straight up. Smaller (rarer) fighters are harder to hit.</div></div>
     <div class="arc-r">
-      <div class="hudgrid"><div><span>Ball</span><b class="num" id="aBall">1/3</b></div><div><span>Hits</span><b class="num" id="aHits">0</b></div><div><span>Speed</span><b id="aSpd">Slow</b></div></div>
-      <div class="tbar"><i id="aTime"></i></div><div class="sbar"><i id="aSpdBar"></i></div>
-      <div class="lastbox" id="aLast"><span class="sub">Hit the ball with the paddle to earn your first fighter.</span></div>
-      <div><h4 class="mini-h">Earned this round <span class="num" id="aCnt">0</span></h4><div class="chips" id="aEarn"></div></div>
-      <div class="oppbox"><h4 class="mini-h"><span id="oName">Opponent</span> <span class="num" id="oBall"></span></h4>${ladderHTML('ladOp',true)}<div class="chips" id="oEarn"></div></div>
+      <div class="hudgrid"><div><span>Time</span><b class="num" id="aTimeN">${AR.roundTime}s</b></div><div><span>Balls in play</span><b class="num" id="aBalls">0/3</b></div><div><span>Hits</span><b class="num" id="aHits">0</b></div></div>
+      <div class="tbar"><i id="aTime" style="width:100%"></i></div>
+      <div class="lastbox" id="aLast"><span class="sub">Three balls, ${AR.roundTime} seconds. Bounce them into your fighters!</span></div>
+      <div><h4 class="mini-h">Your fighters this round <span class="num" id="aCnt">0</span></h4><div class="chips" id="aEarn"></div></div>
+      <div class="oppbox"><h4 class="mini-h"><span id="oName">Opponent</span> <span class="num" id="oTot"></span></h4><div class="chips" id="oEarn"></div></div>
     </div></div>`;
-  const view=new ArcadeView($('#acv'),{picker:m.picker,
-    onAward:a=>{MV.earned.push(a);MV.popId=a.id;const c=CH[a.id];
-      $('#aLast').innerHTML=`<img src="${portrait(a.id,96)}" alt=""><div><div class="rar" style="color:${RARITY[a.rarity].color}">${RARITY[a.rarity].name} · step ${a.lvl}</div><b>${esc(c.name)}</b><div class="sub">${ROLES[c.role].name} joins your army</div></div>`;
-      $('#aLast').className='lastbox pop r-'+a.rarity;
-      const agg={};MV.earned.forEach(e=>agg[e.id]=(agg[e.id]||0)+1);$('#aEarn').innerHTML=Object.entries(agg).map(([id,count])=>chipHTML({id,count},id===a.id)).join('');
-      $('#aCnt').textContent=MV.earned.length;renderArmies(m);},
-    onLive:lv=>m.setLive(lv),
-    onHud:h=>{const t=$('#aTime');if(t){t.style.width=(h.timeFrac*100)+'%';t.style.background=h.timeFrac<.25?'var(--coral)':'var(--sun)';}
-      if(!h.changed)return;$('#aBall').textContent=h.ball+'/3';$('#aHits').textContent=h.hits;const sp=Math.min(6,h.hits);
-      $('#aSpd').textContent=SPEED_LABEL[sp];const sb=$('#aSpdBar');if(sb)sb.style.width=((AR.speeds[sp]-AR.speeds[0]*.6)/(AR.speeds[6]-AR.speeds[0]*.6)*100)+'%';
-      setLadder($('#ladMe'),h.state==='cashout'?6:h.hits);},
-    onFinish:log=>{setTimeout(()=>m.arcadeDone(log),900);}});
-  VIEWS.arcade=view;$('#oName').textContent=isBot?BOTNAMES[S.mode.diff]:(m.oppInfo?m.oppInfo.name:'Opponent');renderOppArcade(m);}
-function arcadeWaiting(m){const l=$('#aLast');if(l&&!l.dataset.wait){l.dataset.wait=1;l.className='lastbox';l.innerHTML='<div class="spin" style="width:26px;height:26px;border-width:4px"></div><span class="sub">Your 3 balls are done. Waiting for your opponent to finish theirs…</span>';}}
+  const view=new ArcadeView($('#acv'),{types,
+    onBump:id=>{MV.counts[id]=(MV.counts[id]||0)+1;MV.popId=id;const c=CH[id];
+      $('#aLast').innerHTML=`<img src="${portrait(id,96)}" alt=""><div><div class="rar" style="color:${RARITY[c.rarity].color}">${RARITY[c.rarity].name} · ×${MV.counts[id]}</div><b>+1 ${esc(c.name)}</b><div class="sub">${ROLES[c.role].name}</div></div>`;
+      $('#aLast').className='lastbox pop r-'+c.rarity;$('#aEarn').innerHTML=countsChips(MV.counts,types,id);
+      const tot=Object.values(MV.counts).reduce((a,b)=>a+b,0);$('#aCnt').textContent=tot;
+      if(Date.now()-(MV.liveAt||0)>300){MV.liveAt=Date.now();m.setLive({counts:Object.assign({},MV.counts)});}
+      renderArmies(m);},
+    onHud:h=>{const t=$('#aTime');if(!t)return;const f=h.left/AR.roundTime;t.style.width=(f*100)+'%';t.style.background=f<.25?'var(--coral)':'var(--sun)';
+      $('#aTimeN').textContent=Math.ceil(h.left)+'s';$('#aBalls').textContent=h.inPlay+'/3';$('#aHits').textContent=h.total;},
+    onFinish:counts=>{m.setLive({counts,done:true});setTimeout(()=>m.arcadeDone(counts),900);}});
+  VIEWS.arcade=view;$('#oName').textContent=isBot?BOTNAMES[S.mode.diff]:(m.oppInfo?m.oppInfo.name:'Opponent');$('#aEarn').innerHTML=countsChips({},types);renderOppArcade(m);}
+function arcadeWaiting(m){const l=$('#aLast');if(l&&!l.dataset.wait){l.dataset.wait=1;l.className='lastbox';l.innerHTML='<div class="spin" style="width:26px;height:26px;border-width:4px"></div><span class="sub">Time is up for you. Waiting for your opponent to finish…</span>';}}
 function renderOppArcade(m){const o=m.opp;const lv=o&&o.lv&&o.lv.r===m.round?o.lv:null;const el=$('#oEarn');if(!el)return;
-  setLadder($('#ladOp'),lv?lv.hits:0);$('#oBall').textContent=lv?(lv.done?'done':'ball '+lv.ball+'/3'):'starting…';
-  const cnt=[0,0,0,0,0,0];(lv&&Array.isArray(lv.earned)?lv.earned:[]).forEach(i=>{if(i>=0&&i<6)cnt[i]++;});
-  const html=cnt.map((c,i)=>c?`<span class="chip" style="--rc:${RARITY[LADDER[i]].color};padding:3px 10px"><span style="color:var(--rc);font-weight:700">${RARITY[LADDER[i]].name}</span><b>×${c}</b></span>`:'').join('')||'<span class="sub" style="font-size:13px">No fighters yet</span>';
-  if(el.innerHTML!==html)el.innerHTML=html;}
+  const types=m.machine[m.oppSide],raw=lv&&lv.counts&&typeof lv.counts==='object'?lv.counts:{};const counts={};
+  for(const id of types)if(Number.isInteger(raw[id])&&raw[id]>0)counts[id]=raw[id];
+  const tot=Object.values(counts).reduce((a,b)=>a+b,0);$('#oTot').textContent=lv&&lv.done?tot+' hits · done':tot+' hits';
+  const html=countsChips(counts,types);if(el.innerHTML!==html)el.innerHTML=html;}
 function buildMuster(m){const st=$('#stage');VIEWS.arcade=null;const me=m.side,op=m.oppSide;
-  const col=(s,title)=>{const agg={};m.rewards[s].forEach(w=>agg[w.id]=(agg[w.id]||0)+1);const per=[0,0,0,0,0,0];m.rewards[s].forEach(w=>per[RIDX[w.rarity]]++);
-    return `<div class="muster-col ${s===me?'me':'op'}"><h3>${esc(title)}</h3>
-      <div class="sub" style="font-size:13px">New types: ${m.newTypes[s].map(id=>esc(CH[id].name)).join(', ')} (+${BASE_FIGHTERS} each)</div>
-      <div class="rarline">${per.map((c,i)=>c?`<span style="color:${RARITY[LADDER[i]].color}">${c} ${RARITY[LADDER[i]].name}</span>`:'').filter(Boolean).join(' · ')||'<span class="sub">No machine rewards</span>'}</div>
-      <div class="chips">${Object.entries(agg).map(([id,count])=>chipHTML({id,count})).join('')}</div>
+  const col=(s,title)=>{const r=m.rewards[s];const tot=Object.values(r).reduce((a,b)=>a+b,0);
+    return `<div class="muster-col ${s===me?'me':'op'}"><h3>${esc(title)} <span class="num">+${tot}</span></h3>
+      <div class="sub" style="font-size:13px">New: ${m.newTypes[s].map(id=>esc(CH[id].name)).join(', ')} (+${BASE_FIGHTERS} each)</div>
+      <div class="chips">${countsChips(r,m.machine[s])}</div>
       <div class="sub num" style="margin-top:6px">Army: ${sumArmy(m.army[s])} fighters</div></div>`;};
-  st.innerHTML=`<div class="muster">${col(me,'You earned '+m.rewards[me].length)}${col(op,(m.oppInfo?m.oppInfo.name:'Opponent')+' earned '+m.rewards[op].length)}</div>
+  st.innerHTML=`<div class="muster">${col(me,'You')}${col(op,m.oppInfo?m.oppInfo.name:'Opponent')}</div>
     <div class="row" style="justify-content:center;margin-top:16px"><button class="btn mint" id="tobattle">To battle</button></div>`;
   MV.musterAt=Date.now()+9000;$('#tobattle').onclick=()=>{MV.musterAt=null;m.toBattle();};sfx('land');}
 function buildBattle(m){const st=$('#stage');
