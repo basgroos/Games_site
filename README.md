@@ -19,6 +19,7 @@ Een website met browsergames. Alles draait direct in de browser; voortgang wordt
 | Hollow Pines | `games/hollow-pines/` | live |
 | The House That Remembers | `games/house-that-remembers/` | live |
 | The Last Shift | `games/the-last-shift/` | live |
+| Pegfall Arena | `games/pegfall/` | live |
 
 ## Hoe het werkt
 

@@ -1,5 +1,14 @@
 # Wijzigingen
 
+## Pegfall Arena 1.0.0 (2026-10-31)
+- **Nieuw spel: Pegfall Arena**, een gacha-auto-battler. Verzamel 24 vechters in zes zeldzaamheden (Common, Uncommon, Rare, Epic, Legendary, Mythic), kies twee starters en win als eerste 3 rondes.
+- **De arcadekast** (in plaats van Plinko): elke ronde krijg je 3 ballen van elk 20 seconden. Houd de bal hoog met de paddle (muis, vinger of A/D en pijltjes). Elke geraakte bal klimt een trede op de ladder: 1 = Common, 2 = Uncommon … 6 = Mythic, en levert meteen een vechter van die zeldzaamheid op. Mis je de bal, dan houd je alles wat je verdiende, maar begint de ladder en de snelheid opnieuw. Bij Mythic wordt de reeks verzilverd en begint de ladder weer bij Common. Waar je de paddle raakt bepaalt de richting; de bal wordt bij elke treffer sneller.
+- Zeldzaamheid wordt nooit gerold: alleen je aantal treffers telt. Welke vechter je krijgt komt eerst uit de types in je leger, anders uit je collectie.
+- Daarna vechten de legers automatisch: melee, boogschutters, magiërs met vlakschade, tanks, sluipmoordenaars, healers en een support, met speciale aanvallen als meteoren, kettingbliksem, zwarte gaten en een herrijzenis.
+- **Bots** (Easy, Medium, Hard) spelen dezelfde kast; Hard haalt veel vaker Mythic en plant synergieën.
+- **Online**: snel een tegenstander zoeken, een privécode maken of meedoen met een code, via Supabase Realtime (kanalen `bg-lobby-pf-<env>` en `bg-room-pf-<env>-<code>`). Keuzes worden eerst versleuteld vastgelegd, de gedeelde willekeur komt van beide spelers, de kastresultaten worden gecontroleerd op wat de kast toestaat, en beide computers rekenen hetzelfde gevecht na.
+- Tests: `tests/sim.js` (regels, ladder, validatie, bots, pity, volledige bot-tegen-bot-potjes), `tests/smoke.js` (alle schermen en een heel potje met de paddle) en `tests/online.js` (twee pagina's spelen een heel online potje tegen elkaar).
+
 ## The House That Remembers 1.1.3 (2026-10-25)
 - **Deel II, samen spelen: het doel bleef op *3/3 fuses* hangen.** Zette je medespeler de zekeringen in de kast, dan ging bij jou wel de stroom aan, maar je doel bleef op de zekeringen staan, en de kast zei alleen *The box hums like something asleep*. Het leek alsof het niet werkte.
   - Nu schuift het doel bij iedereen mee als een ander iets doet: zekeringen vinden, de stroom aanzetten, maar ook de ketting, het archief, de pas en de fotomuur.
