@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## Pegfall Arena 1.3.0 (2026-11-01)
+- **De kast lijkt nu echt op de voorbeeldvideo.** Een liggende kast met lichtblauwe rand en een donkergrijze binnenkant, een brede 3D-groene paddle onderin, crèmekleurige ballen met een lange staart en grote donkere bolletjes boven elke kaart die groen worden.
+- **Poppetjes staan elke ronde op een willekeurige plek** en zijn veel groter: met 5 of 6 poppetjes is de kast bijna vol. Ze kunnen vlak naast elkaar landen; komt een bal ertussen, dan kaatst hij heen en weer en krijg je in korte tijd heel veel treffers en poppetjes.
+- Een treffer telt nu bijna meteen opnieuw (na 0,08 s in plaats van 0,3 s), zodat een ingeklemde bal echt veel oplevert.
+- Platte kaarten zonder rand, wit oplichten bij een treffer met een dubbel kader, **+1** in het groen en **x N** groot en wit naast de kaart. Aftellen in grote witte cijfers.
+- Het scherm van de kast staat nu bovenaan over de volle breedte; de tellers en je tegenstander staan eronder.
+- Test toegevoegd: kaarten staan elke ronde ergens anders, overlappen nooit, blijven in de kast en landen vaak vlak bij elkaar.
+
 ## Pegfall Arena 1.2.0 (2026-10-31)
 - **De kast werkt nu zoals in de voorbeeldvideo.** Je troepen hangen als **vierkante kaarten** in de kast (gekleurd per rol, rand in de zeldzaamheidskleur). Boven elke kaart staan **bolletjes: de kosten** van die troep. Elke keer dat een bal de kaart raakt, wordt een bolletje groen; zijn alle bolletjes groen, dan krijg je **+1 van die troep** (×N naast de kaart) en begint de kaart opnieuw.
 - Kosten per zeldzaamheid: Common 1, Uncommon 2, Rare 2, Epic 3, Legendary 4, Mythic 5 treffers. Alle kaarten zijn even groot; dure troepen kosten gewoon meer treffers.

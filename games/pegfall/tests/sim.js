@@ -30,16 +30,28 @@ async function run(label, fn) {
     ok(r.rows[0].hits > 0, 'no hits at all');
     return r.rows;
   });
+  await run('cards get random spots each round, never overlap, and can land close together', () => {
+    const r = E(`(()=>{const h=AR.card,g=AR.ballR*2+3;let close=0,overlap=0,inside=true;const seen=new Set();
+      for(let i=0;i<150;i++){const o=machineLayout(6,makeRng('L'+i));seen.add(Math.round(o[0].x)+','+Math.round(o[0].y));
+        for(const p of o)if(p.x-h<0||p.x+h>AR.W||p.y-h-AR.dotsH<0||p.y+h>AR.padY-60)inside=false;
+        let c=false;for(let a=0;a<o.length;a++)for(let b=a+1;b<o.length;b++){const gx=Math.abs(o[a].x-o[b].x)-2*h,gy=Math.abs(o[a].y-o[b].y)-2*h;if(gx<g-1e-6&&gy<g-1e-6)overlap++;if(Math.max(gx,gy)<40)c=true;}if(c)close++;}
+      return {close:close/150,overlap,inside,distinct:seen.size};})()`);
+    ok(r.overlap === 0, 'cards overlapped');
+    ok(r.inside, 'a card left the machine');
+    ok(r.close > 0.6, 'cards almost never land close together');
+    ok(r.distinct > 100, 'layouts are not random');
+    return r;
+  });
   await run('countdown: balls wait 3 seconds before the round starts', () => {
     const r = E(`(()=>{const m=new Machine(['pip'],makeRng('c'));for(let i=0;i<170;i++)m.step(1/60);const before=m.balls.every(b=>b.state==='wait')&&m.t===0;for(let i=0;i<60;i++)m.step(1/60);return {before,after:m.balls.some(b=>b.state==='play')};})()`);
     ok(r.before && r.after, JSON.stringify(r));
     return r;
   });
   await run('impossible machine results are rejected', () => {
-    const bad = E(`[validateCounts({pip:5,vex:2},['pip']),validateCounts({pip:999},['pip']),validateCounts({pip:1.5},['pip']),validateCounts({pip:-1},['pip']),validateCounts([3],['pip']),validateCounts(null,['pip'])]`);
+    const bad = E(`[validateCounts({pip:5,vex:2},['pip']),validateCounts({pip:5000},['pip']),validateCounts({pip:1.5},['pip']),validateCounts({pip:-1},['pip']),validateCounts([3],['pip']),validateCounts(null,['pip'])]`);
     ok(bad.every(Boolean), 'bad results accepted: ' + JSON.stringify(bad));
     ok(E("validateCounts({pip:12,gumbo:3},['pip','gumbo'])") === null, 'valid results rejected');
-    ok(E("validateCounts({solaris:60},['solaris'])") === 'too many hits', 'expensive fighters not checked against their cost');
+    ok(E("validateCounts({solaris:400},['solaris'])") === 'too many hits', 'expensive fighters not checked against their cost');
     return bad;
   });
   await run('bot skill matters: hard drops fewer balls and hits more than easy', () => {

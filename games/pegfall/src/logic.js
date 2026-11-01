@@ -110,16 +110,26 @@ async function sha(s){try{if(globalThis.crypto&&crypto.subtle){const b=await cry
  you get +1 of that fighter and the dots reset. Cheap fighters (1 dot) come fast, expensive ones take more hits.
  Keep the balls up with the paddle: every paddle hit gives that ball +1 speed. A ball that falls comes back to the
  paddle at starting speed (you never lose a ball), it just costs time. A 3-2-1 countdown starts the round. */
-const AR={W:400,H:560,padY:518,padW:100,padH:12,ballR:8,balls:3,roundTime:20,countdown:3,speed0:290,speedUp:16,speedMax:520,
-  respawn:3,autoLaunch:.6,hitCooldown:.3,card:30,maxTypes:10,maxHits:240};
+const AR={W:540,H:400,padY:356,padW:180,padH:16,ballR:9,balls:3,roundTime:20,countdown:3,speed0:330,speedUp:18,speedMax:600,
+  respawn:3,autoLaunch:.6,hitCooldown:.08,card:39,dotsH:24,maxTypes:8,maxHits:1500};
 const COST={common:1,uncommon:2,rare:2,epic:3,legendary:4,mythic:5};
 const costOf=id=>COST[CH[id].rarity]||1;
-const CARD_SLOTS=[[125,105],[275,105],[200,210],[60,225],[340,225],[130,320],[270,320],[200,415],[50,415],[350,415]];
+// Cards get a fresh random spot every round. They may land right next to each other: a gap just wide enough
+// for a ball traps it, and it rattles between the cards for lots of hits.
+function machineLayout(n,rng){const h=AR.card,minGap=AR.ballR*2+3,x0=h+6,x1=AR.W-h-6,y0=h+AR.dotsH+6,y1=AR.padY-h-90;
+  for(let attempt=0;attempt<60;attempt++){const out=[];let ok=true;
+    for(let i=0;i<n&&ok;i++){let placed=false;
+      for(let k=0;k<300&&!placed;k++){const x=x0+rng()*(x1-x0),y=y0+rng()*(y1-y0);
+        const clear=out.every(o=>{const gx=Math.abs(o.x-x)-2*h,gy=Math.abs(o.y-y)-2*h-(o.y<y?AR.dotsH:0)-(y<o.y?AR.dotsH:0);return gx>=minGap||gy>=minGap;});
+        if(clear){out.push({x,y});placed=true;}}
+      if(!placed)ok=false;}
+    if(ok)return out;}
+  return Array.from({length:n},(_,i)=>({x:x0+(i%4)*((x1-x0)/3),y:y0+Math.floor(i/4)*(y1-y0)}));}
 const machineTypes=army=>army.map(a=>a.id).slice(-AR.maxTypes);
 class Machine{
   constructor(types,rng=Math.random,o={}){this.rng=rng;this.types=types.slice(0,AR.maxTypes);this.pre=o.countdown===undefined?AR.countdown:o.countdown;
     this.t=0;this.done=false;this.counts={};this.hits={};this.total=0;this.paddleHits=0;this.drops=0;this.events=[];
-    this.cards=this.types.map((id,i)=>({id,x:CARD_SLOTS[i][0],y:CARD_SLOTS[i][1],h:AR.card,cost:costOf(id),prog:0,flash:0,pop:0}));
+    const spots=machineLayout(this.types.length,rng);this.cards=this.types.map((id,i)=>({id,x:spots[i].x,y:spots[i].y,h:AR.card,cost:costOf(id),prog:0,flash:0,pop:0}));
     this.px=AR.W/2;this.pv=0;
     this.balls=[0,1,2].map(i=>({i,state:'wait',wt:i*.25,x:AR.W/2,y:AR.padY-AR.ballR-1,vx:0,vy:0,s:AR.speed0,cool:{}}));}
   get bumpers(){return this.cards;}
@@ -128,7 +138,7 @@ class Machine{
     if(maxSpeed){const d=target-this.px,m=maxSpeed*dt;this.px+=Math.max(-m,Math.min(m,d));}else this.px+=(target-this.px)*Math.min(1,dt*24);
     this.pv=(this.px-prev)/Math.max(dt,1e-3);}
   launchAll(){if(this.pre>0)return;for(const b of this.balls)if(b.state==='wait')b.wt=0;}
-  launch(b){const a=(b.i-1)*.34+Math.max(-.3,Math.min(.3,this.pv*.001))+(this.rng()-.5)*.12;b.s=AR.speed0;b.vx=Math.sin(a)*b.s;b.vy=-Math.cos(a)*b.s;b.state='play';b.cool={};}
+  launch(b){const a=(b.i-1)*.3+Math.max(-.3,Math.min(.3,this.pv*.001))+(this.rng()-.5)*.12;b.s=AR.speed0;b.vx=Math.sin(a)*b.s;b.vy=-Math.cos(a)*b.s;b.state='play';b.cool={};}
   hitCard(C,b){if(b.cool[C.id]||this.total>=AR.maxHits)return;b.cool[C.id]=AR.hitCooldown;C.flash=1;this.total++;this.hits[C.id]=(this.hits[C.id]||0)+1;
     C.prog++;let unit=false;if(C.prog>=C.cost){C.prog=0;C.pop=1;unit=true;this.counts[C.id]=(this.counts[C.id]||0)+1;}
     this.events.push({k:'bump',id:C.id,x:C.x,y:C.y,b:b.i,unit,prog:C.prog,cost:C.cost});}
@@ -168,7 +178,7 @@ function steerTarget(m,rng,err,aim){let best=null,bt=Infinity;const R=AR.ballR;
   if(aim&&m.cards.length){if(best._aimFor===undefined||best._aimAt!==Math.round(bt*10)){best._aimAt=Math.round(bt*10);best._aimFor=rng()<aim?Math.floor(rng()*m.cards.length):-1;}
     const C=m.cards[best._aimFor];if(C){const a=Math.atan((C.x-x)/Math.max(40,AR.padY-C.y));const off=Math.max(-.85,Math.min(.85,a/1.05));x-=off*(AR.padW/2+R);}}
   return x+(rng()-.5)*2*err;}
-const BOT_SKILL={easy:{spd:200,err:62,react:.45,aim:0},medium:{spd:340,err:26,react:.2,aim:.45},hard:{spd:640,err:6,react:.07,aim:.9}};
+const BOT_SKILL={easy:{spd:260,err:110,react:.45,aim:0},medium:{spd:430,err:45,react:.2,aim:.45},hard:{spd:820,err:10,react:.07,aim:.9}};
 // A bot plays the real machine physics with a limited paddle speed, reaction time and aiming error.
 function botMachineRun(diff,rng,types){const m=new Machine(types,rng,{countdown:0}),sk=BOT_SKILL[diff]||BOT_SKILL.medium,dt=1/60,hits=[];let target=AR.W/2,rt=0;
   while(!m.done){rt-=dt;if(rt<=0){rt=sk.react;target=steerTarget(m,rng,sk.err,sk.aim);}m.movePaddle(target,dt,sk.spd);m.step(dt);
