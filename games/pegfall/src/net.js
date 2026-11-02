@@ -1,8 +1,11 @@
 /* ===================== NETWORK BACKENDS =====================
- The match code only needs a "lobby" and named "rooms" where each player publishes one presence object
+ The match code only needs a "lobby" and named "rooms" where each player publishes one state object
  and sees everyone else's. Two backends provide that same small interface:
-  - On the Bas Games site: Supabase Realtime presence (window.HW_BUILD.online, set by scripts/build.js)
-  - Inside Claude: the artifact "room" capability
+  - On the Bas Games site: Supabase Realtime (window.HW_BUILD.online, set by scripts/build.js).
+    Presence is used only to know WHO is in a room (tracked once, and again after every reconnect);
+    the state objects travel as broadcasts, re-sent on change, when someone joins, and every 2 seconds,
+    so a missed message or a reconnect heals by itself. This is the same pattern the other Bas Games use.
+  - Inside Claude: the artifact "room" capability (its presence is built for exactly this).
  Room interface: { peers() -> [{peer, sameTab, presence}], onPeers(fn, onErr) -> unsubscribe,
                    presence(patch) -> Promise, leave() -> Promise }   Backend: { kind, lobby, join(name) } */
 const BUILD = Object.assign({ env: 'live', version: 'dev', home: '' }, window.HW_BUILD || {});
@@ -31,43 +34,63 @@ async function supabaseBackend(cfg) {
   });
   const me = 'pf' + randHex(6); // one id per open tab, so two tabs can play each other
   const mkRoom = (channel) => new Promise((resolve, reject) => {
-    const ch = rt.channel(channel, { config: { presence: { key: me } } });
-    const mine = {};
-    let peers = [{ peer: me, sameTab: true, isMe: true, presence: {} }], cbs = [], timer = null, joined = false, dead = false;
-    const notify = () => cbs.forEach((f) => { try { f({ peers }); } catch (e) { console.error(e); } });
-    const rebuild = () => {
-      const st = ch.presenceState();
-      peers = Object.keys(st).filter((k) => k !== me).map((k) => {
-        const metas = st[k] || [];
-        return { peer: k, sameTab: false, isMe: false, presence: (metas[metas.length - 1] || {}).p || {} };
-      });
-      peers.push({ peer: me, sameTab: true, isMe: true, presence: Object.assign({}, mine) });
-      notify();
+    const ch = rt.channel(channel, { config: { presence: { key: me }, broadcast: { self: false, ack: false } } });
+    const mine = {}, states = {}, seen = {};
+    let members = [], tracked = [], cbs = [], sendTimer = null, lastSend = 0, joined = false, dead = false, beat = null;
+    // here = tracked in presence, or sent us its state in the last 6 s (covers a peer that is mid-reconnect)
+    const recompute = () => { const now = Date.now(); members = [...new Set([...tracked, ...Object.keys(seen).filter((k) => now - seen[k] < 6000)])];
+      for (const k of Object.keys(states)) if (!members.includes(k)) { delete states[k]; delete seen[k]; } };
+    const peerList = () => {
+      const list = members.filter((k) => k !== me).map((k) => ({ peer: k, sameTab: false, isMe: false, presence: states[k] || {} }));
+      list.push({ peer: me, sameTab: true, isMe: true, presence: Object.assign({}, mine) });
+      return list;
     };
-    ch.on('presence', { event: 'sync' }, rebuild);
+    let peers = peerList();
+    let pend = false; // deliver updates after the current call, like the Claude room does
+    const notify = () => { peers = peerList(); if (pend) return; pend = true; setTimeout(() => { pend = false; cbs.forEach((f) => { try { f({ peers }); } catch (e) { console.error(e); } }); }, 0); };
+    const sendNow = () => {
+      clearTimeout(sendTimer); sendTimer = null; if (dead || !joined) return;
+      lastSend = Date.now();
+      ch.send({ type: 'broadcast', event: 'st', payload: { from: me, p: mine } }).catch(() => {});
+    };
+    // at most ~8 state messages a second; anything in between is folded into the next one
+    const sendSoon = () => { if (sendTimer) return; sendTimer = setTimeout(sendNow, Math.max(0, 120 - (Date.now() - lastSend))); };
+    ch.on('presence', { event: 'sync' }, () => {
+      const before = tracked.join();
+      tracked = Object.keys(ch.presenceState()).sort();
+      if (tracked.join() !== before) sendSoon();
+      recompute(); notify();
+    });
+    ch.on('broadcast', { event: 'st' }, ({ payload }) => {
+      if (!payload || typeof payload.from !== 'string' || payload.from === me || !payload.p || typeof payload.p !== 'object') return;
+      states[payload.from] = payload.p; seen[payload.from] = Date.now();
+      recompute(); notify();
+    });
+    ch.on('broadcast', { event: 'hi' }, () => sendSoon());
     const room = {
       name: channel,
       peers: () => peers,
-      onPeers(f, onErr) { cbs.push(f); if (onErr) room._err = onErr; if (joined) setTimeout(() => f({ peers }), 0); return () => { cbs = cbs.filter((x) => x !== f); }; },
+      onPeers(f) { cbs.push(f); setTimeout(() => f({ peers }), 0); return () => { cbs = cbs.filter((x) => x !== f); }; },
       presence(patch) {
         for (const k in patch) { if (patch[k] === null) delete mine[k]; else mine[k] = patch[k]; }
-        const self = peers.find((p) => p.sameTab); if (self) self.presence = Object.assign({}, mine);
-        notify();
-        if (!timer && !dead) timer = setTimeout(() => { timer = null; if (!dead) ch.track({ p: mine }).catch(() => {}); }, 60);
+        notify(); sendSoon();
         return Promise.resolve();
       },
       async leave() {
-        dead = true; clearTimeout(timer); cbs = [];
+        dead = true; clearTimeout(sendTimer); clearInterval(beat); cbs = [];
         try { await ch.untrack(); await ch.unsubscribe(); rt.removeChannel(ch); } catch (e) { /* ignore */ }
       },
     };
+    // supabase-js rejoins a channel by itself after a network hiccup; we only re-announce ourselves then.
     ch.subscribe((st) => {
-      if (st === 'SUBSCRIBED') { if (!joined) { joined = true; ch.track({ p: mine }).catch(() => {}); resolve(room); } }
-      else if ((st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED') && !dead) {
-        if (!joined) reject({ code: 'upstream_error' }); else if (room._err) room._err({ code: 'upstream_error' });
+      if (st === 'SUBSCRIBED' && !dead) {
+        ch.track({ at: Date.now() }).catch(() => {});
+        ch.send({ type: 'broadcast', event: 'hi', payload: {} }).catch(() => {});
+        if (!joined) { joined = true; beat = setInterval(() => { sendNow(); const b = members.join(); recompute(); if (members.join() !== b) notify(); }, 2000); resolve(room); }
+        sendSoon();
       }
     });
-    setTimeout(() => { if (!joined) reject({ code: 'upstream_error' }); }, 10000);
+    setTimeout(() => { if (!joined) { dead = true; try { rt.removeChannel(ch); } catch (e) { /* ignore */ } reject({ code: 'upstream_error' }); } }, 12000);
   });
   const lobby = await mkRoom('bg-lobby-pf-' + BUILD.env);
   return { kind: 'supabase', lobby, join: (name) => mkRoom('bg-room-pf-' + BUILD.env + '-' + name) };

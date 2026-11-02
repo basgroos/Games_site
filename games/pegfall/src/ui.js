@@ -437,20 +437,40 @@ async function initNet(){try{const be=await connectBackend();if(!be){NET.status=
     NET.room.onPeers(ch=>{NET.count=ch.peers.filter(p=>p.presence&&p.presence.app==='pegfall').length;updateNetPill();if(MM.active)mmCheck();},
       ()=>{NET.status='off';NET.room=null;NET.backend=null;updateNetPill();});updateNetPill();}
   catch(e){console.warn('online unavailable',e);NET.status='off';updateNetPill();}}
-function makePresenceTransport(nr){
-  const T={mine:{},oppPeer:null,side:null,cbs:[],onOpp:null,onGone:null,onFull:null,goneTimer:null,closed:false};
-  T.setMine=p=>{Object.assign(T.mine,p);nr.presence({g:T.mine}).catch(()=>{});};
-  T.getOpp=()=>{if(!T.oppPeer)return null;const p=nr.peers().find(x=>x.peer===T.oppPeer);const g=p&&p.presence&&p.presence.g;return g&&g.app==='pegfall'?g:null;};
+// One match room. Network hiccups never end a match by themselves:
+//  - a room error makes us rejoin the same room (every 3 s) and re-publish our state;
+//  - an opponent who is missing only counts as gone after GONE_AFTER seconds in a row (a banner shows the wait);
+//  - leaving on purpose sets bye:true first, so the other player hears it right away.
+let GONE_AFTER=45;
+function makePresenceTransport(nr,name){
+  const T={mine:{},oppPeer:null,side:null,cbs:[],onOpp:null,onGone:null,onFull:null,closed:false,nr,missingSince:0,reconnecting:false,goneFired:false};
+  const publish=()=>{if(!T.closed&&T.nr)T.nr.presence({g:T.mine}).catch(()=>{});};
+  T.setMine=p=>{Object.assign(T.mine,p);publish();};
+  T.getOpp=()=>{if(!T.oppPeer||!T.nr)return null;const p=T.nr.peers().find(x=>x.peer===T.oppPeer);const g=p&&p.presence&&p.presence.g;return g&&g.app==='pegfall'?g:null;};
   T.onChange=f=>T.cbs.push(f);
-  T.unsub=nr.onPeers(ch=>{if(T.closed)return;const me=ch.peers.find(p=>p.sameTab);
-    if(!T.oppPeer&&me){const others=ch.peers.filter(p=>!p.sameTab&&p.presence&&p.presence.g&&p.presence.g.app==='pegfall');
+  T.status=()=>T.reconnecting?'reconnecting':T.missingSince?'missing':'ok';
+  T.missingFor=()=>T.missingSince?(Date.now()-T.missingSince)/1000:0;
+  const gone=why=>{if(T.goneFired||T.closed)return;T.goneFired=true;console.warn('opponent gone:',why);T.onGone&&T.onGone(why);};
+  T.check=()=>{if(T.closed||!T.oppPeer)return;if(T.missingSince&&T.missingFor()>=GONE_AFTER)gone('missing '+GONE_AFTER+'s');};
+  const onPeers=ch=>{if(T.closed)return;const me=ch.peers.find(p=>p.sameTab);
+    if(!T.oppPeer&&me&&T.onOpp){const others=ch.peers.filter(p=>!p.sameTab&&p.presence&&p.presence.g&&p.presence.g.app==='pegfall');
       if(others.length>=2&&!T.mine.r){T.onFull&&T.onFull();return;}
       if(others.length){const o=others[0];T.oppPeer=o.peer;T.side=me.peer<o.peer?0:1;T.onOpp&&T.onOpp(T.side,o);}}
-    if(T.oppPeer){const here=ch.peers.some(p=>p.peer===T.oppPeer);
-      if(!here){if(!T.goneTimer)T.goneTimer=setTimeout(()=>{T.onGone&&T.onGone();},12000);}
-      else if(T.goneTimer){clearTimeout(T.goneTimer);T.goneTimer=null;}
-      T.cbs.forEach(f=>f());}},()=>{T.onGone&&T.onGone();});
-  T.close=()=>{T.closed=true;try{T.unsub();}catch(e){}clearTimeout(T.goneTimer);nr.leave().catch(()=>{});};
+    if(T.oppPeer){const op=ch.peers.find(p=>p.peer===T.oppPeer);
+      if(op&&op.presence&&op.presence.g&&op.presence.g.bye){gone('left on purpose');return;}
+      if(op)T.missingSince=0;else if(!T.missingSince)T.missingSince=Date.now();
+      T.cbs.forEach(f=>f());}};
+  const attach=()=>{try{T.unsub&&T.unsub();}catch(e){}T.unsub=T.nr.onPeers(ch=>setTimeout(()=>onPeers(ch),0),err=>{if(!T.closed)reconnect(err&&err.code);});};
+  const reconnect=async code=>{if(T.closed||T.reconnecting)return;T.reconnecting=true;console.warn('room error, rejoining',code);
+    if(!T.missingSince)T.missingSince=Date.now();
+    while(!T.closed){await new Promise(r=>setTimeout(r,3000));if(T.closed)break;
+      try{const nr=await NET.backend.join(name);if(T.closed){nr.leave().catch(()=>{});break;}T.nr=nr;attach();publish();T.reconnecting=false;return;}
+      catch(e){if(e&&e.code==='not_permitted'){gone('cannot rejoin');break;}}}
+    T.reconnecting=false;};
+  attach();
+  T.timer=setInterval(T.check,1000);
+  T.close=(bye)=>{if(T.closed)return;if(bye){T.mine.bye=true;publish();}T.closed=true;clearInterval(T.timer);try{T.unsub&&T.unsub();}catch(e){}
+    const nr=T.nr;setTimeout(()=>nr&&nr.leave().catch(()=>{}),bye?400:0);};
   return T;}
 const MM={active:false,excluded:{},timer:null};
 function mmStart(){if(!NET.room)return;MM.active=true;NET.room.presence({app:'pegfall',name:S.save.name,seek:randHex(4)}).catch(()=>{});mmCheck();}
@@ -464,14 +484,14 @@ async function joinGame(code,o={}){const s=SEARCH;if(!NET.room){searchMsg('Onlin
   searchMsg(o.quick?'Opponent found — connecting…':'Waiting for your opponent to join…');let nr;
   try{nr=await NET.backend.join('pf-'+code);}catch(e){searchMsg('Could not open that match room ('+(e&&e.code||'error')+'). Try again or play a bot.');return;}
   if(s!==SEARCH){try{nr.leave();}catch(e){}return;}
-  const T=makePresenceTransport(nr);NET.game=T;
-  T.setMine({app:'pegfall',v:1,name:S.save.name,st:S.save.starters,coll:ownedIds(),r:0,c:null,n:null,p:null,d:0,h:null});
+  const T=makePresenceTransport(nr,'pf-'+code);NET.game=T;
   T.onFull=()=>{T.close();NET.game=null;searchMsg('That match already has two players. Check the code or create your own.');};
   T.onOpp=(side,o2)=>{clearTimeout(s.qtimer);startOnlineMatch(T,side);};
+  T.setMine({app:'pegfall',v:1,name:S.save.name,st:S.save.starters,coll:ownedIds(),r:0,c:null,n:null,p:null,d:0,h:null});
   if(o.quick)s.qtimer=setTimeout(()=>{if(!T.oppPeer&&s===SEARCH){T.close();NET.game=null;MM.excluded[o.other]=Date.now()+60000;searchMsg('Searching for an opponent…');mmStart();}},10000);}
 function startOnlineMatch(T,side){const s=SEARCH;stopSearch(true);
   const m=new Match({transport:T,side,me:{name:S.save.name,st:S.save.starters.slice(),coll:ownedIds()},onEvent:onMatchEvent});
-  T.onGone=()=>{if(m.phase!=='over')m.abort('Your opponent left the match.',m.side);};
+  T.onGone=why=>{if(m.phase!=='over')m.abort(why==='left on purpose'?'Your opponent left the match.':'Your opponent lost their connection and did not come back.',m.side);};
   S.match=m;S.bot=null;S.mode={kind:'online'};go('match');m.start();}
 
 /* ===================== SEARCH / LOBBY SCREENS ===================== */
@@ -523,7 +543,7 @@ function renderMatch(){Object.assign(MV,{phase:null,round:-1,counts:null,pick:nu
   main().innerHTML=`<div class="scorebar"><div class="pcard me"><div class="stack" style="gap:4px;min-width:0"><span class="nm" id="nmMe"></span><div class="pips" id="pipMe"></div></div></div>
     <div class="rnd"><b id="rlabel">Round 1</b><span id="plabel"></span></div>
     <div class="pcard op"><div class="stack" style="gap:4px;min-width:0;align-items:flex-end"><span class="nm" id="nmOp"></span><div class="pips" id="pipOp"></div></div></div></div>
-  <div id="warnbox"></div><div class="stage" id="stage"></div>
+  <div id="warnbox"></div><div id="netbox"></div><div class="stage" id="stage"></div>
   <div class="armies"><div class="army"><h4><span>Your army</span><span class="num" id="cntMe"></span></h4><div class="chips" id="armyMe"></div></div>
     <div class="army op"><h4><span>Opponent army</span><span class="num" id="cntOp"></span></h4><div class="chips" id="armyOp"></div></div></div>
   <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn ghost sm" id="leave">Leave match</button></div>`;
@@ -531,7 +551,7 @@ function renderMatch(){Object.assign(MV,{phase:null,round:-1,counts:null,pick:nu
     S.save.stats.l++;persist();leaveMatch();};
   MV.tick=setInterval(()=>{if(S.screen!=='match'){clearInterval(MV.tick);return;}tickMatch();},250);
   syncMatch();}
-function closeMatch(){const m=S.match;if(m){m.stop();if(m.t&&m.t.close)m.t.close();}if(S.bot){S.bot.stop();if(S.bot.t)S.bot.t.close();}
+function closeMatch(){const m=S.match;if(m){m.stop();if(m.t&&m.t.close)m.t.close(m.phase!=='over');}if(S.bot){S.bot.stop();if(S.bot.t)S.bot.t.close();}
   if(NET.game){NET.game.close();NET.game=null;}S.match=null;S.bot=null;VIEWS.arcade=null;VIEWS.battle=null;}
 function leaveMatch(){closeMatch();clearInterval(MV.tick);go('menu');}
 const PHASE_LABEL={waiting:'Connecting',pick:'Pick a fighter',locking:'Locking in',commit:'Locked in',reveal:'Revealing',arcade:'Arcade machine',arcadeWait:'Arcade machine',muster:'Muster',battle:'Battle',roundOver:'Round over',waitNext:'Next round',over:'Match over'};
@@ -576,6 +596,10 @@ function buildStage(m){const st=$('#stage');if(m.phase!=='arcade'&&m.phase!=='ar
   if(m.phase==='roundOver'||m.phase==='waitNext'){st.innerHTML='<div class="center"><div class="spin"></div></div>';showRoundOverlay(m);}}
 function updatePickStatus(m){const el=$('#opst');if(!el)return;const o=m.opp;const locked=o&&o.r===m.round&&o.c;el.textContent=locked?'Opponent locked in':'Opponent is choosing…';el.classList.toggle('ok',!!locked);}
 function tickMatch(){const m=S.match;if(!m)return;
+  const nb=$('#netbox');if(nb){let html='';if(m.t&&m.t.status&&m.phase!=='over'){const st=m.t.status();
+      if(st==='reconnecting')html='<div class="warn">Connection hiccup. Reconnecting to the match…</div>';
+      else if(st==='missing'){const left=Math.max(0,Math.ceil(GONE_AFTER-m.t.missingFor()));if(m.t.missingFor()>4)html=`<div class="warn">Lost contact with your opponent. Waiting for them to come back… (${left}s)</div>`;}}
+    if(nb.innerHTML!==html)nb.innerHTML=html;}
   if(m.phase==='pick'&&MV.deadline){const left=Math.max(0,Math.ceil((MV.deadline-Date.now())/1000));const el=$('#ptimer');if(el)el.textContent=left+'s';if(left<=0){MV.deadline=null;MV.autoPick&&MV.autoPick();}}
   if(m.phase==='pick')updatePickStatus(m);
   if(m.phase==='arcade'||m.phase==='arcadeWait')renderOppArcade(m);

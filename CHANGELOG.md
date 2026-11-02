@@ -1,5 +1,14 @@
 # Wijzigingen
 
+## Pegfall Arena 1.3.1 (2026-11-02)
+- **Online: geen onterechte winst meer na 15 seconden.** Bij een online potje kregen beide spelers na ongeveer 15 seconden *Your opponent left the match* en de winst, terwijl niemand weg was. Oorzaken en oplossingen:
+  - De tweede speler bleef soms op het zoekscherm hangen: zijn spelstatus ging al de deur uit voordat het spel klaar was om op de tegenstander te reageren. De eerste speler zag hem daarna niet meer bewegen en kreeg na 12 seconden de winst. Nu wordt alles eerst klaargezet en pas daarna verstuurd.
+  - Elke kleine haper in de verbinding beëindigde het potje meteen. Nu maakt het spel gewoon opnieuw verbinding met dezelfde kamer.
+  - Was de tegenstander even niet te zien, dan won je al na 12 seconden. Nu zie je een melding *Lost contact with your opponent. Waiting for them to come back… (45s)* en pas na 45 seconden zonder contact win je.
+  - Wie zelf op *Leave match* drukt, laat dat nu meteen weten aan de ander.
+- **Op de site (Supabase)** werkt online spelen nu zoals bij de andere Bas Games: presence alleen om te zien wie er is (opnieuw aangemeld na elke herverbinding), de spelstatus via broadcast, elke 2 seconden opnieuw gestuurd zodat een gemist bericht vanzelf hersteld wordt.
+- Nieuwe test `tests/netfail.js`: twee pagina's spelen een heel potje over een nagebootste Supabase die 15% van de berichten kwijtraakt en vier keer hapert; plus een tegenstander die 14 seconden wegvalt (geen winst), eentje die echt wegblijft (wel winst) en eentje die op *Leave match* drukt.
+
 ## Pegfall Arena 1.3.0 (2026-11-01)
 - **De kast lijkt nu echt op de voorbeeldvideo.** Een liggende kast met lichtblauwe rand en een donkergrijze binnenkant, een brede 3D-groene paddle onderin, crèmekleurige ballen met een lange staart en grote donkere bolletjes boven elke kaart die groen worden.
 - **Poppetjes staan elke ronde op een willekeurige plek** en zijn veel groter: met 5 of 6 poppetjes is de kast bijna vol. Ze kunnen vlak naast elkaar landen; komt een bal ertussen, dan kaatst hij heen en weer en krijg je in korte tijd heel veel treffers en poppetjes.

@@ -2,7 +2,7 @@
 const { JSDOM } = require('jsdom');
 const fs = require('fs'), path = require('path');
 
-function load() {
+function load(opts = {}) {
   const file = process.env.HW_FILE || path.join(__dirname, '..', '..', '..', 'site', 'games', 'pegfall', 'index.html');
   const html = fs.readFileSync(file, 'utf8');
   const grad = { addColorStop() {} };
@@ -13,6 +13,7 @@ function load() {
       w.HTMLCanvasElement.prototype.getContext = function () { return this._c || (this._c = makeCtx(this)); };
       w.HTMLCanvasElement.prototype.toDataURL = () => 'data:image/png;base64,';
       w.requestAnimationFrame = () => 0; w.AudioContext = undefined; w.scrollTo = () => {};
+      if (opts.before) opts.before(w);
     } });
   const w = dom.window, errors = [];
   w.addEventListener('error', (e) => { errors.push(e.message); console.log('WINDOW ERROR', e.message); });
