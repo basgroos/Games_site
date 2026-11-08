@@ -227,25 +227,41 @@ function boot() {
   // ---------------------------------------------------------------------
   //  Loop
   // ---------------------------------------------------------------------
-  var last = performance.now(), musicT = 0;
+  var last = performance.now(), musicT = 0, lastFrameT = performance.now(), lastBgT = performance.now();
+  // game logic for one frame (also used while the tab is in the background)
+  function stepLogic(m, dt, maxSteps) {
+    if (Game.state === 'match' && Game.mode === 'client') MP.clientTick(dt);
+    else if (Game.state === 'match') {
+      if (Game.mode === 'host') Game.paused = false;
+      if (!Game.paused) {
+        Game.acc += dt * Game.speed;
+        var steps = 0;
+        while (Game.acc >= G.TICK && steps < maxSteps) { m.update(G.TICK); Game.acc -= G.TICK; steps++; }
+        if (steps >= maxSteps) Game.acc = 0;
+      }
+      if (Game.mode === 'host') MP.hostTick(dt, Game.speed);
+    } else m.update(dt);
+    MP.hostLobbyTick(dt);
+  }
+  // A browser stops animation frames in a hidden tab. Online, the host must keep the match running
+  // (and guests must keep talking), so a worker timer drives the logic whenever frames stop.
+  function bgTick() {
+    var now = performance.now(), dt = Math.min(1.5, (now - lastBgT) / 1000); lastBgT = now;
+    if (now - lastFrameT < 400 || !(MP.role || Game.mode !== 'solo')) return;
+    var m = Game.state === 'match' ? Game.match : null;
+    if (m) stepLogic(m, dt, 60); else MP.hostLobbyTick(dt);
+  }
+  try {
+    var wk = new Worker(URL.createObjectURL(new Blob(['setInterval(function(){postMessage(1)},50)'], { type: 'text/javascript' })));
+    wk.onmessage = bgTick;
+  } catch (e) { setInterval(bgTick, 100); }
   function frame(now) {
     var dt = Math.min(0.1, (now - last) / 1000); last = now;
     R.time += dt;
+    lastFrameT = performance.now();
     var m = Game.state === 'match' ? Game.match : Game.demo;
     if (m) {
-      if (Game.state === 'match' && Game.mode === 'client') {
-        MP.clientTick(dt);
-      } else if (Game.state === 'match') {
-        if (Game.mode === 'host') Game.paused = false;
-        if (!Game.paused) {
-          Game.acc += dt * Game.speed;
-          var steps = 0;
-          while (Game.acc >= G.TICK && steps < 14) { m.update(G.TICK); Game.acc -= G.TICK; steps++; }
-          if (steps >= 14) Game.acc = 0;
-        }
-        if (Game.mode === 'host') MP.hostTick(dt, Game.speed);
-      } else m.update(dt);
-      MP.hostLobbyTick(dt);
+      stepLogic(m, dt, 14);
       layout(dt);
       var c = Game.cam, view = { x0: c.x0, y0: c.y0, x1: c.x0 + c.vw, y1: c.y0 + c.vh };
       var vis = {}; R.visibleRooms(m, view).forEach(function (r) { vis[r.index] = true; }); FX.vis = vis; FX.viewRect = view;

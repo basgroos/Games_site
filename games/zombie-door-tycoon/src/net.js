@@ -36,7 +36,7 @@
     if (!Net.available()) return Promise.reject(new Error('offline'));
     var p = W.supabase ? Promise.resolve() : loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js');
     return p.then(function () {
-      Net.client = W.supabase.createClient(BUILD.online.url, BUILD.online.key, { auth: { persistSession: false, autoRefreshToken: false }, realtime: { params: { eventsPerSecond: 40 } } });
+      Net.client = W.supabase.createClient(BUILD.online.url, BUILD.online.key, { auth: { persistSession: false, autoRefreshToken: false }, realtime: { params: { eventsPerSecond: 40 }, worker: true } }); // heartbeat in a worker: survives background tabs
       return Net.client;
     });
   };
