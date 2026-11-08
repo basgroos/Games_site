@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## Age Clash 1.0.0 (2026-11-08)
+- **Nieuw spel: Age Clash — Evolution War**, een 1v1-strategiespel. Twee bases staan tegenover elkaar; je plaatst units die automatisch naar de vijand lopen en vechten. Vernietig de basis van je tegenstander.
+- **8 tijdperken** (Primal Dawn, Human Genesis, Pharaoh's Dominion, Imperium Aeternum, Ironfront Era, Neo Warfare, Mech Rebellion, Omniverse Ascension), elk met eigen achtergrond, basis, towers, geluid, een vaste bonus en een tijdperk-power. **32 units** in vier vaste rollen (melee, ranged, anti-armor, armored; cooldown 2/2/4/4 s), elk met een eigen eigenschap.
+- **Economie met ijzer:** 500 bij de start, 20 per seconde, kill-inkomen, en upgrades voor units, towers en inkomen die steeds duurder worden. **3 towers** (Rapid, Sniper, Blast). Met **XP** evolueer je tijdens de match naar het volgende tijdperk.
+- **Progressie:** coins, levels, units en tijdperken kopen, permanente upgrades (alleen tegen bots), cosmetics, kisten, een seizoen met 30 tiers, ranked rating en een wereldranglijst (tabel `scores`, game `age-clash`, mode `ranked`).
+- **Spelmodi:** tegen een bot (Easy, Normal, Hard), lokaal met z'n tweeën op één toetsenbord, of **online** (snel zoeken of met een privé-code) via Supabase Realtime (kanalen `bg-lobby-ac-<env>` en `bg-room-ac-<env>-<kamer>`). Online is deterministische lockstep: alleen commando's gaan over de lijn, beide computers rekenen dezelfde match na en vergelijken elke 5 s een controlegetal. Bij een haperende verbinding wacht het spel; pas na 45 s zonder contact win je. Zit een speler in een ander tabblad, dan loopt zijn spel op een timer door, ziet de ander een melding en geldt een wachttijd van 3 minuten.
+- Snelheid 1×, 2×, 3× en 5× tegen bots en lokaal.
+- Tests: `tests/sim.js` (regels, determinisme, bots), `tests/smoke.js` (alle schermen en een match via de knoppen) en `tests/online.js` (twee pagina's spelen een privé-match met vertraging, een tabblad zonder animatieframes, opgeven, een korte haper en een echte disconnect).
 ## Pegfall Arena 1.3.3 (2026-11-08)
 - **Je kunt nu gewoon een matchcode typen.** Het Multiplayer-scherm werd elke paar seconden opnieuw opgebouwd (bij elke update over wie er in de lobby is), waardoor het codeveld leeg raakte en je niet kon doortypen. Nu wordt alleen het aantal spelers bijgewerkt; het scherm wordt pas opnieuw opgebouwd als online spelen aan of uit gaat, en dan blijft je getypte code staan.
 - Op Enter drukken in het codeveld start meteen het meedoen.
