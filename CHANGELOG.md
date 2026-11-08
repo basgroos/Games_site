@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## Age Clash 1.0.2 (2026-11-08)
+- **Online getest op de echte site** (twee tabbladen via Supabase): de match loopt, beide spelers houden exact dezelfde stand (10 controles achter elkaar gelijk) en opgeven eindigt de match bij allebei.
+- Zit je in een ander tabblad als de match afloopt, dan verschijnen het resultaat en de beloning nu meteen, in plaats van pas als je terugkomt.
+
 ## Age Clash 1.0.1 (2026-11-08)
 - **Online: een tabblad dat in de achtergrond werd geopend liep niet.** Kreeg de pagina nog nooit een animatieframe (in de achtergrond geopend), dan herkende het spel niet dat het niet in beeld was en bleef de match op beurt 0 staan, terwijl de tegenstander wachtte. Gevonden met een echte online test op de site (twee tabbladen via Supabase). Nu telt ook "nog nooit een frame gehad" als niet in beeld, en loopt de match op de timer door.
 - Test uitgebreid: een pagina die nooit een frame kreeg speelt mee.

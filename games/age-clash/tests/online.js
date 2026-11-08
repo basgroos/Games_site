@@ -87,7 +87,9 @@ const step = (p, dt) => p.E(`AC.Main.step(${dt})`);
     for (let i = 0; i < 200 && !(A.E('AC.Match.sim.over') && B.E('AC.Match.sim.over')); i++) { step(A, 1 / 30); step(B, 1 / 30); await sleep(3); }
     ok(A.E('AC.Match.sim.over') && B.E('AC.Match.sim.over'), 'niet afgelopen');
     ok(A.E('AC.Match.sim.winner') === B.E('AC.Match.sim.winner'), 'andere winnaar');
-    for (let i = 0; i < 80; i++) { step(A, 1 / 30); step(B, 1 / 30); }
+    // B krijgt geen frames (achtergrond): het resultaat (en de beloning) moet er toch komen
+    B.E('AC.Main.lastFrame=0');
+    for (let i = 0; i < 80; i++) { step(A, 1 / 30); await sleep(40); }
     ok($(A, '.result .rtitle').textContent === 'OVERWINNING' && $(B, '.result .rtitle').textContent === 'NEDERLAAG', 'resultaatscherm');
   });
   await run('korte haper: geen onterechte winst; echt weg: wel winst na de wachttijd', async () => {

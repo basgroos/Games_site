@@ -30,7 +30,7 @@ var AC = window.AC;
     Main.step(Main.online() ? dt : Math.min(0.1, dt));
     requestAnimationFrame(frame);
   }
-  Main.online = function () { return AC.Match.active && AC.Match.mode === 'online' && !AC.Match.over; };
+  Main.online = function () { return AC.Match.active && AC.Match.mode === 'online' && !AC.Match.resultShown; };
   /* Een tabblad dat niet in beeld is krijgt geen animatieframes. Online zou de match dan stilstaan
      en de tegenstander eindeloos wachten; daarom draait de match dan op een timer verder en
      laten we de tegenstander weten dat we even weg zijn. */
