@@ -68,6 +68,8 @@ const step = (p, dt) => p.E(`AC.Main.step(${dt})`);
   });
   await run('tabblad op de achtergrond (geen animatieframes): de match loopt toch door', async () => {
     // A krijgt geen frames meer (zoals een tabblad dat niet in beeld is); alleen B wordt gestapt.
+    // Ook een pagina die nog NOOIT een frame kreeg (in de achtergrond geopend) moet doorlopen.
+    A.E('AC.Main.lastFrame=0');
     const e0 = A.E('AC.Match.net.exec');
     for (let i = 0; i < 150; i++) { step(B, 1 / 30); await sleep(10); }
     ok(A.E('AC.Match.net.exec') > e0 + 8, 'A liep niet door: ' + e0 + ' -> ' + A.E('AC.Match.net.exec'));

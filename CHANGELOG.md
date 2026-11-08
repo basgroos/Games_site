@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## Age Clash 1.0.1 (2026-11-08)
+- **Online: een tabblad dat in de achtergrond werd geopend liep niet.** Kreeg de pagina nog nooit een animatieframe (in de achtergrond geopend), dan herkende het spel niet dat het niet in beeld was en bleef de match op beurt 0 staan, terwijl de tegenstander wachtte. Gevonden met een echte online test op de site (twee tabbladen via Supabase). Nu telt ook "nog nooit een frame gehad" als niet in beeld, en loopt de match op de timer door.
+- Test uitgebreid: een pagina die nooit een frame kreeg speelt mee.
+
 ## Age Clash 1.0.0 (2026-11-08)
 - **Nieuw spel: Age Clash — Evolution War**, een 1v1-strategiespel. Twee bases staan tegenover elkaar; je plaatst units die automatisch naar de vijand lopen en vechten. Vernietig de basis van je tegenstander.
 - **8 tijdperken** (Primal Dawn, Human Genesis, Pharaoh's Dominion, Imperium Aeternum, Ironfront Era, Neo Warfare, Mech Rebellion, Omniverse Ascension), elk met eigen achtergrond, basis, towers, geluid, een vaste bonus en een tijdperk-power. **32 units** in vier vaste rollen (melee, ranged, anti-armor, armored; cooldown 2/2/4/4 s), elk met een eigen eigenschap.

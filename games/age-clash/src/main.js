@@ -35,7 +35,7 @@ var AC = window.AC;
      en de tegenstander eindeloos wachten; daarom draait de match dan op een timer verder en
      laten we de tegenstander weten dat we even weg zijn. */
   // 'weg' = tabblad verborgen, of al 0,6 s geen echt frame meer (de timer-stappen tellen niet mee)
-  Main.away = function () { return document.hidden || (Main.lastFrame && performance.now() - Main.lastFrame > 600); };
+  Main.away = function () { return document.hidden || performance.now() - (Main.lastFrame || Main.bootT || 0) > 600; };
   setInterval(function () {
     if (!Main.booted || !Main.online()) return;
     var away = Main.away();
@@ -61,7 +61,7 @@ var AC = window.AC;
   };
 
   Main.boot = function () {
-    if (Main.booted) return; Main.booted = true;
+    if (Main.booted) return; Main.booted = true; Main.bootT = performance.now();
     fit(); window.addEventListener('resize', fit);
     AC.Profile.loadLocal();
     var S = AC.Profile.data.settings;
