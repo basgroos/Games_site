@@ -1,5 +1,14 @@
 # Wijzigingen
 
+## Zombie Door Tycoon 1.1.0 (2026-11-08)
+- **Legendary, Mythic en Secret zijn een stuk goedkoper om te plaatsen**, zodat je ze in een normaal potje ook echt neerzet:
+  - Legendary ongeveer de helft: Plasma Cannon $1.800, Black Hole $1.500, Drone Commander $1.600, Shield Generator $1.300, War Drum $1.300, Quantum Farm $1.600, Bank $1.800.
+  - Mythic ongeveer 55% goedkoper: Kaiju Cannon $4.000, Time Manipulator $3.200, Soul Collector $3.000, Meteor Tower $3.500, Infinity Reactor $6.500, Diamond Generator $5.500.
+  - Secret ongeveer 60% goedkoper: The Creator $9.000, Void Emperor $8.500, Reality Breaker $9.000, The Last Defense $7.500, Golden God $8.000.
+  - Ook een paar Epics: Flamethrower $700, Rocket Launcher $750, Laser Tower $850, Gold Factory $1.500, Gold Mine $1.000, Crypto Farm $1.200.
+- Upgrades van deze items kosten ongeveer wat ze eerst kostten, zodat je na het plaatsen nog steeds iets te sparen hebt.
+- Farms die goedkoper werden leveren iets minder op, anders verdienden ze zichzelf te snel terug (bijv. Infinity Reactor $1.100 per 5 s, Golden God $1.500, Diamond Generator $800 met een diamant van $12.000, Bank-rente max $1.000).
+
 ## Age Clash 1.0.2 (2026-11-08)
 - **Online getest op de echte site** (twee tabbladen via Supabase): de match loopt, beide spelers houden exact dezelfde stand (10 controles achter elkaar gelijk) en opgeven eindigt de match bij allebei.
 - Zit je in een ander tabblad als de match afloopt, dan verschijnen het resultaat en de beloning nu meteen, in plaats van pas als je terugkomt.

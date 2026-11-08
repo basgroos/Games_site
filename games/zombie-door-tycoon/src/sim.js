@@ -267,7 +267,7 @@
 
   M.upgradeCost = function (t, track) {
     var lvl = t.lvl[track], mul = { dmg: 1, spd: 1.1, rng: 0.8, spc: 1, inc: 0.85 }[track];
-    return Math.round(t.item.cost * 0.55 * mul * Math.pow(1.5, lvl) / 5) * 5;
+    return Math.round((t.item.upCost || t.item.cost) * 0.55 * mul * Math.pow(1.5, lvl) / 5) * 5;
   };
   M.towerLevel = function (t) { var s = 0; for (var k in t.lvl) s += t.lvl[k]; return s; };
   M.sellValue = function (t) { return Math.round(t.spent * 0.6); };
@@ -644,7 +644,7 @@
           got = inc; break;
         case 'crypto': got = inc * (self.rnd() * 2.2); break;
         case 'quantum': got = (inc + it.growth * elapsedMin * (1 + G.TRACKS.inc.per * t.lvl.inc)) * t.buff.farm; break;
-        case 'bank': got = inc + Math.min(2000 * (1 + 0.2 * t.lvl.inc), p.cash * it.interest * (1 + 0.1 * t.lvl.inc)); break;
+        case 'bank': got = inc + Math.min(1000 * (1 + 0.2 * t.lvl.inc), p.cash * it.interest * (1 + 0.1 * t.lvl.inc)); break;
         case 'diamond':
           got = inc;
           if (self.rnd() < it.chance) { got += it.jackpot; self.fx.text(room, t.px, t.py - 30, '💎 DIAMOND! +$' + it.jackpot, '#a8f0ff', true); }
@@ -664,7 +664,7 @@
       var st = self.stats(t, room), inc = st.income * t.buff.farm;
       if (it.kind === 'crypto') inc *= 1.1;
       if (it.kind === 'quantum') inc = (inc + it.growth * (self.time / 60) * (1 + G.TRACKS.inc.per * t.lvl.inc)) * t.buff.farm;
-      if (it.kind === 'bank') inc += Math.min(2000 * (1 + 0.2 * t.lvl.inc), p.cash * it.interest * (1 + 0.1 * t.lvl.inc));
+      if (it.kind === 'bank') inc += Math.min(1000 * (1 + 0.2 * t.lvl.inc), p.cash * it.interest * (1 + 0.1 * t.lvl.inc));
       if (it.kind === 'mine_farm') inc = inc * 5 / (it.every / (1 + G.TRACKS.spd.per * t.lvl.spd));
       if (it.warmup && room.time - t.placedAt < it.warmup) inc = 0;
       total += inc;
