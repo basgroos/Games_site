@@ -141,6 +141,14 @@ function loop(now){const dt=Math.min(.05,(now-lastT)/1000);lastT=now;
     if(VIEWS.arcade&&VIEWS.arcade!==VIEWS.menuDemo)VIEWS.arcade.frame(dt);if(VIEWS.battle)VIEWS.battle.frame(dt);}catch(e){console.error(e);}
   requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
+/* A tab that is not in view gets no animation frames at all, which used to freeze the battle (and with it the
+   whole online match) until the player switched back. Battles are fully decided by the shared seed, so when no
+   frames arrive we simply finish the battle at once; the arcade machine waits for its player, as it should.
+   We also tell the opponent we are away, so their screen can say so instead of just waiting. */
+function pageAway(){return document.hidden||performance.now()-lastT>600;}
+setInterval(()=>{const away=pageAway();
+  const b=VIEWS.battle;if(away&&b&&!b.st.done&&S.match&&S.match.phase==='battle'){b.intro=0;b.skip();b.frame(0);}
+  const m=S.match;if(m&&m.t&&m.t.setMine&&S.mode&&S.mode.kind==='online'&&m.phase!=='over'&&!!m.t.mine.away!==away)m.t.setMine({away});},250);
 function fitCanvas(cv,w,h){const dpr=Math.min(2,window.devicePixelRatio||1);cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);return g;}
 
 /* ===================== ARCADE VIEW (fighters are the bumpers, 3 balls at once) ===================== */
@@ -451,14 +459,16 @@ function makePresenceTransport(nr,name){
   T.status=()=>T.reconnecting?'reconnecting':T.missingSince?'missing':'ok';
   T.missingFor=()=>T.missingSince?(Date.now()-T.missingSince)/1000:0;
   const gone=why=>{if(T.goneFired||T.closed)return;T.goneFired=true;console.warn('opponent gone:',why);T.onGone&&T.onGone(why);};
-  T.check=()=>{if(T.closed||!T.oppPeer)return;if(T.missingSince&&T.missingFor()>=GONE_AFTER)gone('missing '+GONE_AFTER+'s');};
+  // an opponent whose last word was "I'm in another tab" gets much longer before we give up on them
+  T.goneLimit=()=>T.lastOpp&&T.lastOpp.away?GONE_AFTER*4:GONE_AFTER;
+  T.check=()=>{if(T.closed||!T.oppPeer)return;const lim=T.goneLimit();if(T.missingSince&&T.missingFor()>=lim)gone('missing '+lim+'s');};
   const onPeers=ch=>{if(T.closed)return;const me=ch.peers.find(p=>p.sameTab);
     if(!T.oppPeer&&me&&T.onOpp){const others=ch.peers.filter(p=>!p.sameTab&&p.presence&&p.presence.g&&p.presence.g.app==='pegfall');
       if(others.length>=2&&!T.mine.r){T.onFull&&T.onFull();return;}
       if(others.length){const o=others[0];T.oppPeer=o.peer;T.side=me.peer<o.peer?0:1;T.onOpp&&T.onOpp(T.side,o);}}
     if(T.oppPeer){const op=ch.peers.find(p=>p.peer===T.oppPeer);
       if(op&&op.presence&&op.presence.g&&op.presence.g.bye){gone('left on purpose');return;}
-      if(op)T.missingSince=0;else if(!T.missingSince)T.missingSince=Date.now();
+      if(op){T.missingSince=0;if(op.presence&&op.presence.g)T.lastOpp=op.presence.g;}else if(!T.missingSince)T.missingSince=Date.now();
       T.cbs.forEach(f=>f());}};
   const attach=()=>{try{T.unsub&&T.unsub();}catch(e){}T.unsub=T.nr.onPeers(ch=>setTimeout(()=>onPeers(ch),0),err=>{if(!T.closed)reconnect(err&&err.code);});};
   const reconnect=async code=>{if(T.closed||T.reconnecting)return;T.reconnecting=true;console.warn('room error, rejoining',code);
@@ -598,7 +608,8 @@ function updatePickStatus(m){const el=$('#opst');if(!el)return;const o=m.opp;con
 function tickMatch(){const m=S.match;if(!m)return;
   const nb=$('#netbox');if(nb){let html='';if(m.t&&m.t.status&&m.phase!=='over'){const st=m.t.status();
       if(st==='reconnecting')html='<div class="warn">Connection hiccup. Reconnecting to the match…</div>';
-      else if(st==='missing'){const left=Math.max(0,Math.ceil(GONE_AFTER-m.t.missingFor()));if(m.t.missingFor()>4)html=`<div class="warn">Lost contact with your opponent. Waiting for them to come back… (${left}s)</div>`;}}
+      else if(st==='missing'){const left=Math.max(0,Math.ceil(m.t.goneLimit()-m.t.missingFor()));if(m.t.missingFor()>4)html=`<div class="warn">Lost contact with your opponent. Waiting for them to come back… (${left}s)</div>`;}
+      else{const o=m.opp;if(o&&o.away)html=`<div class="note-bar">${esc(m.oppInfo?m.oppInfo.name:'Your opponent')}'s game is not in view right now (another tab or app). It carries on as soon as they come back.</div>`;}}
     if(nb.innerHTML!==html)nb.innerHTML=html;}
   if(m.phase==='pick'&&MV.deadline){const left=Math.max(0,Math.ceil((MV.deadline-Date.now())/1000));const el=$('#ptimer');if(el)el.textContent=left+'s';if(left<=0){MV.deadline=null;MV.autoPick&&MV.autoPick();}}
   if(m.phase==='pick')updatePickStatus(m);

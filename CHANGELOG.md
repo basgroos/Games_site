@@ -1,5 +1,11 @@
 # Wijzigingen
 
+## Pegfall Arena 1.3.2 (2026-11-08)
+- **Online: het potje loopt niet meer vast als een speler in een ander tabblad zit.** Een browser pauzeert alle animatie in een tabblad dat niet in beeld is. Het gevecht draaide op die animatie, dus in dat tabblad bleef het gevecht stilstaan en wachtte de tegenstander eindeloos (nagespeeld op de echte site met twee tabbladen). Nu wordt het gevecht meteen uitgerekend als het tabblad niet in beeld is; de uitslag ligt toch vast. De kast wacht wel op zijn speler, zoals het hoort.
+- De tegenstander ziet nu *…'s game is not in view right now (another tab or app). It carries on as soon as they come back.* in plaats van alleen te wachten. Wie zo afwezig is, krijgt 3 minuten in plaats van 45 seconden voordat het als weggaan telt.
+- De verbinding met Supabase houdt zijn hartslag nu bij in een aparte worker, zodat een tabblad op de achtergrond niet wordt losgekoppeld.
+- Nieuwe test: twee pagina's zonder animatie (zoals tabbladen op de achtergrond) spelen een heel potje uit, en de tegenstander krijgt de melding.
+
 ## Pegfall Arena 1.3.1 (2026-11-02)
 - **Online: geen onterechte winst meer na 15 seconden.** Bij een online potje kregen beide spelers na ongeveer 15 seconden *Your opponent left the match* en de winst, terwijl niemand weg was. Oorzaken en oplossingen:
   - De tweede speler bleef soms op het zoekscherm hangen: zijn spelstatus ging al de deur uit voordat het spel klaar was om op de tegenstander te reageren. De eerste speler zag hem daarna niet meer bewegen en kreeg na 12 seconden de winst. Nu wordt alles eerst klaargezet en pas daarna verstuurd.

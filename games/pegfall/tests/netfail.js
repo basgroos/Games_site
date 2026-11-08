@@ -112,6 +112,39 @@ async function pair(server, nameA, nameB) {
     return { score: A.E('S.match.score'), rounds: A.E('S.match.history.length'), hiccups, dropped: server.dropped + '/' + server.sent, sawBanner };
   });
 
+  await run('tabs that are not in view (no animation frames) still finish every battle, and the other side is told', async () => {
+    const server = makeServer();
+    const { A, B } = await pair(server, 'Ida', 'Jon');
+    // nobody drives the battle view here: the pages get no animation frames, like a tab in the background
+    let sawAway = false;
+    const t0 = Date.now();
+    while (Date.now() - t0 < 170000) {
+      let busy = false;
+      for (const p of [A, B]) {
+        const ph = phase(p);
+        if (ph && ph !== 'over') busy = true;
+        if (ph === 'battle') continue;
+        if (ph === 'pick' && $(p, '#pkg .ccard') && !p.__picked) { p.__picked = 1; $(p, '#pkg .ccard').click(); $(p, '#lock').click(); }
+        if (ph !== 'pick') p.__picked = 0;
+        if (ph === 'arcade' && p.E('!!VIEWS.arcade') && p.E('!VIEWS.arcade.m.done')) {
+          p.E('VIEWS.arcade.m.pre=0;VIEWS.arcade.m.launchAll()');
+          for (let f = 0; f < 3000 && p.E('!VIEWS.arcade.m.done'); f++) p.E('VIEWS.arcade.target=steerTarget(VIEWS.arcade.m,Math.random,12,.5);VIEWS.arcade.frame(1/60)');
+          p.E('VIEWS.arcade.frame(1/60)');
+        }
+        if (ph === 'muster' && $(p, '#tobattle')) $(p, '#tobattle').click();
+        if (ph === 'roundOver' && $(p, '#cont')) $(p, '#cont').click();
+        if (p.E("/not in view/.test((document.querySelector('#netbox')||{}).textContent||'')")) sawAway = true;
+      }
+      if (!busy) break;
+      await sleep(40);
+    }
+    ok(phase(A) === 'over' && phase(B) === 'over', `match stalled (${phase(A)} / ${phase(B)})`);
+    ok(!A.E('S.match.forfeit') && !B.E('S.match.forfeit'), 'match was forfeited');
+    ok(A.E('JSON.stringify(S.match.score)') === B.E('JSON.stringify(S.match.score)'), 'scores differ');
+    ok(sawAway, 'the other player was never told the opponent is not in view');
+    return { score: A.E('S.match.score'), rounds: A.E('S.match.history.length') };
+  });
+
   await run('opponent missing for 14 s shows a waiting banner but does not end the match', async () => {
     const server = makeServer();
     const { A, B, code } = await pair(server, 'Cat', 'Dan');

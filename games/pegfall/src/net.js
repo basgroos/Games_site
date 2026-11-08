@@ -30,7 +30,7 @@ async function connectBackend() {
 async function supabaseBackend(cfg) {
   if (!window.supabase) await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js');
   const rt = window.supabase.createClient(cfg.url, cfg.key, {
-    auth: { persistSession: false, autoRefreshToken: false }, realtime: { params: { eventsPerSecond: 20 } },
+    auth: { persistSession: false, autoRefreshToken: false }, realtime: { params: { eventsPerSecond: 20 }, worker: true }, // heartbeat in a worker: survives background tabs
   });
   const me = 'pf' + randHex(6); // one id per open tab, so two tabs can play each other
   const mkRoom = (channel) => new Promise((resolve, reject) => {
