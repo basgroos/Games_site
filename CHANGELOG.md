@@ -1,5 +1,8 @@
 # Wijzigingen
 
+## Site (2026-11-08)
+- **Tiny Empire en Hollow Pines zijn van de site gehaald.** Ze staan niet meer op de startpagina en hun mappen zijn verwijderd. Ze zijn terug te halen uit de git-geschiedenis.
+
 ## Hollow Pines 1.0.0 (2026-10-23)
 - **Nieuw spel: Hollow Pines**, een survival-horrorspel in 3D. Vijf overlevenden zitten vast in een oud huis in een donker dennenbos. Ze moeten de generator repareren, de radio bouwen, het hek openen en de weg halen voor vijf uur 's nachts. Ondertussen jaagt er iets tussen de bomen.
 - **Online spelen: wie de kamer maakt, is het monster.** Maak een kamer en geef de code van vier letters aan maximaal vijf vrienden; zij spelen de overlevenden. Lege plekken worden opgevuld met AI-overlevenden. Loopt een vriend weg, dan neemt een AI het over.

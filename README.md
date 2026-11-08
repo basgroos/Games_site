@@ -14,9 +14,7 @@ Een website met browsergames. Alles draait direct in de browser; voortgang wordt
 | Heldenwacht | `games/heldenwacht/` | live |
 | Ashen Depths | `games/ashen-depths/` | live |
 | PULSE//SHIFT | `games/pulse-shift/` | live |
-| Tiny Empire | `games/tiny-empire/` | live |
 | House Sitting | `games/house-sitting/` | live |
-| Hollow Pines | `games/hollow-pines/` | live |
 
 ## Hoe het werkt
 
