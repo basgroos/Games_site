@@ -1,5 +1,10 @@
 # Wijzigingen
 
+## Pegfall Arena 1.3.3 (2026-11-08)
+- **Je kunt nu gewoon een matchcode typen.** Het Multiplayer-scherm werd elke paar seconden opnieuw opgebouwd (bij elke update over wie er in de lobby is), waardoor het codeveld leeg raakte en je niet kon doortypen. Nu wordt alleen het aantal spelers bijgewerkt; het scherm wordt pas opnieuw opgebouwd als online spelen aan of uit gaat, en dan blijft je getypte code staan.
+- Op Enter drukken in het codeveld start meteen het meedoen.
+- Test toegevoegd: typen in het codeveld wordt niet onderbroken door lobby-updates.
+
 ## Site (2026-11-08)
 - **Tiny Empire en Hollow Pines zijn van de site gehaald.** Ze staan niet meer op de startpagina en hun mappen zijn verwijderd. Ze zijn terug te halen uit de git-geschiedenis.
 

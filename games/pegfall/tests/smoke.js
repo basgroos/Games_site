@@ -73,6 +73,18 @@ const phase = () => E('S.match&&S.match.phase');
   await run('multiplayer screen works offline (no backend in tests)', () => {
     click('#tomenu'); E("go('mp')"); ok($('#mq'), 'no quick match button'); click('#mb'); ok(E('S.screen') === 'prep', 'bot fallback broken');
   });
+  await run('typing a match code is not interrupted by lobby updates', () => {
+    E("NET.status='on';NET.count=2;go('mp')");
+    const inp = $('#code'); inp.focus(); inp.value = 'AB';
+    for (let i = 0; i < 5; i++) E('NET.count=' + (3 + i) + ';updateNetPill()');
+    ok($('#code') === inp, 'the code field was rebuilt');
+    ok(inp.value === 'AB' && w.document.activeElement === inp, 'typed text or focus was lost');
+    ok(/7 players/.test($('#mpcount').textContent), 'player count not updated');
+    E("NET.status='off';updateNetPill()");
+    ok($('#code').value === 'AB', 'code lost when going offline');
+    E("NET.status='off'");
+    return { value: $('#code').value };
+  });
   if (errors.length) { console.log('page errors:', errors); failed++; }
   if (failed) { console.log(failed + ' check(s) failed'); process.exit(1); }
   console.log('Pegfall Arena smoke: all checks passed');

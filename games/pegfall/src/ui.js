@@ -439,7 +439,11 @@ function renderPrep(arg){if(arg.kind==='botpick'){main().innerHTML=`<div class="
 const NET={backend:null,room:null,status:'checking',count:0,game:null};
 function updateNetPill(){const p=$('#netpill'),t=$('#nettext');p.classList.toggle('on',NET.status==='on');
   t.textContent=NET.status==='on'?`Online · ${NET.count} here`:NET.status==='checking'?'Checking online…':'Offline · bots only';
-  if(S.screen==='mp')renderMP();}
+  // Only rebuild the Multiplayer screen when online/offline actually changes; otherwise just update the count,
+  // so typing a match code is never interrupted by lobby updates.
+  if(S.screen==='mp'){const c=$('#mpcount');if(NET.status!==renderMP.shown){const inp=$('#code'),v=inp?inp.value:'',f=document.activeElement===inp;renderMP();const n=$('#code');if(n){n.value=v;if(f)n.focus();}}
+    else if(c)c.textContent=mpCountText();}}
+const mpCountText=()=>NET.status==='on'?`${NET.count} player${NET.count===1?'':'s'} with the game open right now.`:'';
 async function initNet(){try{const be=await connectBackend();if(!be){NET.status='off';updateNetPill();return;}
     NET.backend=be;NET.room=be.lobby;NET.status='on';NET.room.presence({app:'pegfall',name:S.save.name}).catch(()=>{});
     NET.room.onPeers(ch=>{NET.count=ch.peers.filter(p=>p.presence&&p.presence.app==='pegfall').length;updateNetPill();if(MM.active)mmCheck();},
@@ -509,7 +513,7 @@ let SEARCH=null;
 function stopSearch(keepGame){if(!SEARCH)return;clearInterval(SEARCH.tick);clearTimeout(SEARCH.qtimer);mmStop();
   if(!keepGame&&NET.game){NET.game.close();NET.game=null;}SEARCH=null;}
 function searchMsg(t){const el=$('#smsg');if(el)el.textContent=t;}
-function renderMP(){const on=NET.status==='on';
+function renderMP(){const on=NET.status==='on';renderMP.shown=NET.status;
   main().innerHTML=`<div class="shead"><h2>Multiplayer</h2><button class="btn sm ghost" data-act="home">Back</button></div>
   ${on?'':`<div class="warn">Online play isn't available right now${NET.status==='checking'?' (still connecting)':''}. You can still play bots.</div>`}
   <div class="mp-grid">
@@ -517,10 +521,11 @@ function renderMP(){const on=NET.status==='on';
     <button class="tile" id="mc" ${on?'':'disabled'}><b>Create match</b><span>Get a code to invite a friend</span></button>
     <div class="tile" style="cursor:default"><b>Join with code</b><div class="row" style="margin-top:6px"><input class="input" id="code" maxlength="6" placeholder="ABC12" style="flex:1;text-transform:uppercase" aria-label="Match code"><button class="btn sm" id="mj" ${on?'':'disabled'}>Join</button></div></div>
   </div>
-  <p class="note" style="margin-top:16px">${on?`${NET.count} player${NET.count===1?'':'s'} with the game open right now.`:''} Matches are peer-to-peer over a live room: picks are locked with a cryptographic commitment before either side sees the other's, the shared random seed mixes both players' secrets, each machine's results are checked against what the machine allows, and both clients replay the exact same battle and cross-check the result.</p>
+  <p class="note" style="margin-top:16px"><span id="mpcount">${mpCountText()}</span> Matches are peer-to-peer over a live room: picks are locked with a cryptographic commitment before either side sees the other's, the shared random seed mixes both players' secrets, each machine's results are checked against what the machine allows, and both clients replay the exact same battle and cross-check the result.</p>
   <div style="margin-top:12px"><button class="btn ghost sm" id="mb">Play a bot instead</button></div>`;
   if(on){$('#mq').onclick=()=>go('prep',{kind:'mm'});$('#mc').onclick=()=>go('prep',{kind:'create'});
-    $('#mj').onclick=()=>{const c=$('#code').value.trim().toLowerCase().replace(/[^a-z0-9]/g,'');if(c.length<4){toast('Enter the 5-character code your friend shared.');return;}go('prep',{kind:'join',code:c});};}
+    $('#mj').onclick=()=>{const c=$('#code').value.trim().toLowerCase().replace(/[^a-z0-9]/g,'');if(c.length<4){toast('Enter the 5-character code your friend shared.');return;}go('prep',{kind:'join',code:c});};
+    $('#code').onkeydown=e=>{if(e.key==='Enter')$('#mj').click();};}
   $('#mb').onclick=()=>go('prep',{kind:'botpick'});}
 function renderSearch(arg){stopSearch();const s=SEARCH={arg,t0:Date.now()};
   const code=arg.kind==='create'?Array.from({length:5},()=>'abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random()*31)]).join(''):arg.code;
