@@ -20,6 +20,7 @@ Een website met browsergames. Alles draait direct in de browser; voortgang wordt
 | The House That Remembers | `games/house-that-remembers/` | live |
 | The Last Shift | `games/the-last-shift/` | live |
 | Pegfall Arena | `games/pegfall/` | live |
+| Zombie Door Tycoon | `games/zombie-door-tycoon/` | live |
 
 ## Hoe het werkt
 
@@ -62,7 +63,7 @@ npm run build:staging    # bouwt de staging-versie naar site/
 
 - `config/online.json`: de Supabase-URL en de openbare sleutel.
 - `supabase/schema.sql`: scores en ranglijst. `supabase/schema_social.sql`: spelers, vrienden en uitnodigingen. Plak ze in de SQL Editor van Supabase.
-- Samen spelen loopt via Supabase Realtime (kanalen `bg-lobby-<env>` en `bg-room-<uitnodiging>`).
+- Samen spelen loopt via Supabase Realtime (kanalen `bg-lobby-<env>` en `bg-room-<uitnodiging>`). Zombie Door Tycoon gebruikt `bg-lobby-zdt-<env>` en `bg-room-zdt-<env>-<code>`; de host rekent het potje uit en stuurt de stand naar de anderen.
 
 ## Bekende beperking
 

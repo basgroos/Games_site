@@ -1,5 +1,14 @@
 # Wijzigingen
 
+## Zombie Door Tycoon 1.0.0 (2026-11-08)
+- **Nieuw spel: Zombie Door Tycoon**, een multiplayer zombie tower defense tycoon.
+  - Eén grote hal met 8 even grote kamers (30 bouwtegels, één deur). Je loopt rond met je eigen poppetje (WASD of klikken) en de camera laat ongeveer 1/5 van de map zien. Loop een vrije kamer binnen om hem te claimen.
+  - Zombies komen uit 6 poorten in de buitenmuur en lopen via de kortste route naar de deur van hun kamer. Jij wordt nooit aangevallen; gaat je deur kapot, dan lig je eruit. Bouwen en upgraden kan alleen in je eigen kamer.
+  - 42 towers, farms, boosts, support en traps in 6 rarities (Common t/m Secret), 20 zombietypes, 12 bosses met eigen abilities, 3 maps (Abandoned City, Frozen Wasteland, Volcanic Laboratory) met Easy, Medium, Hard en Endless.
+  - Deur oneindig upgraden (8 uiterlijken), Repair Door, Normal/Premium summons met zichtbare kansen, collectie met sterren, loadout van 5, leaderboard en achievements.
+- **Online samen spelen** via Supabase Realtime: maak een kamer en deel de 5-letterige code, of kies een open kamer uit de lijst. Tot 8 spelers; lege plekken worden bots (Beginner, Balanced, Aggressive, Economy, Defensive). De host rekent het potje uit en stuurt ~5 keer per seconde de stand; opdrachten van anderen worden opnieuw gestuurd tot de host ze bevestigt. Gaat iemand weg, dan neemt een bot zijn kamer over.
+- Tests: `tests/sim.js` (regels, kansen, een heel Easy-potje met bots), `tests/online.js` (host en twee gasten over een nagebootste Supabase, ook met 15% berichtverlies) en `tests/smoke.js` (alle schermen, een solo-potje en online hosten in jsdom).
+
 ## Pegfall Arena 1.3.2 (2026-11-08)
 - **Online: het potje loopt niet meer vast als een speler in een ander tabblad zit.** Een browser pauzeert alle animatie in een tabblad dat niet in beeld is. Het gevecht draaide op die animatie, dus in dat tabblad bleef het gevecht stilstaan en wachtte de tegenstander eindeloos (nagespeeld op de echte site met twee tabbladen). Nu wordt het gevecht meteen uitgerekend als het tabblad niet in beeld is; de uitslag ligt toch vast. De kast wacht wel op zijn speler, zoals het hoort.
 - De tegenstander ziet nu *…'s game is not in view right now (another tab or app). It carries on as soon as they come back.* in plaats van alleen te wachten. Wie zo afwezig is, krijgt 3 minuten in plaats van 45 seconden voordat het als weggaan telt.
