@@ -1,5 +1,8 @@
 # Wijzigingen
 
+## Site (2026-11-08)
+- **Tiny Empire en Hollow Pines zijn van de site gehaald.** Ze staan niet meer op de startpagina en hun mappen zijn verwijderd. Ze zijn terug te halen uit de git-geschiedenis.
+
 ## Zombie Door Tycoon 1.0.0 (2026-11-08)
 - **Nieuw spel: Zombie Door Tycoon**, een multiplayer zombie tower defense tycoon.
   - Eén grote hal met 8 even grote kamers (30 bouwtegels, één deur). Je loopt rond met je eigen poppetje (WASD of klikken) en de camera laat ongeveer 1/5 van de map zien. Loop een vrije kamer binnen om hem te claimen.
