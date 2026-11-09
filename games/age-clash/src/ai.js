@@ -75,6 +75,12 @@ var AC = (typeof window !== 'undefined' ? window : globalThis).AC;
       if (use && rng.next() > cfg.mistakes) { this.cmd({ t: 'power' }); }
     }
 
+    // 2b) Tijdperk-item (slot 5)
+    if (p.itemCd <= 0 && rng.next() > cfg.mistakes) {
+      var it = AC.ITEMS[p.age], ic5 = s.itemCost(me);
+      if (p.iron >= ic5 + s.unitCost(me, 0) * (this.diff === 'hard' ? 0.5 : 1) && this.itemUseful(it, A)) { this.cmd({ t: 'item' }); p = s.players[me]; }
+    }
+
     if (rng.next() < cfg.mistakes * 0.5) return; // aarzelen
 
     var costs = [0, 1, 2, 3].map(function (sl) { return s.unitCost(me, sl); });
@@ -96,7 +102,10 @@ var AC = (typeof window !== 'undefined' ? window : globalThis).AC;
     // 4) Economie (als het rustig is)
     var ecoTarget = Math.floor(s.time / (this.diff === 'hard' ? 22 : this.diff === 'normal' ? 30 : 50));
     ecoTarget = Math.min(ecoTarget, 18);
-    if (!underPressure && p.upg.income < ecoTarget) {
+    // inkomen-upgrade alleen als hij zich snel genoeg terugverdient
+    var payback = s.upgradeCost(me, 'income') / s.upgradeDef('income').per;
+    var maxPayback = { easy: 50, normal: 75, hard: 110 }[this.diff];
+    if (!underPressure && (payback < maxPayback || p.upg.income < Math.min(2, ecoTarget))) {
       var ic = s.upgradeCost(me, 'income');
       if (p.iron >= ic + unitScale) { this.cmd({ t: 'upg', k: 'income' }); return; }
     }
@@ -139,6 +148,21 @@ var AC = (typeof window !== 'undefined' ? window : globalThis).AC;
         break; // sparen voor de gewenste unit
       }
     }
+  };
+
+  // Is het item nu de moeite waard? Damagers op een groep, potions bij gewonde troepen,
+  // power-ups als er genoeg eigen units aan het vechten zijn.
+  Bot.prototype.itemUseful = function (it, A) {
+    var s = this.sim, me = this.side, front = s.enemyFront(me), near = 0, own = 0, hurt = 0, fighting = 0, i, u;
+    for (i = 0; i < s.units.length; i++) {
+      u = s.units[i]; if (u.dead) continue;
+      if (u.side !== me) { if (Math.abs(u.x - front) < 220) near++; }
+      else { own++; hurt += 1 - u.hp / u.maxHp; if (u.state === 'attack') fighting++; }
+    }
+    var enTot = A.en[0] + A.en[1] + A.en[2] + A.en[3];
+    if (it.type === 'damager') return it.id === 'timefreeze' ? enTot >= 5 : near >= 3 || (near >= 2 && A.nearest < 400);
+    if (it.type === 'potion') return own >= 3 && hurt / own > 0.3;
+    return fighting >= 2 && own >= 3;
   };
 
   Bot.prototype.pickUpgrade = function (A, towers) {

@@ -2,8 +2,8 @@
   "id": "age-clash",
   "name": "Age Clash",
   "tagline": "1v1 tijdperken-strategie",
-  "description": "Leid je leger door 8 tijdperken, van apen met knotsen tot kosmische kolossen. Plaats units, bouw towers, upgrade je economie en evolueer tijdens de match. Tegen een bot (Easy, Normal, Hard), lokaal met z'n tweeën of online tegen vrienden.",
-  "version": "1.1.0",
+  "description": "Leid je leger door 8 tijdperken, van apen met knotsen tot kosmische kolossen. Plaats units, zet tijdperk-items in, bouw towers, upgrade je economie en evolueer tijdens de match. Tegen een bot (Easy, Normal, Hard), lokaal met z'n tweeën of online tegen vrienden.",
+  "version": "1.2.0",
   "status": "live",
   "color": "#ffb02a",
   "tags": [

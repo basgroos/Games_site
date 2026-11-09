@@ -60,6 +60,8 @@ var AC = window.AC;
     while (d.owned.length < 8) d.owned.push([0, 0, 0, 0]);
     for (var a = 0; a < 8; a++) for (var s = 0; s < 4; s++) if (AC.AGES[a].startOwned[s]) d.owned[a][s] = 1;
     for (var b = 0; b < 8; b++) if (AC.AGES[b].unlockCost === 0) d.agesOwned[b] = 1;
+    // een ontgrendeld tijdperk geeft altijd de eerste 3 units gratis (ook voor oudere saves)
+    for (var c = 0; c < 8; c++) if (d.agesOwned[c]) for (var k = 0; k < AC.FREE_ON_UNLOCK; k++) d.owned[c][k] = 1;
     if (d.cosmetics.indexOf('c_blue') < 0) d.cosmetics.push('c_blue');
   };
 
@@ -128,7 +130,9 @@ var AC = window.AC;
     if (d.agesOwned[age]) return false;
     if (age > 0 && !d.agesOwned[age - 1]) return false;
     if (!Profile.spend(AC.AGES[age].unlockCost)) return false;
-    d.agesOwned[age] = 1; Profile.save(); Profile.emit(); return true;
+    d.agesOwned[age] = 1;
+    for (var k = 0; k < AC.FREE_ON_UNLOCK; k++) d.owned[age][k] = 1; // eerste 3 units gratis
+    Profile.save(); Profile.emit(); return true;
   };
   Profile.buyPerma = function (key) {
     var d = Profile.data, def = AC.PERMA.filter(function (p) { return p.key === key; })[0], lvl = d.perma[key] || 0;

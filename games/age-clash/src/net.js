@@ -287,7 +287,7 @@ var AC = window.AC;
   NetMatch.prototype._maybeReady = function () { if (this.opp && this.onReady) { var f = this.onReady; this.onReady = null; f(this.opp); } };
   NetMatch.prototype.whenReady = function (fn) { this.onReady = fn; this._maybeReady(); };
 
-  var VALID = { spawn: 1, tower: 1, sell: 1, upg: 1, evolve: 1, power: 1, surrender: 1 };
+  var VALID = { spawn: 1, tower: 1, sell: 1, upg: 1, evolve: 1, power: 1, surrender: 1, item: 1 };
   var UPKEYS = AC.UPGRADES.map(function (u) { return u.key; });
   function sanitizeCmd(c) {
     if (!c || !VALID[c.t]) return null;

@@ -52,7 +52,7 @@ var AC = window.AC;
         var D = Main.demo; if (!D || D.sim.over || D.t > 110) { Main.newDemo(); D = Main.demo; }
         D.acc += dt; D.t += dt;
         while (D.acc >= AC.CONST.TICK) { D.bots[0].update(AC.CONST.TICK); D.bots[1].update(AC.CONST.TICK); D.sim.tick(); D.acc -= AC.CONST.TICK; }
-        D.sim.events = D.sim.events.filter(function (e) { return e.e !== 'dmg' && e.e !== 'death' && e.e !== 'power' && e.e !== 'evolve'; });
+        D.sim.events = D.sim.events.filter(function (e) { return e.e !== 'dmg' && e.e !== 'death' && e.e !== 'power' && e.e !== 'evolve' && e.e !== 'item'; });
         Main.demoR.render(D.sim, D.acc / AC.CONST.TICK, { colors: [AC.Profile.color(), '#ff4a4a'], emblems: [AC.Profile.banner(), 'skull'], glow: [null, null], localSide: 0, buff: [D.sim.players[0].buffT, D.sim.players[1].buffT] }, dt);
         if (AC.UI.previews.length) AC.UI.tickPreviews(Main.t);
       }

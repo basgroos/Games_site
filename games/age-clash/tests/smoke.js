@@ -26,6 +26,8 @@ const btn = (txt) => [...w.document.querySelectorAll('button')].find((b) => b.te
     sim.players[0].iron = 5000;
     AC.Match.cmd(0, { t: 'tower', s: 0, k: 2 }); AC.Match.cmd(0, { t: 'upg', k: 'income' }); step(2);
     ok(sim.towerAt(0, 0) && sim.players[0].upg.income === 1, 'tower/upgrade');
+    sim.players[0].itemCd = 0; click(w.document.querySelector('.islot')); step(2);
+    ok(sim.players[0].st.items === 1, 'item (slot 5) niet gebruikt via de knop');
     sim.players[0].xp = 1700; AC.Match.cmd(0, { t: 'evolve' }); step(2);
     ok(sim.players[0].age === 1, 'evolueren');
     sim.bases[0].hp = sim.bases[0].maxHp = 1e7; // zonder verdediging mag de bot de basis niet slopen tijdens deze test

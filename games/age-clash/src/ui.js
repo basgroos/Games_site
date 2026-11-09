@@ -194,7 +194,7 @@ var AC = window.AC;
     ]));
     modes.appendChild(h('div', { class: 'panel mode' }, [
       h('div', { class: 'big', text: '🎮' }), h('h2', { text: 'Lokaal 1v1' }),
-      h('p', { html: 'Twee spelers op één computer. Speler 1: <kbd>1</kbd>–<kbd>4</kbd> <kbd>Q</kbd> <kbd>E</kbd> · Speler 2: <kbd>7</kbd>–<kbd>0</kbd> <kbd>P</kbd> <kbd>O</kbd> + muis.' }),
+      h('p', { html: 'Twee spelers op één computer. Speler 1: <kbd>1</kbd>–<kbd>5</kbd> <kbd>Q</kbd> <kbd>E</kbd> · Speler 2: <kbd>7</kbd>–<kbd>0</kbd> <kbd>−</kbd> <kbd>P</kbd> <kbd>O</kbd> + muis.' }),
       h('div', { style: 'flex:1' }),
       h('button', { class: 'btn', style: 'font-size:22px;padding:16px', text: 'START LOKAAL', onclick: function () { UI.click(); AC.Match.start({ mode: 'local' }); } }),
     ]));
@@ -225,9 +225,9 @@ var AC = window.AC;
     ct.appendChild(h('div', { class: 'agehead', style: 'background-image:url(' + bgUrl + ')' }, [
       h('div', {}, [h('div', { class: 'mut', style: 'font-weight:800;letter-spacing:2px', text: 'TIJDPERK ' + (age + 1) + ' · ' + ag.era.toUpperCase() }), h('h2', { style: 'color:' + ag.colors.accent, text: ag.name }), h('div', { style: 'max-width:640px;margin-top:4px', text: ag.desc })]),
       h('div', { style: 'margin-left:auto;text-align:right;font-size:14px' }, [h('div', { html: '✦ <b>Bonus:</b> ' + ag.passive.text }), h('div', { style: 'margin-top:4px', html: '⚡ <b>Power:</b> ' + ag.power.name }),
-        !d.agesOwned[age] ? h('button', { class: 'btn gold sm', style: 'margin-top:10px', html: 'Tijdperk ontgrendelen · <span class="coin" style="color:#2a1a00">' + ag.unlockCost + '</span>', onclick: function () { buyAge(age); } }) : null]),
+        !d.agesOwned[age] ? h('button', { class: 'btn gold sm', style: 'margin-top:10px', html: 'Tijdperk ontgrendelen · <span class="coin" style="color:#2a1a00">' + ag.unlockCost + '</span> · incl. 3 gratis units', onclick: function () { buyAge(age); } }) : null]),
     ]));
-    var grid = h('div', { class: 'grid4' });
+    var grid = h('div', { class: 'grid5' });
     var maxS = [0, 0, 0, 0, 0, 0];
     for (var a = 0; a < 8; a++) for (var s = 0; s < 4; s++) { var x = AC.unitStats(a, s); maxS[0] = Math.max(maxS[0], x.hp); maxS[1] = Math.max(maxS[1], AC.dps(x)); maxS[2] = Math.max(maxS[2], x.range); maxS[3] = Math.max(maxS[3], x.speed); maxS[4] = Math.max(maxS[4], x.cost); }
     [0, 1, 2, 3].forEach(function (slot) {
@@ -249,7 +249,7 @@ var AC = window.AC;
       card.appendChild(h('div', { class: 'special', text: '★ ' + AC.specialText(u.special) }));
       var row = h('div', { style: 'display:flex;gap:8px;margin-top:2px' });
       if (own) row.appendChild(h('button', { class: 'btn green sm', style: 'flex:1', text: '✓ In bezit', disabled: true }));
-      else if (!d.agesOwned[age]) row.appendChild(h('button', { class: 'btn sm dis', style: 'flex:1', html: '🔒 Tijdperk vergrendeld' }));
+      else if (!d.agesOwned[age]) row.appendChild(h('button', { class: 'btn sm dis', style: 'flex:1', html: slot < AC.FREE_ON_UNLOCK ? '🎁 Gratis bij tijdperk' : '🔒 Tijdperk vergrendeld' }));
       else row.appendChild(h('button', { class: 'btn gold sm', style: 'flex:1', html: 'Kopen · ' + u.coin, onclick: function () { buyUnit(age, slot); } }));
       row.appendChild(h('button', { class: 'btn ghost sm', text: sel ? '✕' : '⇄', title: 'Vergelijk', onclick: function () {
         UI.click(); var i = cmp.findIndex(function (c) { return c[0] === age && c[1] === slot; });
@@ -259,6 +259,19 @@ var AC = window.AC;
       card.appendChild(row);
       grid.appendChild(card);
     });
+    // slot 5: tijdperk-item
+    if (filter !== 'lock') {
+      var it = AC.ITEMS[age];
+      grid.appendChild(h('div', { class: 'ucard' }, [
+        h('div', { class: 'itemprev', style: 'background:linear-gradient(180deg,' + ag.colors.sky1 + ',' + ag.colors.sky2 + ')', text: it.icon }),
+        h('span', { class: 'tag role', html: '🎒 Slot 5 · ' + AC.ITEM_TYPES[it.type] }),
+        h('div', { class: 'nm', text: it.name }),
+        h('div', { class: 'ds', text: it.desc }),
+        h('div', { style: 'font-size:12.5px', class: 'mut', html: 'Prijs in match: <b class="ironic" style="color:#dfe6f2">' + AC.itemCost(age) + '</b> · cooldown ' + it.cd + 's' }),
+        h('div', { class: 'special', text: '★ Altijd beschikbaar in dit tijdperk — niets te kopen. Toets 5 in een match.' }),
+        h('button', { class: 'btn green sm', text: '✓ Altijd beschikbaar', disabled: true }),
+      ]));
+    }
     ct.appendChild(grid);
     // vergelijken
     var cb = h('div', { class: 'panel cmpbox' });
@@ -287,7 +300,7 @@ var AC = window.AC;
   function buyAge(age) {
     var ag = AC.AGES[age];
     if (age > 0 && !Pf.data.agesOwned[age - 1]) { UI.toast('Ontgrendel eerst ' + AC.AGES[age - 1].name); return; }
-    UI.modal('Tijdperk ontgrendelen', '<p>Ontgrendel <b style="color:' + ag.colors.accent + '">' + ag.name + '</b> voor <span class="coin">' + ag.unlockCost + '</span>?</p><p class="mut">Daarna kun je tijdens matches naar dit tijdperk evolueren en zijn units kopen.</p>', [{ t: 'Annuleren', c: 'ghost' }, { t: 'Ontgrendelen', c: 'gold', f: function () {
+    UI.modal('Tijdperk ontgrendelen', '<p>Ontgrendel <b style="color:' + ag.colors.accent + '">' + ag.name + '</b> voor <span class="coin">' + ag.unlockCost + '</span>?</p><p>Je krijgt er meteen <b>3 units gratis</b> bij: ' + AC.UNITS[age].slice(0, AC.FREE_ON_UNLOCK).map(function (u) { return esc(u.name); }).join(', ') + '.</p><p class="mut">Daarna kun je tijdens matches naar dit tijdperk evolueren. De armored unit koop je los.</p>', [{ t: 'Annuleren', c: 'ghost' }, { t: 'Ontgrendelen', c: 'gold', f: function () {
       if (Pf.buyAge(age)) { AC.audio && AC.audio.play('evolve', age); UI.toast('⏳ ' + ag.name + ' ontgrendeld!'); UI.show(UI.cur, { age: age }); }
       else { AC.audio && AC.audio.play('deny'); UI.toast('Niet genoeg coins'); }
     } }]);
@@ -310,10 +323,11 @@ var AC = window.AC;
           h('h3', { style: 'color:' + ag.colors.accent, text: ag.name }), h('div', { class: 'mut', text: ag.era }),
           h('div', { text: ag.desc }),
           h('div', { html: '✦ ' + ag.passive.text }), h('div', { html: '⚡ <b>' + ag.power.name + '</b> — ' + ag.power.desc }),
+          h('div', { html: AC.ITEMS[i].icon + ' <b>' + AC.ITEMS[i].name + '</b> (' + AC.ITEM_TYPES[AC.ITEMS[i].type].toLowerCase() + ', slot 5)' }),
           h('div', { class: 'mut', html: 'XP nodig in match: <b style="color:#fff">' + fmt(AC.CONST.AGE_XP[i]) + '</b> · Units: <b style="color:#fff">' + n + '/4</b>' }),
           h('div', { style: 'flex:1' }),
           own ? h('button', { class: 'btn ghost sm', text: 'Bekijk units →', onclick: function () { UI.click(); UI.show('collection', { age: i }); } })
-            : h('button', { class: 'btn gold sm', html: '🔓 Ontgrendel · ' + ag.unlockCost, onclick: function () { buyAge(i); } }),
+            : h('button', { class: 'btn gold sm', html: '🔓 Ontgrendel · ' + ag.unlockCost + ' <small style="font-weight:700">(+3 units gratis)</small>', onclick: function () { buyAge(i); } }),
         ]),
       ]);
       g.appendChild(card);
@@ -439,7 +453,7 @@ var AC = window.AC;
     function toggle(key, lab, cb) { var b = h('button', { class: 'btn sm ' + (S[key] ? 'green' : 'ghost'), text: S[key] ? 'Aan' : 'Uit' }); b.onclick = function () { S[key] = !S[key]; Pf.save(); cb && cb(); UI.show('settings'); }; return b; }
     [['Spelersnaam', name], ['Geluidseffecten', range('vol', apply)], ['Muziek', range('mus', apply)], ['Alles dempen', toggle('muted', '', apply)], ['Schadegetallen', toggle('dmgNums')]].forEach(function (r) { f.appendChild(h('b', { text: r[0] })); f.appendChild(r[1]); });
     f.appendChild(h('b', { text: 'Besturing' }));
-    f.appendChild(h('div', { class: 'keys', html: '<kbd>1</kbd>–<kbd>4</kbd><span>Unit plaatsen (slot 1–4)</span><kbd>Q</kbd><span>Tijdperk-power</span><kbd>E</kbd><span>Evolueren</span><kbd>U</kbd><span>Upgrade-menu</span><kbd>T</kbd><span>Towers</span><kbd>Esc</kbd><span>Pauze / sluiten</span><kbd>F</kbd><span>Snelheid 1× / 2× / 3× / 5× (online: stemmen)</span><kbd>7</kbd>–<kbd>0</kbd><span>Speler 2 units (lokaal)</span><kbd>P</kbd>/<kbd>O</kbd><span>Speler 2 power / evolueren</span>' }));
+    f.appendChild(h('div', { class: 'keys', html: '<kbd>1</kbd>–<kbd>4</kbd><span>Unit plaatsen (slot 1–4)</span><kbd>5</kbd><span>Tijdperk-item (slot 5)</span><kbd>Q</kbd><span>Tijdperk-power</span><kbd>E</kbd><span>Evolueren</span><kbd>U</kbd><span>Upgrade-menu</span><kbd>T</kbd><span>Towers</span><kbd>Esc</kbd><span>Pauze / sluiten</span><kbd>F</kbd><span>Snelheid 1× / 2× / 3× / 5× (online: stemmen)</span><kbd>7</kbd>–<kbd>0</kbd> <kbd>−</kbd><span>Speler 2 units + item (lokaal)</span><kbd>P</kbd>/<kbd>O</kbd><span>Speler 2 power / evolueren</span>' }));
     f.appendChild(h('b', { text: 'Opslag' }));
     f.appendChild(h('div', { class: 'mut', text: Pf.cloud === 'cloud' ? 'Je voortgang wordt opgeslagen in je account en lokaal in deze browser.' : 'Je voortgang wordt lokaal in deze browser opgeslagen.' }));
     f.appendChild(h('b', { text: 'Voortgang wissen' }));

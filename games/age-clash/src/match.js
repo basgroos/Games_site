@@ -8,8 +8,8 @@ var AC = window.AC;
   AC.Match = Match;
 
   var KEYS = [
-    { spawn: ['1', '2', '3', '4'], power: 'q', evolve: 'e', upg: 'u', tower: 't' },
-    { spawn: ['7', '8', '9', '0'], power: 'p', evolve: 'o', upg: 'i', tower: 'y' },
+    { spawn: ['1', '2', '3', '4'], item: '5', power: 'q', evolve: 'e', upg: 'u', tower: 't' },
+    { spawn: ['7', '8', '9', '0'], item: '-', power: 'p', evolve: 'o', upg: 'i', tower: 'y' },
   ];
 
   function contrast(col) { return col.toLowerCase() === '#ff4a4a' ? '#3a8bff' : '#ff4a4a'; }
@@ -59,14 +59,15 @@ var AC = window.AC;
     M.active = true;
     AC.audio.init(); AC.audio.music(true, 0);
     if (!d.tutorialDone && opts.mode === 'bot') M.queueTutorial();
-    else M.hint(opts.mode === 'local' ? 'Speler 1: 1–4, Q, E · Speler 2: 7–0, P, O' : 'Vernietig de vijandelijke basis! Units plaatsen: 1–4', 3500);
+    else M.hint(opts.mode === 'local' ? 'Speler 1: 1–5, Q, E · Speler 2: 7–0, −, P, O' : 'Vernietig de vijandelijke basis! Units: 1–4 · item: 5', 3500);
   };
 
   Match.queueTutorial = function () {
     Match.hints = [
       { t: 0.5, s: '👉 Klik op een unit onderin (of druk <kbd>1</kbd>–<kbd>4</kbd>) om hem te plaatsen', d: 6000 },
       { t: 9, s: '⚔ Melee verslaat ranged · ranged verslaat melee · anti-armor sloopt armored', d: 6000 },
-      { t: 18, s: '⬆ Open <b>Upgrades</b> (<kbd>U</kbd>) voor meer inkomen en sterkere units — de match loopt door', d: 6500 },
+      { t: 14, s: '🎒 Slot <kbd>5</kbd> is je <b>tijdperk-item</b>: een damager, potion of power-up', d: 5500 },
+      { t: 22, s: '⬆ Open <b>Upgrades</b> (<kbd>U</kbd>) voor meer inkomen en sterkere units — de match loopt door', d: 6500 },
       { t: 32, s: '🏰 Plaats <b>Towers</b> (<kbd>T</kbd>) op de plekken voor je basis', d: 6000 },
       { t: 45, s: '⏳ Vul je XP-balk en <b>evolueer</b> (<kbd>E</kbd>) naar het volgende tijdperk!', d: 6500 },
       { t: 62, s: '⚡ Je <b>tijdperk-power</b> (<kbd>Q</kbd>) is bijna klaar — gebruik hem op een grote groep vijanden', d: 6000 },
@@ -136,30 +137,37 @@ var AC = window.AC;
     var u = { side: side, slots: [], last: {} };
     var wrap = h('div', { class: 'side-hud' + (side && compact ? ' r' : '') });
     u.iron = h('div', { class: 'amt ironic' }); u.inc = h('b'); u.kill = h('b'); u.cnt = h('b');
-    var ib = h('div', { class: 'ironbox', style: compact ? 'width:150px;padding:10px' : '' }, [h('div', { class: 'mut', style: 'font-size:11px;font-weight:800;letter-spacing:1px', text: 'IJZER' }), u.iron,
+    var ib = h('div', { class: 'ironbox', style: compact ? 'width:118px;padding:8px' : '' }, [h('div', { class: 'mut', style: 'font-size:11px;font-weight:800;letter-spacing:1px', text: 'IJZER' }), u.iron,
       h('div', { class: 'ln' }, [h('span', { text: 'Per seconde' }), u.inc]), h('div', { class: 'ln' }, [h('span', { text: 'Per kill' }), u.kill]), compact ? null : h('div', { class: 'ln' }, [h('span', { text: 'Leger' }), u.cnt])]);
-    var slots = h('div', { class: 'slots', style: compact ? 'gap:6px' : '' });
+    var slots = h('div', { class: 'slots', style: compact ? 'gap:5px' : '' });
     for (var s = 0; s < 4; s++) (function (slot) {
       var cv = h('canvas', { width: 192, height: 160 });
-      var el = h('button', { class: 'slot', style: compact ? 'width:92px' : '', onclick: function () { M.cmd(side, { t: 'spawn', s: slot }); } }, [
+      var el = h('button', { class: 'slot', style: compact ? 'width:76px' : '', onclick: function () { M.cmd(side, { t: 'spawn', s: slot }); } }, [
         h('kbd', { class: 'key', text: K.spawn[slot] }), h('span', { class: 'rl', text: AC.ROLES[slot].icon }), cv, h('div', { class: 'sn' }), h('div', { class: 'sc ironic' }), h('div', { class: 'cdv' }), h('div', { class: 'cdt' }),
       ]);
-      if (compact) { cv.style.width = '76px'; cv.style.height = '64px'; }
+      if (compact) { cv.style.width = '66px'; cv.style.height = '55px'; }
       el.addEventListener('mouseenter', function () { M.tip(side, slot, el); });
       el.addEventListener('mouseleave', function () { M.tip(null); });
       u.slots.push({ el: el, cv: cv, sn: el.querySelector('.sn'), sc: el.querySelector('.sc'), cdv: el.querySelector('.cdv'), cdt: el.querySelector('.cdt'), last: {} });
       slots.appendChild(el);
     })(s);
+    // slot 5: tijdperk-item
+    u.item = { ic: h('div', { class: 'iic' }), sn: h('div', { class: 'sn' }), sc: h('div', { class: 'sc ironic' }), cdv: h('div', { class: 'cdv' }), cdt: h('div', { class: 'cdt' }), tp: h('span', { class: 'rl itp' }), last: {} };
+    u.item.el = h('button', { class: 'slot islot', style: compact ? 'width:76px' : '', onclick: function () { M.cmd(side, { t: 'item' }); } }, [
+      h('kbd', { class: 'key', text: K.item === '-' ? '−' : K.item }), u.item.tp, u.item.ic, u.item.sn, u.item.sc, u.item.cdv, u.item.cdt]);
+    u.item.el.addEventListener('mouseenter', function () { M.tip(side, 4, u.item.el); });
+    u.item.el.addEventListener('mouseleave', function () { M.tip(null); });
+    slots.appendChild(u.item.el);
     // acties
     u.towerBtn = h('button', { class: 'act', onclick: function () { AC.UI.click(); M.toggleDrawer(side, 'tower'); } }, [h('span', { class: 'ai', text: '🏰' }), h('span', { text: 'Towers' }), h('small', { html: '<kbd>' + K.tower.toUpperCase() + '</kbd>' })]);
     u.upgBtn = h('button', { class: 'act', onclick: function () { AC.UI.click(); M.toggleDrawer(side, 'upg'); } }, [h('span', { class: 'ai', text: '⬆' }), h('span', { text: 'Upgrades' }), h('small', { html: '<kbd>' + K.upg.toUpperCase() + '</kbd>' })]);
     u.powCd = h('div', { class: 'cdv' }); u.powName = h('span', { style: 'font-size:12.5px;text-align:center' }); u.powT = h('small');
     u.powBtn = h('button', { class: 'act', style: 'grid-column:span 2', onclick: function () { M.cmd(side, { t: 'power' }); } }, [h('span', { class: 'ai', text: '⚡' }), u.powName, u.powT, u.powCd]);
-    var acts = h('div', { class: 'acts', style: compact ? 'width:150px;gap:5px' : '' }, [u.towerBtn, u.upgBtn, u.powBtn]);
+    var acts = h('div', { class: 'acts', style: compact ? 'width:112px;gap:5px' : '' }, [u.towerBtn, u.upgBtn, u.powBtn]);
     // evolve
     u.evoName = h('div', { class: 'an' }); u.evoNext = h('div', { class: 'mut', style: 'font-size:12px' }); u.evoBar = h('i'); u.evoTxt = h('div', { class: 'mut', style: 'font-size:12px;display:flex;justify-content:space-between' });
     u.evoBtn = h('button', { class: 'btn sm', onclick: function () { M.cmd(side, { t: 'evolve' }); } });
-    var evo = h('div', { class: 'evo', style: compact ? 'width:150px;padding:8px' : '' }, [u.evoName, u.evoNext, h('div', { class: 'bar' }, [u.evoBar]), u.evoTxt, u.evoBtn]);
+    var evo = h('div', { class: 'evo', style: compact ? 'width:124px;padding:7px' : '' }, [u.evoName, u.evoNext, h('div', { class: 'bar' }, [u.evoBar]), u.evoTxt, u.evoBtn]);
     [ib, slots, acts, evo].forEach(function (x) { wrap.appendChild(x); });
     Match.ui[side] = u;
     return wrap;
@@ -169,7 +177,15 @@ var AC = window.AC;
     var t = $('#slotTip');
     if (side == null) { if (t) t.remove(); return; }
     if (!t) { t = h('div', { id: 'slotTip', class: 'panel', style: 'position:absolute;z-index:40;padding:10px 12px;width:260px;font-size:13px;pointer-events:none' }); $('#hud').appendChild(t); }
-    var sim = Match.sim, st = sim.unitStats(side, slot), u = AC.UNITS[st.age][slot];
+    var sim = Match.sim;
+    if (slot === 4) {
+      var pa = sim.players[side].age, it = AC.ITEMS[pa];
+      t.innerHTML = '<b style="font-size:15px">' + it.icon + ' ' + esc(it.name) + '</b> <span class="mut">· ' + AC.ITEM_TYPES[it.type] + ' · ' + AC.AGES[pa].short + '</span><div style="margin:4px 0">' + esc(it.desc) + '</div><span class="mut">Kost <b style="color:#fff">' + sim.itemCost(side) + '</b> ijzer · cooldown ' + it.cd + 's</span>';
+      var r0 = el.getBoundingClientRect(), sr0 = $('#stage').getBoundingClientRect(), sc0 = sr0.width / 1600;
+      t.style.left = Math.min(1320, (r0.left - sr0.left) / sc0 - 60) + 'px'; t.style.top = ((r0.top - sr0.top) / sc0 - 118) + 'px';
+      return;
+    }
+    var st = sim.unitStats(side, slot), u = AC.UNITS[st.age][slot];
     var p = sim.players[side], hm = 1 + p.upg['hp' + slot] * 0.12, dm = 1 + p.upg['dmg' + slot] * 0.12;
     t.innerHTML = '<b style="font-size:15px">' + esc(u.name) + '</b> <span class="mut">· ' + AC.ROLES[slot].name + ' · ' + AC.AGES[st.age].short + '</span><div class="mut" style="margin:4px 0">' + esc(u.desc) + '</div>' +
       'HP <b>' + fmt(st.hp * hm) + '</b> · DPS <b>' + (AC.dps(st) * dm).toFixed(1) + '</b> · Bereik <b>' + st.range + '</b><div style="color:#ffe39a;margin-top:4px">★ ' + AC.specialText(u.special) + '</div>';
@@ -228,6 +244,7 @@ var AC = window.AC;
     if (c.t === 'spawn') { if (p.cds[c.s] > 0) return deny(); if (p.iron < sim.unitCost(side, c.s)) { return deny('Niet genoeg ijzer'); } }
     if (c.t === 'evolve' && !sim.canEvolve(side)) { if (p.age >= p.maxAge && p.age < 7) return deny('Ontgrendel ' + AC.AGES[p.age + 1].name + ' in het menu'); return deny('Nog niet genoeg XP'); }
     if (c.t === 'power' && p.powerCd > 0) return deny('Power laadt nog op');
+    if (c.t === 'item') { if (p.itemCd > 0) return deny(); if (p.iron < sim.itemCost(side)) return deny('Niet genoeg ijzer'); }
     if (c.t === 'upg') { var d = sim.upgradeDef(c.k); if (p.upg[c.k] >= d.max) return deny('Maximaal niveau'); if (p.iron < sim.upgradeCost(side, c.k)) return deny('Niet genoeg ijzer'); }
     if (c.t === 'tower' && p.iron < sim.towerCost(side, c.k)) return deny('Niet genoeg ijzer');
     AC.audio.play('click');
@@ -259,6 +276,7 @@ var AC = window.AC;
       var side = sides[i], K = M.local.length > 1 ? KEYS[side] : KEYS[0];
       var si = K.spawn.indexOf(k);
       if (si >= 0) { M.cmd(side, { t: 'spawn', s: si }); return true; }
+      if (k === K.item) { M.cmd(side, { t: 'item' }); return true; }
       if (k === K.power) { M.cmd(side, { t: 'power' }); return true; }
       if (k === K.evolve) { M.cmd(side, { t: 'evolve' }); return true; }
       if (k === K.upg) { M.toggleDrawer(side, 'upg'); return true; }
@@ -345,7 +363,7 @@ var AC = window.AC;
       // tutorial-hints
       if (M.hints.length && sim.time >= M.hints[0].t) { var hn = M.hints.shift(); M.hint(hn.s, hn.d); }
     }
-    M.view.buff = [sim.players[0].buffT, sim.players[1].buffT];
+    M.view.buff = [sim.players[0].buffT, sim.players[1].buffT]; M.view.dmgBuff = [sim.players[0].dmgBuffT, sim.players[1].dmgBuffT]; M.view.haste = [sim.players[0].hasteT, sim.players[1].hasteT];
     M.view.towerMode = !!M.towerMode; M.view.sellMode = M.towerMode && M.towerMode.sell; M.view.localSide = M.towerMode ? M.towerMode.side : M.local[0];
     // dmg-getallen filteren volgens instelling
     if (!Pf.data.settings.dmgNums) sim.events = sim.events.filter(function (e) { return e.e !== 'dmg' || e.crit; });
@@ -387,7 +405,7 @@ var AC = window.AC;
   Match.updateSide = function (side) {
     var M = Match, sim = M.sim, p = sim.players[side], u = M.ui[side];
     setTxt(u.iron, fmt(p.iron));
-    setTxt(u.inc, '+' + sim.income(side).toFixed(0) + '/s');
+    var incV = sim.income(side); setTxt(u.inc, '+' + (incV % 1 ? incV.toFixed(1) : incV) + '/s');
     setTxt(u.kill, Math.round(sim.killMult(side) * 100) + '% prijs' + (p.lastBounty ? ' (+' + p.lastBounty + ')' : ''));
     if (u.cnt) { var n = 0; sim.units.forEach(function (x) { if (x.side === side) n++; }); setTxt(u.cnt, n + ' units'); }
     for (var s = 0; s < 4; s++) {
@@ -407,6 +425,16 @@ var AC = window.AC;
       sl.cdv.style.height = (cdf * 100) + '%';
       setTxt(sl.cdt, p.cds[s] > 0 ? p.cds[s].toFixed(1) : '');
     }
+    // item (slot 5)
+    var it = AC.ITEMS[p.age], ui = u.item;
+    if (ui.last.age !== p.age) {
+      ui.last.age = p.age; ui.ic.textContent = it.icon; ui.sn.textContent = it.name; ui.tp.textContent = AC.ITEM_TYPES[it.type];
+      ui.el.style.borderColor = AC.hexA(AC.AGES[p.age].colors.accent, 0.6); ui.el.dataset.type = it.type;
+    }
+    var icost = sim.itemCost(side); setTxt(ui.sc, String(icost));
+    var ipoor = p.iron < icost; if (ui.last.poor !== ipoor) { ui.last.poor = ipoor; ui.el.classList.toggle('poor', ipoor); }
+    ui.cdv.style.height = Math.min(100, p.itemCd / it.cd * 100) + '%';
+    setTxt(ui.cdt, p.itemCd > 0 ? Math.ceil(p.itemCd) + '' : '');
     // power
     var ag = AC.AGES[p.age];
     setTxt(u.powName, ag.power.name);
@@ -434,7 +462,7 @@ var AC = window.AC;
       var k = lvl + '|' + c + '|' + (p.iron >= c);
       if (x.last === k) return; x.last = k;
       x.lab.textContent = 'Lv ' + lvl + '/' + x.u.max;
-      x.desc.textContent = x.u.cat === 'eco' ? (x.u.key === 'income' ? '+6 ijzer/s' : '+10% kill-inkomen') : '+' + Math.round(x.u.per * 100) + '%';
+      x.desc.textContent = x.u.cat === 'eco' ? (x.u.key === 'income' ? '+' + x.u.per + ' ijzer/s' : '+10% kill-inkomen') : '+' + Math.round(x.u.per * 100) + '%';
       x.cost.textContent = max ? 'MAX' : fmt(c);
       x.b.classList.toggle('max', max); x.b.classList.toggle('poor', !max && p.iron < c);
     });

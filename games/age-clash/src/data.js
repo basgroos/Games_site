@@ -9,8 +9,8 @@ AC.CONST = {
   W: 1600, H: 720, GROUND: 596,
   TICK: 1 / 30,
   START_IRON: 500,
-  BASE_INCOME: 20,
-  INCOME_PER_AGE: 5,          // extra basisinkomen per bereikt tijdperk
+  BASE_INCOME: 10,            // ijzer per seconde (gehalveerd: meer strategie)
+  INCOME_PER_AGE: 2.5,        // extra basisinkomen per bereikt tijdperk
   BASE_W: 130,                // breedte van de basis
   BASE_HP: 3000,
   BASE_HP_GROWTH: 1.48,       // basis-HP vermenigvuldiger per tijdperk
@@ -174,6 +174,26 @@ AC.UNITS = [
   ],
 ];
 
+AC.FREE_ON_UNLOCK = 3; // bij het ontgrendelen van een tijdperk krijg je slot 1–3 gratis
+
+/* ------------------------- SLOT 5: TIJDPERK-ITEMS -------------------------
+ * Iedere tijdperk heeft één item: een damager, potion of power-up. Kost ijzer
+ * (schaalt met het tijdperk zoals units), heeft een cooldown en is altijd
+ * beschikbaar in dat tijdperk (niet kopen). Schade schaalt met STAT_GROWTH.  */
+AC.ITEMS = [
+  { id: 'boulder', name: 'Rollende Kei', type: 'damager', icon: '🪨', cost: 100, cd: 20, dmg: 22, hits: 5, desc: 'Een reuzenkei rolt vanaf je frontlinie door de vijand: raakt tot 5 units en verdooft ze kort.' },
+  { id: 'herbs', name: 'Kruidendrank', type: 'potion', icon: '🧪', cost: 100, cd: 20, heal: 0.4, desc: 'Al je units genezen direct 40% van hun HP.' },
+  { id: 'ra', name: 'Zegen van Ra', type: 'powerup', icon: '☀️', cost: 110, cd: 24, dur: 8, mult: 1.5, desc: 'Je units doen 8 seconden lang 50% meer schade.' },
+  { id: 'greekfire', name: 'Grieks Vuur', type: 'damager', icon: '🔥', cost: 110, cd: 20, dmg: 18, radius: 70, burn: 6, burnDur: 4, desc: 'Een brandende pot raakt de vijandelijke frontlinie: gebiedsschade en 4 seconden brand.' },
+  { id: 'keg', name: 'Kruitvat', type: 'damager', icon: '💣', cost: 120, cd: 22, dmg: 32, radius: 85, desc: 'Een kruitvat ontploft midden in de vijandelijke frontlinie: zware gebiedsschade.' },
+  { id: 'adrenaline', name: 'Adrenaline', type: 'powerup', icon: '💉', cost: 110, cd: 24, dur: 8, haste: 0.65, speed: 1.3, desc: 'Je units vallen 8 seconden 50% sneller aan en lopen 30% sneller.' },
+  { id: 'nanobots', name: 'Nanobots', type: 'potion', icon: '🤖', cost: 120, cd: 24, heal: 0.5, shield: 5, desc: 'Herstelt 50% HP van al je units en geeft 5 seconden 50% minder schade.' },
+  { id: 'timefreeze', name: 'Tijdbevriezing', type: 'damager', icon: '❄️', cost: 140, cd: 28, dmg: 10, freeze: 3, desc: 'Alle vijandelijke units bevriezen 3 seconden en nemen schade.' },
+];
+AC.ITEM_TYPES = { damager: 'Damager', potion: 'Potion', powerup: 'Power-up' };
+AC.ITEM_START_CD = 8;
+AC.itemCost = function (age) { return Math.round(AC.ITEMS[age].cost * Math.pow(AC.CONST.COST_GROWTH, age) / 5) * 5; };
+
 /* ------------------------------ TOWERS ------------------------------ */
 AC.TOWERS = [
   { id: 'rapid', name: 'Rapid Tower', desc: 'Schiet heel snel, maar doet weinig schade per schot.', icon: '⁂', cost: 150, dmg: 6, cd: 0.32, range: 230, hp: 650 },
@@ -195,7 +215,7 @@ AC.UPGRADES = [
   { key: 'dmg3', cat: 'unit', slot: 3, stat: 'dmg', name: 'Armored Damage', per: 0.12, base: 160, growth: 1.45, max: 10 },
   { key: 'tdmg', cat: 'tower', stat: 'dmg', name: 'Tower Damage', per: 0.15, base: 140, growth: 1.5, max: 10 },
   { key: 'trange', cat: 'tower', stat: 'range', name: 'Tower Range', per: 0.08, base: 120, growth: 1.5, max: 8 },
-  { key: 'income', cat: 'eco', stat: 'income', name: 'Automatisch inkomen', per: 6, base: 120, growth: 1.42, max: 20 },
+  { key: 'income', cat: 'eco', stat: 'income', name: 'Automatisch inkomen', per: 3, base: 120, growth: 1.42, max: 20 },
   { key: 'bounty', cat: 'eco', stat: 'bounty', name: 'Kill-inkomen', per: 0.1, base: 110, growth: 1.5, max: 10 },
 ];
 

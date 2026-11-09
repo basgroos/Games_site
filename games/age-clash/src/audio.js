@@ -93,6 +93,10 @@ var AC = window.AC;
         break;
       }
       case 'power': this._tone('sawtooth', 120, 600, 0.6, 0.1); this._noise(0.8, 0.25, 'bandpass', 400, 0.8); break;
+      case 'potion': [0, 4, 7, 12].forEach(function (n, i) { this._tone('sine', 520 * Math.pow(2, n / 12), null, 0.18, 0.07, null, i * 0.06); }, this); this._noise(0.3, 0.12, 'bandpass', 2400, 3); break;
+      case 'buff': this._tone('sawtooth', 220, 880, 0.35, 0.08); this._tone('triangle', 440, 1320, 0.4, 0.06, null, 0.1); break;
+      case 'freeze': this._tone('sine', 2400, 600, 0.6, 0.07); this._noise(0.6, 0.2, 'highpass', 4000, 1); break;
+      case 'throw': this._noise(0.25, 0.2, 'bandpass', 900, 2); this._tone('triangle', 300, 600, 0.2, 0.05); break;
       case 'build': this._tone('triangle', 400, 800, 0.12, 0.08); this._tone('triangle', 600, 1200, 0.12, 0.06, null, 0.08); break;
       case 'upgrade': this._tone('sine', 660, 1320, 0.15, 0.08); this._tone('sine', 990, 1980, 0.15, 0.05, null, 0.06); break;
       case 'charge': this._noise(0.3, 0.3, 'lowpass', 300); break;

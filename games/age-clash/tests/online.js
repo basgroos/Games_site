@@ -49,7 +49,7 @@ const step = (p, dt) => p.E(`AC.Main.step(${dt})`);
     ok(B.E('AC.Match.sim.players[AC.Match.net.side].maxAge') === 7 && A.E('AC.Match.sim.players[1-AC.Match.net.side].maxAge') === 7, 'collectie niet uitgewisseld');
   });
   await run('lockstep: beide pagina\'s houden exact dezelfde staat', async () => {
-    const cmds = ["{t:'spawn',s:0}", "{t:'spawn',s:1}", "{t:'spawn',s:2}", "{t:'spawn',s:3}", "{t:'tower',s:1,k:0}", "{t:'upg',k:'income'}", "{t:'upg',k:'dmg1'}", "{t:'power'}", "{t:'evolve'}"];
+    const cmds = ["{t:'spawn',s:0}", "{t:'spawn',s:1}", "{t:'spawn',s:2}", "{t:'spawn',s:3}", "{t:'tower',s:1,k:0}", "{t:'upg',k:'income'}", "{t:'upg',k:'dmg1'}", "{t:'power'}", "{t:'evolve'}", "{t:'item'}"];
     for (let i = 0; i < 1800; i++) {
       for (const p of [A, B]) {
         if (i % 7 === 0) p.E(`AC.Match.net.command(${cmds[Math.floor(Math.random() * cmds.length)]})`);

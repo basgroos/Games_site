@@ -177,8 +177,8 @@ kbd { display: inline-block; min-width: 26px; padding: 2px 7px; border-radius: 5
 .ironbox .amt { font-family: var(--f-title); font-size: 34px; color: #eef3fb; }
 .ironbox .ln { font-size: 13px; color: var(--mut); display: flex; justify-content: space-between; }
 .ironbox .ln b { color: #dfe6f2; }
-.slots { display: flex; gap: 10px; }
-.slot { position: relative; width: 126px; border-radius: 12px; padding: 6px 6px 8px; background: linear-gradient(180deg, #2a3350, #171c2e); border: 1px solid rgba(255, 255, 255, 0.12); display: flex; flex-direction: column; align-items: center; gap: 2px; overflow: hidden; transition: transform 0.06s, filter 0.15s; }
+.slots { display: flex; gap: 8px; }
+.slot { position: relative; width: 116px; border-radius: 12px; padding: 6px 6px 8px; background: linear-gradient(180deg, #2a3350, #171c2e); border: 1px solid rgba(255, 255, 255, 0.12); display: flex; flex-direction: column; align-items: center; gap: 2px; overflow: hidden; transition: transform 0.06s, filter 0.15s; }
 .slot:hover { filter: brightness(1.2); }
 .slot:active { transform: scale(0.96); }
 .slot canvas { width: 96px; height: 80px; }
@@ -191,7 +191,7 @@ kbd { display: inline-block; min-width: 26px; padding: 2px 7px; border-radius: 5
 .slot .cdt { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--f-title); font-size: 36px; text-shadow: 0 2px 8px #000; pointer-events: none; }
 .slot.poor .sc { color: var(--bad); }
 .slot.poor canvas { opacity: 0.45; }
-.acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 270px; }
+.acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 250px; }
 .act { border-radius: 12px; background: linear-gradient(180deg, #2a3350, #171c2e); border: 1px solid rgba(255, 255, 255, 0.12); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-weight: 800; font-size: 14px; position: relative; overflow: hidden; padding: 6px; }
 .act .ai { font-size: 24px; }
 .act small { font-size: 11.5px; color: var(--mut); font-weight: 700; }
@@ -253,6 +253,29 @@ kbd { display: inline-block; min-width: 26px; padding: 2px 7px; border-radius: 5
 .spdb:hover { background: rgba(255, 255, 255, 0.15); }
 .spdb.on { background: linear-gradient(180deg, #ffd65a, #e09a1a); color: #2a1a00; box-shadow: none; }
 .spdinfo { font-size: 11px; color: var(--mut); margin-top: 4px; font-weight: 700; max-width: 220px; }
+.islot { background: linear-gradient(180deg, #3a2a50, #1c1530); }
+.islot[data-type=damager] { background: linear-gradient(180deg, #503028, #2a1614); }
+.islot[data-type=potion] { background: linear-gradient(180deg, #24483a, #12261e); }
+.islot[data-type=powerup] { background: linear-gradient(180deg, #4a4220, #262010); }
+.islot .iic { font-size: 50px; height: 80px; line-height: 80px; }
+.split .islot .iic { font-size: 40px; height: 64px; line-height: 64px; }
+.islot .itp { font-size: 10px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; opacity: 0.85; }
+.grid5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+.grid5 .uprev { height: 130px; }
+.itemprev { height: 130px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 76px; }
+.split .slot .sn { font-size: 10.5px; height: 24px; }
+.split .slot .sc { font-size: 13px; }
+.split .slot .cdt { font-size: 28px; }
+.split .ironbox .amt { font-size: 26px; }
+.split .ironbox .ln { font-size: 11.5px; }
+.split .act { font-size: 12px; }
+.split .act .ai { font-size: 19px; }
+.split .evo .an { font-size: 13px; }
+.split .evo .btn { font-size: 12px; padding: 7px 6px; }
+.islot .itp { font-size: 9px; top: 8px; right: 6px; }
+.split .islot .itp { display: none; }
+.split .act { font-size: 11px; padding: 4px; }
+.islot .cdt { font-size: 30px; }
 </style>
 
 <div id="app">

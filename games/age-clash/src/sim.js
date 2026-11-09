@@ -46,9 +46,9 @@ var AC = (typeof window !== 'undefined' ? window : globalThis).AC;
       xp: 0, age: 0, maxAge: o.maxAge == null ? 7 : o.maxAge,
       owned: owned, upg: {}, cds: [0, 0, 0, 0], powerCd: C.POWER_START_CD,
       incomeMult: o.incomeMult || 1, perma: perma,
-      buffT: 0, lastBounty: 0, ironRate: 0,
+      buffT: 0, lastBounty: 0, ironRate: 0, itemCd: AC.ITEM_START_CD, dmgBuffT: 0, hasteT: 0,
       color: o.color || (side ? '#ff4a4a' : '#3a8bff'),
-      st: { kills: 0, spawned: 0, baseDmg: 0, dmg: 0, iron: 0, towers: 0, lost: 0, powers: 0, upgrades: 0 },
+      st: { kills: 0, spawned: 0, baseDmg: 0, dmg: 0, iron: 0, towers: 0, lost: 0, powers: 0, upgrades: 0, items: 0 },
     };
     AC.UPGRADES.forEach(function (u) { p.upg[u.key] = 0; });
     return p;
@@ -71,9 +71,10 @@ var AC = (typeof window !== 'undefined' ? window : globalThis).AC;
   };
   P.unitStats = function (side, slot) { return AC.unitStats(this.unitDefAge(side, slot), slot); };
   P.unitCost = function (side, slot) { return this.unitStats(side, slot).cost; };
+  P.itemCost = function (side) { return AC.itemCost(this.players[side].age); };
   P.income = function (side) {
     var p = this.players[side], ag = AC.AGES[p.age];
-    var inc = C.BASE_INCOME + C.INCOME_PER_AGE * p.age + p.upg.income * 6;
+    var inc = C.BASE_INCOME + C.INCOME_PER_AGE * p.age + p.upg.income * this.upgradeDef('income').per;
     if (ag.passive.id === 'income') inc *= 1 + ag.passive.val;
     return inc * p.incomeMult;
   };
@@ -189,6 +190,15 @@ var AC = (typeof window !== 'undefined' ? window : globalThis).AC;
         this._castPower(side);
         break;
       }
+      case 'item': {
+        if (p.itemCd > 0) return;
+        var icost = this.itemCost(side);
+        if (p.iron < icost) return;
+        p.iron -= icost; p.itemCd = AC.ITEMS[p.age].cd; p.st.items++;
+        this._xp(side, icost * C.XP_SPAWN);
+        this._useItem(side);
+        break;
+      }
       case 'surrender': {
         this.bases[side].hp = 0; this._endMatch(1 - side);
         break;
@@ -206,6 +216,7 @@ var AC = (typeof window !== 'undefined' ? window : globalThis).AC;
     var p = this.players[side];
     var m = 1 + p.upg['dmg' + slot] * 0.12 + (p.perma.unitDmg || 0);
     if (AC.AGES[p.age].passive.id === 'dmg') m *= 1.1;
+    if (p.dmgBuffT > 0) m *= p.dmgBuffM || 1.5;
     return m * this.overtimeMult();
   };
 
@@ -266,6 +277,9 @@ var AC = (typeof window !== 'undefined' ? window : globalThis).AC;
       for (j = 0; j < 4; j++) if (p.cds[j] > 0) p.cds[j] = Math.max(0, p.cds[j] - dt);
       if (p.powerCd > 0) p.powerCd = Math.max(0, p.powerCd - dt);
       if (p.buffT > 0) p.buffT = Math.max(0, p.buffT - dt);
+      if (p.itemCd > 0) p.itemCd = Math.max(0, p.itemCd - dt);
+      if (p.dmgBuffT > 0) p.dmgBuffT = Math.max(0, p.dmgBuffT - dt);
+      if (p.hasteT > 0) p.hasteT = Math.max(0, p.hasteT - dt);
     }
 
     // Sudden death: beide bases brokkelen af
@@ -289,6 +303,7 @@ var AC = (typeof window !== 'undefined' ? window : globalThis).AC;
       if (u.hitT > 0) u.hitT -= dt;
       if (u.atkAnim > 0) u.atkAnim = Math.max(0, u.atkAnim - dt);
       if (u.stun > 0) u.stun -= dt;
+      if (u.iceT > 0) u.iceT -= dt;
       if (u.slowT > 0) { u.slowT -= dt; if (u.slowT <= 0) u.slowF = 0; }
       if (u.dotT > 0) { u.dotT -= dt; this._damage({ side: 1 - u.side, dot: true }, u, u.dotDps * dt, true); if (u.dead) continue; }
       var sp = u.st.special;
@@ -405,6 +420,7 @@ var AC = (typeof window !== 'undefined' ? window : globalThis).AC;
         var cd = st.cd;
         if (sp && sp.id === 'frenzy' && u.hp < u.maxHp * 0.5) cd *= sp.mult;
         if (u.slowF) cd /= (1 - u.slowF * 0.5);
+        if (p.hasteT > 0) cd *= p.hasteCd || 0.65;
         u.atkT = cd;
         u.atkAnim = Math.min(0.35, cd * 0.6);
         this._attack(u, target, range, enemies);
@@ -417,6 +433,7 @@ var AC = (typeof window !== 'undefined' ? window : globalThis).AC;
     var speed = st.speed;
     if (AC.AGES[p.age].passive.id === 'speed') speed *= 1.1;
     if (u.slowF) speed *= 1 - u.slowF;
+    if (p.hasteT > 0) speed *= p.hasteSpd || 1.3;
     var step = speed * dt;
     if (!u.flying) {
       step = Math.min(step, Math.max(0, frontGap));
@@ -536,6 +553,7 @@ var AC = (typeof window !== 'undefined' ? window : globalThis).AC;
         if (Math.abs(e.x - hitX) - e.w <= pr.splash) {
           this._damage(pr.src, e, pr.dmg * pr.splashFrac);
           if (pr.src.special && pr.src.special.id === 'rift' && e.kind === 'unit') { e.slowF = pr.src.special.slow; e.slowT = 2; }
+          if (pr.burn && e.kind === 'unit' && !e.dead) { e.dotT = pr.burn.dur; e.dotDps = pr.burn.dps; e.dotType = 'burn'; }
         }
       }
     }
@@ -619,6 +637,37 @@ var AC = (typeof window !== 'undefined' ? window : globalThis).AC;
     this.events.push({ e: 'end', winner: winner });
   };
 
+  /* ------------------------------ items (slot 5) ------------------------------ */
+  P.ownFront = function (side) {
+    var best = null;
+    for (var i = 0; i < this.units.length; i++) { var u = this.units[i]; if (u.dead || u.side !== side) continue; if (best == null || (side === 0 ? u.x > best : u.x < best)) best = u.x; }
+    return best == null ? (side ? C.W - C.BASE_W - 20 : C.BASE_W + 20) : best;
+  };
+  P._useItem = function (side) {
+    var p = this.players[side], it = AC.ITEMS[p.age], sg = Math.pow(C.STAT_GROWTH, p.age), dir = this.dir(side), i, u;
+    var front = this.enemyFront(side);
+    var ev = { e: 'item', side: side, id: it.id, age: p.age, x: front };
+    switch (it.id) {
+      case 'boulder':
+        this.effects.push({ id: 'boulderRoll', side: side, t: 0, dur: 4, done: false, x: this.ownFront(side), dir: dir, hit: {}, n: 0, max: it.hits, dmg: it.dmg * sg, age: p.age });
+        ev.x = this.ownFront(side); break;
+      case 'herbs': case 'nanobots':
+        for (i = 0; i < this.units.length; i++) { u = this.units[i]; if (u.side === side && !u.dead) u.hp = Math.min(u.maxHp, u.hp + u.maxHp * it.heal); }
+        if (it.shield) p.buffT = Math.max(p.buffT, it.shield);
+        break;
+      case 'ra': p.dmgBuffT = it.dur; p.dmgBuffM = it.mult; break;
+      case 'adrenaline': p.hasteT = it.dur; p.hasteCd = it.haste; p.hasteSpd = it.speed; break;
+      case 'greekfire': case 'keg':
+        var x = front + dir * 30;
+        this.projs.push({ side: side, src: { side: side, power: true, ranged: true }, target: { x: x, dead: true, kind: 'ground' }, sx: this.ownFront(side), sy: C.GROUND - 60, x: this.ownFront(side), y: C.GROUND - 60, lx: this.ownFront(side), ly: C.GROUND - 60, tx: x, ty: C.GROUND - 8, t: 0, T: 0.7, arc: 140, dmg: it.dmg * sg, style: it.id === 'keg' ? 'keg' : 'firepot', splash: it.radius, splashFrac: 1, pierce: 0, age: p.age, done: false, burn: it.burn ? { dps: it.burn * sg, dur: it.burnDur } : null });
+        ev.x = x; break;
+      case 'timefreeze':
+        for (i = 0; i < this.units.length; i++) { u = this.units[i]; if (u.side === side || u.dead) continue; u.stun = Math.max(u.stun, it.freeze); u.iceT = it.freeze; this._damage({ side: side, power: true }, u, it.dmg * sg, true); }
+        break;
+    }
+    this.events.push(ev);
+  };
+
   /* ------------------------------ powers ------------------------------ */
   P.enemyFront = function (side) {
     var best = null;
@@ -663,6 +712,14 @@ var AC = (typeof window !== 'undefined' ? window : globalThis).AC;
     }
     function spread(w) { return fx.front + fx.dir * (rng.next() * w - 40); }
     switch (fx.id) {
+      case 'boulderRoll':
+        fx.x += fx.dir * 380 * dt;
+        for (i = 0; i < this.units.length && fx.n < fx.max; i++) {
+          var bu = this.units[i]; if (bu.dead || bu.side === fx.side || bu.flying || fx.hit[bu.id]) continue;
+          if (Math.abs(bu.x - fx.x) < bu.w + 18) { fx.hit[bu.id] = 1; fx.n++; bu.stun = Math.max(bu.stun, 0.6); this._damage({ side: fx.side, power: true }, bu, fx.dmg); }
+        }
+        if (fx.n >= fx.max || fx.x < C.BASE_W || fx.x > C.W - C.BASE_W) fx.done = true;
+        break;
       case 'rockslide':
         if (Math.floor(fx.t / 0.17) > Math.floor(prevT / 0.17)) drop(spread(260), 55 * fx.sg, 45, 'boulder');
         break;

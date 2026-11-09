@@ -1,5 +1,21 @@
 # Wijzigingen
 
+## Age Clash 1.2.0 (2026-11-09)
+- **IJzerinkomen gehalveerd, zodat je keuzes meer uitmaken:** 10 ijzer per seconde in plaats van 20, +2,5 per tijdperk in plaats van +5, en +3 per inkomen-upgrade in plaats van +6. Het startijzer (500), het kill-inkomen en alle prijzen zijn gelijk gebleven.
+- **Een tijdperk ontgrendelen geeft meteen de eerste 3 units gratis** (melee, ranged en anti-armor); de armored unit koop je los. Spelers die tijdperk 6–8 al hadden, krijgen ze er ook bij.
+- **Nieuw: slot 5, het tijdperk-item.** Ieder tijdperk heeft een eigen item dat ijzer kost en een cooldown heeft, en altijd beschikbaar is (je hoeft het niet te kopen). Toets 5, of − voor speler 2 lokaal.
+  - Primal: Rollende Kei (damager): rolt door tot 5 vijanden en verdooft ze kort.
+  - Genesis: Kruidendrank (potion): al je units genezen 40%.
+  - Pharaoh: Zegen van Ra (power-up): 8 s +50% schade.
+  - Imperium: Grieks Vuur (damager): gebiedsschade en 4 s brand.
+  - Ironfront: Kruitvat (damager): zware explosie in de vijandelijke frontlinie.
+  - Neo: Adrenaline (power-up): 8 s sneller aanvallen en lopen.
+  - Mech: Nanobots (potion): 50% genezing en 5 s halve schade.
+  - Omniverse: Tijdbevriezing (damager): alle vijanden bevriezen 3 s.
+  - De items staan als 5e kaart in de collectie, de bot zet ze slim in en ze werken online.
+- Bot: koopt een inkomen-upgrade alleen als die zich snel genoeg terugverdient. Met het lagere inkomen wint Hard weer meestal van Normal en Normal van Easy. Botmatches duren nu ongeveer 8–12 minuten.
+- Tests: alle 8 items (kosten, cooldown, effect), de gratis units bij het ontgrendelen, het item-knopje in de HUD en items in de online test.
+
 ## Age Clash 1.1.0 (2026-11-09)
 - **Alle schade ×3, zodat potjes korter duren.** Dit geldt voor units, towers, tijdperk-powers, gif/brand en explosies. Verder is niets veranderd: HP, prijzen, inkomen, cooldowns en XP blijven gelijk (XP uit schade wordt berekend alsof de schade nog ×1 is). In botmatches daalt de gemiddelde duur van ongeveer 16 naar 12 minuten bij Normal tegen Normal, en van ongeveer 12 naar 8 minuten bij Hard tegen Easy. De instelling staat in `data.js` als `DMG_MULT`.
 - **Snelheid stemmen in online PvP.** Beide spelers kiezen 1×, 2×, 3× of 5× (knoppen onder de timer of toets F). De meerderheid bepaalt; kiezen jullie iets anders, dan blijft het 1×. Onder de knoppen zie je beide keuzes en de snelheid die geldt, en je krijgt een melding als je tegenstander sneller wil. De snelheid verandert alleen hoe snel beurten in echte tijd lopen, dus de stand blijft bij beiden gelijk. Bij hogere snelheid worden commando's verder vooruit ingepland, zodat 5× ook over internet soepel loopt.
