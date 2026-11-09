@@ -564,13 +564,13 @@ var AC = (typeof window !== 'undefined' ? window : globalThis).AC;
       if (sp && sp.id === 'execute' && tgt.hp < tgt.maxHp * sp.below) m *= sp.mult;
     }
     if (isUnit && this.players[tgt.side].buffT > 0) m *= 0.5;
-    var dmg = amount * m;
+    var dmg = amount * m * C.DMG_MULT;
     tgt.hp -= dmg;
     if (!silent) tgt.hitT = 0.12;
     var ps = this.players[src.side];
     ps.st.dmg += dmg;
-    if (tgt.kind === 'base') { ps.st.baseDmg += dmg; this._xp(src.side, dmg * C.XP_BASE_DMG); }
-    if (src.tower) this._xp(src.side, dmg * C.XP_TOWER_DMG);
+    if (tgt.kind === 'base') { ps.st.baseDmg += dmg; this._xp(src.side, dmg / C.DMG_MULT * C.XP_BASE_DMG); }
+    if (src.tower) this._xp(src.side, dmg / C.DMG_MULT * C.XP_TOWER_DMG);
     // on-hit
     if (src.unit && !src.dot) {
       var u = src.unit;

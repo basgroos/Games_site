@@ -66,6 +66,28 @@ const step = (p, dt) => p.E(`AC.Main.step(${dt})`);
     ok(!A.E('AC.Match.net.desync') && !B.E('AC.Match.net.desync'), 'desync gemeld');
     return { turns: A.E('AC.Match.net.exec'), checks: common.length, units: A.E('AC.Match.sim.units.length') };
   });
+  await run('snelheid: beide kiezen 3× → 3×, keuzes verschillen → 1×, en de stand blijft gelijk', async () => {
+    const both = async (n) => { for (let i = 0; i < n; i++) { step(A, 1 / 30); step(B, 1 / 30); if (i % 2 === 0) await sleep(4); } };
+    ok(A.E('AC.NetMatch.majority([3,3])') === 3 && A.E('AC.NetMatch.majority([3,2])') === 1 && A.E('AC.NetMatch.majority([2,2,5])') === 2, 'meerderheidsregel');
+    click(A, [...A.w.document.querySelectorAll('.spdb')].find((b) => b.textContent === '3×'));
+    await both(40);
+    ok(A.E('AC.Match.net.speed()') === 1 && B.E('AC.Match.net.oppVote') === 3, 'na één stem al sneller of stem niet aangekomen');
+    ok(/wil 3×/.test(B.E("document.getElementById('hint').textContent")), 'B ziet de stem van A niet');
+    B.E('AC.Match.setSpeed(3)'); await both(40);
+    ok(A.E('AC.Match.net.speed()') === 3 && B.E('AC.Match.net.speed()') === 3, 'niet 3× bij gelijke stemmen');
+    const e0 = A.E('AC.Match.net.exec'); await both(90);
+    const de = A.E('AC.Match.net.exec') - e0;
+    ok(de > 60, 'loopt niet sneller: ' + de + ' beurten in 90 stappen');
+    ok(/Jij 3× .* 3× → 3×/.test(A.E('AC.Match.spdInfo.textContent')), 'info: ' + A.E('AC.Match.spdInfo.textContent'));
+    B.E('AC.Match.setSpeed(2)'); await both(40);
+    ok(A.E('AC.Match.net.speed()') === 1 && B.E('AC.Match.net.speed()') === 1, 'verschillende stemmen moeten 1× geven');
+    for (const p of [A, B]) p.E('AC.Match.setSpeed(1)');
+    await both(60); await sleep(100); await both(20);
+    const a = A.E('JSON.stringify(AC.Match.net.hashes)'), b = B.E('JSON.stringify(AC.Match.net.hashes)');
+    const ha = JSON.parse(a), hb = JSON.parse(b), common = Object.keys(ha).filter((k) => k in hb);
+    ok(common.length && common.every((k) => ha[k] === hb[k]) && !A.E('AC.Match.net.desync') && !B.E('AC.Match.net.desync'), 'desync na snelheidswissels');
+    return { turnsAt3x: de };
+  });
   await run('tabblad op de achtergrond (geen animatieframes): de match loopt toch door', async () => {
     // A krijgt geen frames meer (zoals een tabblad dat niet in beeld is); alleen B wordt gestapt.
     // Ook een pagina die nog NOOIT een frame kreeg (in de achtergrond geopend) moet doorlopen.

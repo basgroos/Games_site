@@ -25,6 +25,7 @@ AC.CONST = {
   POWER_CD: 60, POWER_START_CD: 35,
   OVERTIME_1: 13 * 60, SUDDEN_DEATH: 16 * 60,
   SLOT_CD: [2, 2, 4, 4],
+  DMG_MULT: 3,                // alle schade ×3 (kortere potjes)
 };
 
 AC.ROLES = [

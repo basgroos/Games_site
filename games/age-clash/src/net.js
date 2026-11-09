@@ -254,7 +254,8 @@ var AC = window.AC;
     this.myTurns = {}; this.oppTurns = {}; this.oppUpTo = -1; this.exec = 0; this.acc = 0;
     this.started = false; this.ended = false; this.disconnected = false; this.desync = false;
     this.hashes = {}; this.oppHash = null; this.lastSeen = Date.now(); this.onReady = null; this.onDisconnect = null;
-    this.waiting = 0; this.pingMs = 0; this.delay = Net.delay || 3;
+    this.waiting = 0; this.pingMs = 0; this.baseDelay = Net.delay || 3; this.delay = this.baseDelay; this.pubUpTo = -1;
+    this.vote = 1; this.oppVote = 1; // snelheid: ieders stem
     var self = this;
     this.room.presence({ hello: { name: String(info.name).slice(0, 20), rating: info.rating | 0, color: info.color, emblem: info.emblem || '', glow: info.glow || '', lo: info.loadout, max: info.maxAge | 0, v: 1 } });
     this._unsub = this.room.onPeers(function (peers, left) {
@@ -265,6 +266,7 @@ var AC = window.AC;
       if (!self.opp && pr.hello) { self.opp = sanitizeHello(pr.hello); self._maybeReady(); }
       if (pr.lk) self._readTurns(pr.lk);
       self.oppAway = !!pr.aw;
+      if (NetMatch.SPEEDS.indexOf(pr.sp) >= 0) self.oppVote = pr.sp;
       if (pr.left && self.started && !self.ended) { self.disconnected = true; self.onDisconnect && self.onDisconnect(); }
     });
   }
@@ -314,15 +316,17 @@ var AC = window.AC;
 
   // Commando van de lokale speler → ingepland voor exec + DELAY
   NetMatch.prototype.command = function (c) {
-    var t = this.exec + this.delay;
+    // nooit inplannen in een beurt die al als definitief is gepubliceerd
+    var t = Math.max(this.exec + this.delay, this.pubUpTo + 1);
     (this.myTurns[t] = this.myTurns[t] || []);
     if (this.myTurns[t].length < 6) this.myTurns[t].push(c);
     this._publish();
   };
   NetMatch.prototype._publish = function () {
-    var c = {}, from = this.exec - 8, to = this.exec + this.delay;
+    var u = Math.max(this.pubUpTo, this.exec + this.delay - 1); this.pubUpTo = u;
+    var c = {}, from = this.exec - 40, to = u;
     for (var t = from; t <= to; t++) if (this.myTurns[t] && this.myTurns[t].length) c[t] = this.myTurns[t];
-    var lk = { u: this.exec + this.delay - 1, c: c };
+    var lk = { u: u, c: c };
     var hk = Math.floor((this.exec - 1) / 50) * 50;
     if (this.hashes[hk] != null) lk.h = [hk, this.hashes[hk]];
     this.room.presence({ lk: lk });
@@ -333,6 +337,7 @@ var AC = window.AC;
   NetMatch.prototype.step = function (sim, dt) {
     if (this.disconnected || sim.over) return 0;
     var T = AC.CONST.TICK, ran = 0;
+    this.delay = this.baseDelay * this.speed();
     this.acc += dt; this.sub = this.sub || 0;
     var maxRun = Math.min(120, Math.max(8, Math.ceil(dt / T) + 4));
     while (this.acc >= T && ran < maxRun) {
@@ -349,7 +354,7 @@ var AC = window.AC;
         this.sub = 0;
         var ex = this.exec;
         if (ex % 50 === 0) { this.hashes[ex] = sim.hash(); this._checkHash(); }
-        delete this.oppTurns[ex - 20]; delete this.myTurns[ex - 20]; delete this.hashes[ex - 500];
+        delete this.oppTurns[ex - 80]; delete this.myTurns[ex - 80]; delete this.hashes[ex - 500];
         this.exec++;
         this._publish();
       }
@@ -360,6 +365,17 @@ var AC = window.AC;
     if (this.lostFor > this.grace() && this.started && !this.ended) { this.disconnected = true; this.onDisconnect && this.onDisconnect(); }
     return ran;
   };
+  /* Snelheid: iedere speler stemt. De meerderheid bepaalt; is er geen meerderheid
+     (met twee spelers: verschillende keuzes), dan speel je op 1×. De snelheid verandert
+     alleen hoe snel beurten in echte tijd lopen; de simulatie zelf blijft identiek. */
+  NetMatch.SPEEDS = [1, 2, 3, 5];
+  NetMatch.majority = function (votes) {
+    var cnt = {}; votes.forEach(function (v) { cnt[v] = (cnt[v] || 0) + 1; });
+    for (var k in cnt) if (cnt[k] * 2 > votes.length) return +k;
+    return 1;
+  };
+  NetMatch.prototype.speed = function () { return NetMatch.majority([this.vote, this.oppVote]); };
+  NetMatch.prototype.setVote = function (v) { if (NetMatch.SPEEDS.indexOf(v) < 0) return; this.vote = v; this.room.presence({ sp: v }); };
   // wie het spel niet in beeld heeft (ander tabblad/app) krijgt 3 minuten in plaats van 45 s
   NetMatch.prototype.grace = function () { return this.oppAway ? NetMatch.GRACE * 4 : NetMatch.GRACE; };
   NetMatch.prototype.setAway = function (away) { if (this.away === away || this.ended) return; this.away = away; this.room.presence({ aw: away }); };

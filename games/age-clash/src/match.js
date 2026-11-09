@@ -101,15 +101,14 @@ var AC = window.AC;
         M.timerEl = h('div', { class: 'tm', text: '0:00' }); M.otEl = h('div', { class: 'ot' });
         var mid = h('div', { class: 'mid pe' }, [M.timerEl, h('div', { class: 'md', text: M.mode === 'bot' ? 'VS BOT · ' + AC.BOT[M.opts.diff].name.toUpperCase() : M.mode === 'local' ? 'LOKAAL 1v1' : 'ONLINE RANKED' }), M.otEl,
           h('button', { class: 'btn ghost sm', text: M.mode === 'online' ? '⚑ Menu' : '❚❚ Pauze', onclick: function () { AC.UI.click(); M.pause(); } })]);
-        if (M.mode !== 'online') {
-          M.spdBtns = [];
-          var spd = h('div', { class: 'spd' });
-          [1, 2, 3, 5].forEach(function (v) {
-            var b = h('button', { class: 'spdb' + (M.speed === v ? ' on' : ''), text: v + '×', title: 'Snelheid ' + v + '× (toets F wisselt)', onclick: function () { AC.UI.click(); M.setSpeed(v); } });
-            M.spdBtns.push({ v: v, b: b }); spd.appendChild(b);
-          });
-          mid.appendChild(spd);
-        }
+        M.spdBtns = [];
+        var spd = h('div', { class: 'spd' });
+        [1, 2, 3, 5].forEach(function (v) {
+          var b = h('button', { class: 'spdb' + (M.speed === v ? ' on' : ''), text: v + '×', title: M.mode === 'online' ? 'Stem op ' + v + '× (toets F wisselt). Kiezen jullie allebei hetzelfde, dan wordt dat de snelheid; anders 1×.' : 'Snelheid ' + v + '× (toets F wisselt)', onclick: function () { AC.UI.click(); M.setSpeed(v); } });
+          M.spdBtns.push({ v: v, b: b }); spd.appendChild(b);
+        });
+        mid.appendChild(spd);
+        if (M.mode === 'online') { M.spdInfo = h('div', { class: 'spdinfo' }); mid.appendChild(M.spdInfo); }
         top.appendChild(mid);
       } else top.appendChild(box);
     }
@@ -237,9 +236,11 @@ var AC = window.AC;
   function deny(msg) { AC.audio.play('deny'); if (msg) AC.UI.toast(msg, 1100); }
 
   Match.setSpeed = function (v) {
-    var M = Match; if (M.mode === 'online') return;
-    M.speed = v; Match.lastSpeed = v;
+    var M = Match;
+    M.speed = v;
     if (M.spdBtns) M.spdBtns.forEach(function (x) { x.b.classList.toggle('on', x.v === v); });
+    if (M.mode === 'online') { if (M.net) M.net.setVote(v); return; }
+    Match.lastSpeed = v;
     if (v > 1) M.hint('⏩ Snelheid ' + v + '×', 1000);
   };
 
@@ -252,7 +253,7 @@ var AC = window.AC;
       M.pause(); return true;
     }
     if (M.paused || M.over) return false;
-    if (k === 'f' && M.mode !== 'online') { var sp = [1, 2, 3, 5], i0 = sp.indexOf(M.speed); M.setSpeed(sp[(i0 + 1) % sp.length]); return true; }
+    if (k === 'f') { var sp = [1, 2, 3, 5], i0 = sp.indexOf(M.speed); M.setSpeed(sp[(i0 + 1) % sp.length]); return true; }
     var sides = M.local.length > 1 ? [0, 1] : [M.local[0]];
     for (var i = 0; i < sides.length; i++) {
       var side = sides[i], K = M.local.length > 1 ? KEYS[side] : KEYS[0];
@@ -313,7 +314,18 @@ var AC = window.AC;
     var alpha = 1;
     if (!M.paused) {
       if (M.mode === 'online') {
-        M.net.step(sim, dt);
+        var eff = M.net.speed();
+        if (M.effSpeed !== eff) {
+          if (M.effSpeed != null) M.hint(eff > 1 ? '⏩ Jullie kozen allebei ' + eff + '× — snelheid ' + eff + '×' : '▶ Snelheid 1×' + (M.net.vote !== M.net.oppVote ? ' (jullie keuzes verschillen)' : ''), 1800);
+          M.effSpeed = eff;
+        }
+        if (M.lastOppVote !== M.net.oppVote) {
+          if (M.lastOppVote != null && M.net.oppVote !== M.net.vote) M.hint('🗳 ' + (M.oppInfo ? M.oppInfo.name : 'Je tegenstander') + ' wil ' + M.net.oppVote + '×. Kies ook ' + M.net.oppVote + '× om te versnellen.', 3000);
+          M.lastOppVote = M.net.oppVote;
+        }
+        var si = 'Jij ' + M.net.vote + '× · ' + (M.oppInfo ? M.oppInfo.name : 'Tegenstander') + ' ' + M.net.oppVote + '× → ' + eff + '×';
+        if (M.spdInfo && M.spdInfo._v !== si) { M.spdInfo._v = si; M.spdInfo.textContent = si; }
+        M.net.step(sim, dt * eff);
         alpha = Math.min(1, M.net.acc / C.TICK);
         var w = M.net.waiting > 0.4;
         var oppName = M.oppInfo ? M.oppInfo.name : 'Je tegenstander';
@@ -337,7 +349,7 @@ var AC = window.AC;
     M.view.towerMode = !!M.towerMode; M.view.sellMode = M.towerMode && M.towerMode.sell; M.view.localSide = M.towerMode ? M.towerMode.side : M.local[0];
     // dmg-getallen filteren volgens instelling
     if (!Pf.data.settings.dmgNums) sim.events = sim.events.filter(function (e) { return e.e !== 'dmg' || e.crit; });
-    M.renderer.render(sim, M.paused ? 1 : alpha, M.view, M.paused ? 0 : dt * (M.mode === 'online' ? 1 : Math.min(M.speed, 3)));
+    M.renderer.render(sim, M.paused ? 1 : alpha, M.view, M.paused ? 0 : dt * Math.min(M.mode === 'online' ? (M.effSpeed || 1) : M.speed, 3));
     var age = sim.players[M.local[0]].age;
     if (AC.audio.musicAge !== age) AC.audio.music(true, age);
     M.updateHud();

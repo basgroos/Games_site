@@ -1,5 +1,10 @@
 # Wijzigingen
 
+## Age Clash 1.1.0 (2026-11-09)
+- **Alle schade ×3, zodat potjes korter duren.** Dit geldt voor units, towers, tijdperk-powers, gif/brand en explosies. Verder is niets veranderd: HP, prijzen, inkomen, cooldowns en XP blijven gelijk (XP uit schade wordt berekend alsof de schade nog ×1 is). In botmatches daalt de gemiddelde duur van ongeveer 16 naar 12 minuten bij Normal tegen Normal, en van ongeveer 12 naar 8 minuten bij Hard tegen Easy. De instelling staat in `data.js` als `DMG_MULT`.
+- **Snelheid stemmen in online PvP.** Beide spelers kiezen 1×, 2×, 3× of 5× (knoppen onder de timer of toets F). De meerderheid bepaalt; kiezen jullie iets anders, dan blijft het 1×. Onder de knoppen zie je beide keuzes en de snelheid die geldt, en je krijgt een melding als je tegenstander sneller wil. De snelheid verandert alleen hoe snel beurten in echte tijd lopen, dus de stand blijft bij beiden gelijk. Bij hogere snelheid worden commando's verder vooruit ingepland, zodat 5× ook over internet soepel loopt.
+- Test toegevoegd: stemmen (één stem → 1×, beide 3× → 3×, verschil → 1×) met een controle dat de stand gelijk blijft.
+
 ## Zombie Door Tycoon 2.3.0 (2026-11-09)
 - **Special-upgrades betekenen weer wat ze per tower doen**, in plaats van een vaag "+30% special". Elk level in het upgrade-pad zegt nu precies wat je krijgt, bijvoorbeeld:
   - Drone Commander: **+1 drone** bij elk level met een special-upgrade (3 → 10 drones).
