@@ -317,11 +317,59 @@ G.buildPath = function (it) {
   return path;
 };
 G.ITEMS.forEach(function (it) { it.path = G.buildPath(it); });
-G.pathText = function (it, inc) {
+// number of bought levels that contained a special upgrade (each one = +1 drone, +1 beam, ...)
+G.spcSteps = function (it, ul) { var n = 0; for (var i = 0; i < (ul || 0) && i < it.path.length; i++) if (it.path[i].spc) n++; return n; };
+// What the special upgrade does for each tower (same meaning as the old Special track):
+// whole things (+1 drone, +1 pellet, +1 jump) where the game counts them, otherwise a percentage.
+G.specialText = function (it, from, to, idx) {
+  var n = to - from, steps = idx != null ? G.spcSteps(it, idx + 1) : 1, pc = function (per) { return '+' + Math.round(n * per * 100) + '%'; };
+  var step = function (base, word) { return '+1 ' + word + ' (' + (base + steps) + ' totaal)'; };   // every special level = one more
+  switch (it.kind) {
+    case 'spread': return '+' + n + ' pellet' + (n > 1 ? 's' : '') + ' (' + (it.pellets + to) + ' totaal)';
+    case 'chain': return '+' + n + ' sprong' + (n > 1 ? 'en' : '') + ' (' + (it.chain + to) + ' totaal)';
+    case 'bounce': return '+' + n + ' stuiter' + (n > 1 ? 's' : '') + ' (' + ((it.bounces || 2) + to) + ' totaal)';
+    case 'poison': return '+' + n + ' gif-stack' + (n > 1 ? 's' : '') + ' (' + (it.stacks + to) + ' totaal)';
+    case 'drones': return step(it.drones, 'drone');
+    case 'archangel': return step(it.beams, 'straal') + ', ' + pc(0.15) + ' nova';
+    case 'titan': return step(it.salvo, 'raket per salvo') + ', ' + pc(0.1) + ' explosie';
+    case 'eternal': return step(3, 'bliksem-sprong');
+    case 'storm': return '+1 s storm (' + (6 + steps) + ' s), ' + pc(0.15) + ' bliksem-radius';
+    case 'frost': case 'slowtrap': case 'sonic': case 'gravity': return pc(0.15) + ' vertraging';
+    case 'bullet': return pc(0.15) + ' onthul-duur';
+    case 'wall': return '+' + Math.round(n * 40) + '% muur-HP';
+    case 'magnet': case 'beam': return pc(0.15) + ' armor wegtrekken';
+    case 'flame': case 'dragon': return pc(0.15) + ' brandschade';
+    case 'splash': case 'mortar': case 'celestial': return pc(0.12) + ' explosie-radius';
+    case 'mine': return pc(0.15) + ' explosie-radius';
+    case 'blackhole': return pc(0.1) + ' grootte en duur';
+    case 'singularity': return pc(0.08) + ' grootte, ' + pc(0.15) + ' supernova';
+    case 'buff': return pc(0.15) + ' buff-sterkte';
+    case 'farm': return '+' + Math.round(n * 25) + '% farm-boost';
+    case 'medic': case 'repairbot': return pc(0.15) + ' heling';
+    case 'shield': return pc(0.15) + ' schild';
+    case 'assassin': return pc(0.15) + ' executie-grens';
+    case 'emp': return pc(0.15) + ' EMP-duur';
+    case 'orbital': case 'meteor': return pc(0.15) + ' inslag-radius';
+    case 'soul': return pc(0.15) + ' kracht per ziel en max zielen';
+    case 'timeslow': return pc(0.15) + ' duur';
+    case 'portal': return pc(0.15) + ' aantal teleports';
+    case 'dimension': return pc(0.15) + ' gelinkte zombies';
+    case 'nuke': return pc(0.1) + ' explosie-radius';
+    case 'aura': return pc(0.15) + ' markering';
+    case 'creator': return pc(0.15) + ' snellere ultimate';
+    case 'reality': return pc(0.15) + ' herschreven zombies';
+    case 'worldender': return pc(0.15) + ' boss-schade';
+    case 'goldengod': return pc(0.15) + ' zegen (vaker en langer)';
+    case 'midas': return pc(0.15) + ' snellere gouden aanraking';
+  }
+  return pc(0.15) + ' special';
+};
+G.pathText = function (it, inc, idx) {
+  var spcFrom = 0;
+  if (idx != null) for (var i = 0; i < idx && i < it.path.length; i++) spcFrom += it.path[i].spc || 0;
   return it.tracks.filter(function (t) { return inc[t]; }).map(function (t) {
-    var pct = Math.round(inc[t] * G.TRACKS[t].per * 100);
-    var extra = t === 'spc' ? (it.kind === 'spread' ? ' (+' + inc[t] + ' pellet)' : it.kind === 'chain' ? ' (+' + inc[t] + ' sprong)' : '') : '';
-    return '+' + pct + '% ' + G.TRACKS[t].name.toLowerCase() + extra;
+    if (t === 'spc') return G.specialText(it, spcFrom, spcFrom + inc[t], idx);
+    return '+' + Math.round(inc[t] * G.TRACKS[t].per * 100) + '% ' + G.TRACKS[t].name.toLowerCase();
   }).join(', ');
 };
 G.itemsByRarity = function (rid) { return G.ITEMS.filter(function (i) { return i.rarity === rid; }); };

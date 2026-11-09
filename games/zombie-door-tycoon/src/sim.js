@@ -1189,7 +1189,7 @@
           }
           break;
         case 'kamikaze':
-          var kz = t.data.kz || (t.data.kz = []), maxK = it.drones + Math.floor(t.lvl.spc / 2);
+          var kz = t.data.kz || (t.data.kz = []), maxK = it.drones + G.spcSteps(it, t.ul);
           if (t.cd <= 0 && kz.length < maxK) { t.cd = st.cd; kz.push({ x: t.px, y: t.py - 12, tgt: null }); t.fire = 0.3; }
           for (var ki = kz.length - 1; ki >= 0; ki--) {
             var kd = kz[ki];
@@ -1246,7 +1246,7 @@
           break;
         case 'storm':
           if (t.cd <= 0 && !(t.data.stormUntil > now)) {
-            if (this.findTarget(room, t.px, t.py, st.range, 'first', true, false)) { t.data.stormUntil = now + 6; t.data.bolt = 0; t.cd = st.cd + 6; t.fire = 1; }
+            if (this.findTarget(room, t.px, t.py, st.range, 'first', true, false)) { var sdur = 6 + G.spcSteps(it, t.ul); t.data.stormUntil = now + sdur; t.data.bolt = 0; t.cd = st.cd + sdur; t.fire = 1; }
             else t.cd = 0.3;
           }
           if (t.data.stormUntil > now) {
@@ -1254,7 +1254,7 @@
             if (t.data.bolt <= 0) {
               t.data.bolt = 0.35;
               var sz = this.inRadius(room, t.px, t.py, st.range);
-              if (sz.length) { var vz = sz[(this.rnd() * sz.length) | 0]; this.inRadius(room, vz.x, vz.y, 0.8 * T).forEach(function (z) { self.damage(room, z, st.dmg, t, { aoe: true, color: '#e8f4ff' }); }); this.fx.bolt(room, vz.x, vz.y); }
+              if (sz.length) { var vz = sz[(this.rnd() * sz.length) | 0]; this.inRadius(room, vz.x, vz.y, 0.8 * T * st.spc).forEach(function (z) { self.damage(room, z, st.dmg, t, { aoe: true, color: '#e8f4ff' }); }); this.fx.bolt(room, vz.x, vz.y); }
             }
           }
           break;
@@ -1279,7 +1279,7 @@
   };
 
   M.updateDrones = function (room, t, st, dt) {
-    var it = t.item, n = Math.min(6, it.drones + Math.floor(t.lvl.spc / 2)), ds = t.data.drones, self = this;
+    var it = t.item, n = it.drones + G.spcSteps(it, t.ul), ds = t.data.drones, self = this;
     while (ds.length < n) ds.push({ x: t.px, y: t.py - 10, cd: Math.random() * 0.5, ang: Math.random() * 6, tgt: null });
     var cands = this.inRadius(room, t.px, t.py, st.range, function (z) { return self.targetable(room, z, true, false); })
       .sort(function (a, b) { return self.remaining(a) - self.remaining(b); });
@@ -1460,7 +1460,7 @@
         });
         break;
       case 'archangel':
-        var aT = this.findTargets(room, t.px, t.py, st.range, 'strongest', true, false, Math.round(it.beams + Math.floor(t.lvl.spc / 3)));
+        var aT = this.findTargets(room, t.px, t.py, st.range, 'strongest', true, false, it.beams + G.spcSteps(it, t.ul));
         aT.forEach(function (z) { self.damage(room, z, dmg, t, { color: '#fff4b0' }); self.fx.beam(room, t.px, t.py - 26, z.x, z.y, '#fff1a0', 5); });
         t.data.n = (t.data.n || 0) + 1;
         if (t.data.n >= it.novaEvery) {
@@ -1483,7 +1483,7 @@
         t.data.n = (t.data.n || 0) + 1;
         if (t.data.n >= it.salvoEvery) {
           t.data.n = 0;
-          this.findTargets(room, t.px, t.py, st.range * 1.2, 'strongest', true, false, it.salvo + Math.floor(t.lvl.spc / 3)).forEach(function (tz, k) {
+          this.findTargets(room, t.px, t.py, st.range * 1.2, 'strongest', true, false, it.salvo + G.spcSteps(it, t.ul)).forEach(function (tz, k) {
             self.fx.shot(room, t, tz.x, tz.y, 'rocket', 0.5 + k * 0.06);
             (function (z0) { room.pending.push({ at: now + 0.5 + k * 0.06, fn: function () {
               self.inRadius(room, z0.x, z0.y, Rt * 0.7).forEach(function (z) { self.damage(room, z, dmg * 0.7, t, { aoe: true }); });
@@ -1513,7 +1513,7 @@
       case 'eternal':
         this.damage(room, tgt, dmg, t, { color: '#fff' });
         this.burn(room, tgt, dmg * 0.2, 3); this.slow(room, tgt, 0.4, 1.5); this.poison(tgt, dmg * 0.15, 3, 5, now);
-        this.doChain(room, t, tgt, dmg * 0.5, 3, 2 * T, '#ffd6ff');
+        this.doChain(room, t, tgt, dmg * 0.5, 3 + G.spcSteps(it, t.ul), 2 * T, '#ffd6ff');
         this.fx.shot(room, t, tgt.x, tgt.y, 'plasma');
         break;
       case 'reality':

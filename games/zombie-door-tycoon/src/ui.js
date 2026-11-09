@@ -311,7 +311,7 @@
     rows.push(['Plaatsprijs', '$' + fmt(it.cost)]);
     rows.push(['Max per kamer', it.limit]);
     rows.push(['Upgrades', G.UPGRADE_LEVELS + ' levels, elk een mix van ' + it.tracks.map(function (t) { return G.TRACKS[t].name.toLowerCase(); }).join(', ')]);
-    if (it.path) rows.push(['Lv 1 / Lv 2', G.pathText(it, it.path[0]) + ' / ' + G.pathText(it, it.path[1])]);
+    if (it.path) rows.push(['Lv 1 / Lv 2', G.pathText(it, it.path[0], 0) + ' / ' + G.pathText(it, it.path[1], 1)]);
     rows.push(['Upgrade Level', '<span style="color:#ffd23f">' + starStr(stars || 0) + '</span>']);
     return rows;
   };

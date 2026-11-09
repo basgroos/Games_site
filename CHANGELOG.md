@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## Zombie Door Tycoon 2.3.0 (2026-11-09)
+- **Special-upgrades betekenen weer wat ze per tower doen**, in plaats van een vaag "+30% special". Elk level in het upgrade-pad zegt nu precies wat je krijgt, bijvoorbeeld:
+  - Drone Commander: **+1 drone** bij elk level met een special-upgrade (3 → 10 drones).
+  - Shotgun: +1 of +2 pellets, Tesla: +1 of +2 sprongen, Slingshot: +1 stuiter, Poison: +1 gif-stack, steeds met het nieuwe totaal erbij.
+  - Archangel: +1 straal, Omega Titan: +1 raket per salvo, Eternal Machine: +1 bliksem-sprong, Storm Generator: +1 seconde storm.
+  - Overige towers noemen het effect zelf: vertraging, explosie-radius, brandschade, heling, schild, executie-grens, EMP-duur, enzovoort.
+- Storm Generator en Eternal Machine deden niets met hun special-upgrade; dat werkt nu wel.
+
 ## Zombie Door Tycoon 2.2.0 (2026-11-09)
 - **Rarity maakt echt verschil in kracht.** Elke rarity geeft een vaste vermenigvuldiger op damage: Common ×1, Rare ×1,15, Epic ×1,35, Legendary ×1,6, Mythic ×1,9, Secret ×2,25 en Godly ×2,75. Farms krijgen de helft van die bonus op hun inkomen. Je ziet de rarity-kracht in de collectie. De Revolver (Common) was sterker dan veel Rares en doet nu minder damage per schot (9 in plaats van 20).
 - **Nieuwe rarity: Godly**, nog zeldzamer dan Secret (0,02% per Normal Summon, 0,06% per Premium Summon). Godly towers hebben een wit-gouden voet met vleugels, lichtstralen en zwevende vonken. Er zijn 4 Godly towers:

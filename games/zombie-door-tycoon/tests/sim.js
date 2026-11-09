@@ -53,6 +53,22 @@ ok(G.ITEMS.every((it, i) => !i || G.RAR[it.rarity].index >= G.RAR[G.ITEMS[i - 1]
   ['archangel', 'omegatitan', 'singularity'].forEach((id) => { const t = r.towers.filter((q) => q.item.id === id)[0]; ok(t.dmgDealt > 0, id + ' deals damage (' + Math.round(t.dmgDealt) + ')'); });
   ok(r.towers.filter((q) => q.item.id === 'midas')[0].earned > 0, 'Midas Throne earns money');
 })();
+// ---- 2.3: special upgrades keep their meaning (e.g. Drone Commander: +1 drone) ----
+(function () {
+  const it = G.ITEM.drones, li = it.path.findIndex((p) => p.spc);
+  ok(/\+1 drone/.test(G.pathText(it, it.path[li], li)), 'Drone Commander special level says "' + G.pathText(it, it.path[li], li) + '"');
+  ok(/pellet/.test(G.pathText(G.ITEM.shotgun, G.ITEM.shotgun.path.find((p) => p.spc), G.ITEM.shotgun.path.findIndex((p) => p.spc))), 'Shotgun special = extra pellets');
+  const pl = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => ({ name: 's' + i, isBot: false, loadout: ['drones', 'pistol', 'shotgun', 'scout', 'slowtrap'] }));
+  const g = new G.Match({ mapId: 'city', diffId: 'easy', players: pl, seed: 2 });
+  g.claim(g.players[0], 4); const r = g.rooms[4]; g.phase = 'prep'; g.players[0].cash = 1e7;
+  const p0 = g.players[0]; p0.pos.x = r.def.center.x; p0.pos.y = r.def.center.y;
+  const sl = r.def.slots.filter((q) => !r.tile[q.x + ',' + q.y])[0];
+  const t = g.command(0, { type: 'place', item: 'drones', x: sl.x, y: sl.y }).tower;
+  const cnt = () => { g.updateDrones(r, t, g.stats(t, r), G.TICK); return t.data.drones.length; };
+  let ok2 = true; const seen = [cnt()];
+  for (let i = 0; i < 10; i++) { const had = !!t.item.path[i].spc, b = cnt(); g.command(0, { type: 'upgradeTower', tower: t.id }); const a = cnt(); seen.push(a); if (a - b !== (had ? 1 : 0)) ok2 = false; }
+  ok(ok2, 'every special level really adds one drone (' + seen.join('→') + ')');
+})();
 // ---- 2.0: new towers, evolutions, quick upgrades, kill money, rewards, mastery, missions, duo ----
 ok(G.ITEMS.length >= 60, G.ITEMS.length + ' towers');
 ok(Object.keys(G.EVO).length >= 10 && Object.keys(G.EVO).every((id) => G.EVO[id].length === 2), 'evolution lines with 2 stages');

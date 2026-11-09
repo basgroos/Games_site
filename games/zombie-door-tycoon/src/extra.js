@@ -110,7 +110,7 @@
         if (!t) { res('upgrade', { ok: false, msg: 'Geen tower geselecteerd' }); return; }
         if (!g.ui.selTower) { g.ui.selTower = t.id; g.ui.selDoor = false; }
         var nxl = m.nextLevel(t), nl = m.towerLevel(t) + 1;
-        r = g.net.send({ type: 'upgradeTower', tower: t.id }); res('upgrade', r, t.item.name + ' Lv ' + nl + (nxl ? ': ' + G.pathText(t.item, nxl) : '')); UI.panelDirty(); return;
+        r = g.net.send({ type: 'upgradeTower', tower: t.id }); res('upgrade', r, t.item.name + ' Lv ' + nl + (nxl ? ': ' + G.pathText(t.item, nxl, nl - 1) : '')); UI.panelDirty(); return;
       case 'sell':
         t = selTower(); if (!t) { res('sell', { ok: false, msg: 'Selecteer eerst een tower' }); return; }
         r = g.net.send({ type: 'sell', tower: t.id }); if (res('sell', r, 'Verkocht voor $' + fmt(r.value || 0))) g.ui.selTower = null; UI.panelDirty(); return;
@@ -306,7 +306,7 @@
       (near ? '' : '<p class="tip" style="color:#ff9f1c">Loop naar je kamer om te upgraden.</p>') + '<div class="umlist">';
     list.forEach(function (q) {
       var nl = m.nextLevel(q), tr = !!nl, c = tr ? m.upgradeCost(q) : 0, nx = q.item.evo && q.item.evo[q.evo];
-      h += '<div class="umrow' + (q.prio ? ' prio' : '') + '" data-t="' + q.id + '"><span class="ic" data-ic="' + q.item.id + '"></span><div class="un"><b style="color:' + G.RAR[q.item.rarity].color + '">' + esc(q.evo ? q.item.evo[q.evo - 1].name : q.item.name) + '</b><small>Lv ' + m.towerLevel(q) + '/' + G.UPGRADE_LEVELS + (nl ? ' • volgende: ' + G.pathText(q.item, nl) : '') + (q.item.isFarm ? ' • $' + fmt(q.earned) + ' verdiend' : ' • ' + q.kills + ' kills') + (nx && m.towerLevel(q) >= nx.lvl ? ' • <span style="color:#ffd23f">🧬 kan evolueren</span>' : '') + '</small></div>' +
+      h += '<div class="umrow' + (q.prio ? ' prio' : '') + '" data-t="' + q.id + '"><span class="ic" data-ic="' + q.item.id + '"></span><div class="un"><b style="color:' + G.RAR[q.item.rarity].color + '">' + esc(q.evo ? q.item.evo[q.evo - 1].name : q.item.name) + '</b><small>Lv ' + m.towerLevel(q) + '/' + G.UPGRADE_LEVELS + (nl ? ' • volgende: ' + G.pathText(q.item, nl, m.towerLevel(q)) : '') + (q.item.isFarm ? ' • $' + fmt(q.earned) + ' verdiend' : ' • ' + q.kills + ' kills') + (nx && m.towerLevel(q) >= nx.lvl ? ' • <span style="color:#ffd23f">🧬 kan evolueren</span>' : '') + '</small></div>' +
         '<button class="tg ' + (q.auto ? 'on' : '') + '" data-a="auto" title="Auto-upgrade">⟳</button><button class="tg ' + (q.prio ? 'on' : '') + '" data-a="prio" title="Prioriteit">!</button>' +
         '<button class="btn small ' + (tr ? 'yellow' : '') + '" data-a="up" ' + (!tr || me.cash < c || !near ? 'disabled' : '') + '>' + (tr ? 'Lv ' + (m.towerLevel(q) + 1) + ' $' + fmt(c) : 'MAX') + '</button></div>';
     });
@@ -416,7 +416,7 @@
     ph += '</div>';
     it.path.forEach(function (inc, li) {
       if (li < lvl - 1 || li > lvl + 2) return;   // last bought level + the next three
-      ph += '<div class="ustep ' + (li < lvl ? 'done' : li === lvl ? 'next' : '') + '"><span class="un">' + (li < lvl ? '✓' : 'Lv ' + (li + 1)) + '</span><span class="ut">' + esc(G.pathText(it, inc)) + '</span>' +
+      ph += '<div class="ustep ' + (li < lvl ? 'done' : li === lvl ? 'next' : '') + '"><span class="un">' + (li < lvl ? '✓' : 'Lv ' + (li + 1)) + '</span><span class="ut">' + esc(G.pathText(it, inc, li)) + '</span>' +
         (li === lvl ? '<button class="btn small yellow" ' + (me.cash < cc || !near ? 'disabled' : '') + '>$' + fmt(cc) + '</button>' : '') + '</div>';
     });
     if (!cheap) ph += '<div class="ustep done"><span class="ut">Maximaal level bereikt — alle stats zijn volledig geüpgraded</span></div>';
