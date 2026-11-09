@@ -2,8 +2,8 @@
   "id": "zombie-door-tycoon",
   "name": "Zombie Door Tycoon",
   "tagline": "Multiplayer zombie tower defense tycoon",
-  "description": "Claim een kamer in een grote hal, verdien geld en verdedig je deur tegen zombies die uit de poorten stromen en via de kortste weg naar je toe lopen. 42 towers in zes rarities, 12 bosses, 3 maps, Endless en online met maximaal 8 spelers (lege plekken worden bots).",
-  "version": "1.1.0",
+  "description": "Claim een kamer in een grote hal (alleen of als Duo met een maatje), verdien geld en verdedig je deur tegen zombies die uit de poorten stromen. 72 towers in zes rarities met evoluties en upgrades die je echt ziet, sneltoetsen, Tower Mastery, daily missions, 12 bosses, 3 maps, Endless en online met maximaal 8 spelers (lege plekken worden bots).",
+  "version": "2.0.0",
   "status": "live",
   "color": "#9dff5a",
   "tags": [

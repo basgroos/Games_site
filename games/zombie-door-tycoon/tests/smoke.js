@@ -34,6 +34,44 @@ const { makeBus } = require('./fakesupa');
   ok(E('G.Game.match.wave') >= 1, 'waves started (wave ' + E('G.Game.match.wave') + ')');
   E("(function(){var g=G.Game,r=g.match.roomOf(g.match.players[0]);g.ui.selTower=r.towers[1].id;})()"); frames(12);
   ok(!$('hPanel').classList.contains('hidden'), 'tower panel opens');
+  // hotkeys
+  const key = (k, type) => w.dispatchEvent(new w.KeyboardEvent(type || 'keydown', { key: k, bubbles: true }));
+  const pist = () => E("(function(){var r=G.Game.match.roomOf(G.Game.match.players[0]);return r.towers.filter(function(t){return t.item.id==='pistol'})[0];})()");
+  E('G.Game.match.players[0].cash = 1e6');
+  const l0 = E('G.Game.match.towerLevel(' + "G.Game.match.roomOf(G.Game.match.players[0]).towers[1])");
+  key('e'); key('e');
+  ok(E('G.Game.match.towerLevel(G.Game.match.roomOf(G.Game.match.players[0]).towers[1])') === l0 + 2, 'E upgrades the selected tower');
+  key('t'); ok(pist().auto === true, 'T toggles auto-upgrade');
+  key('p'); ok(pist().prio === true, 'P toggles priority');
+  key('q'); ok(E('G.Game.match.roomOf(G.Game.match.players[0]).door.lvl') >= 1, 'Q upgrades the door');
+  key('x'); key('c'); key('f');
+  for (let i = 0; i < 12; i++) key('e');
+  key('v'); ok(pist().evo === 1, 'V evolves (' + E("G.ITEM.pistol.evo[0].name") + ')');
+  frames(8); ok(w.document.querySelector('#hPanel .tevo') && w.document.querySelector('#hPanel .tgrid') && (w.document.querySelector('#hPanel .tprev') || E('G.towerTier(' + "G.Game.match.roomOf(G.Game.match.players[0]).towers.filter(function(t){return t.item.id==='pistol'})[0])") === 10), 'tower panel shows stats, next look and evolution');
+  key('u'); frames(2); ok(!$('hUp').classList.contains('hidden') && w.document.querySelectorAll('.umrow').length >= 2, 'U opens the upgrade menu');
+  key('Escape'); ok($('hUp').classList.contains('hidden'), 'Esc closes it');
+  key('Tab'); ok(!$('hScore').classList.contains('hidden'), 'Tab shows the scoreboard'); key('Tab', 'keyup'); ok($('hScore').classList.contains('hidden'), 'releasing Tab hides it');
+  key(' '); ok(E('G.Game.ui.build') === true, 'Space toggles building mode'); key(' ');
+  const inp = w.document.createElement('input'); w.document.body.appendChild(inp); inp.focus();
+  const lv = E('G.Game.match.towerLevel(G.Game.match.roomOf(G.Game.match.players[0]).towers[1])');
+  inp.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'e', bubbles: true }));
+  ok(E('G.Game.match.towerLevel(G.Game.match.roomOf(G.Game.match.players[0]).towers[1])') === lv, 'no hotkeys while typing'); inp.remove();
+  E('G.Profile.d.settings.hotkeysOn = false'); key('q'); E('G.Profile.d.settings.hotkeysOn = true');
+  ok(!!$('hKeys') && !!w.document.querySelector('#hKeys kbd'), 'hotkey hints on screen');
+  // results screen with detailed rewards
+  E("(function(){var m=G.Game.match,me=m.players[0];me.finished=true;me.stats.waveReached=10;me.mast.pistol=[30,4000,1];})()");
+  E('G.Game.finish()'); frames(2);
+  ok(!!w.document.querySelector('.rcat') && !!w.document.querySelector('.rmast'), 'reward screen with categories and mastery');
+  E('G.Game.toLobby()'); frames(2);
+  $('bMast').click(); ok(w.document.querySelectorAll('.mcell').length >= 5 && !!w.document.querySelector('.mrew'), 'mastery screen'); $('mClose').click();
+  $('bMis').click(); ok(w.document.querySelectorAll('.mis').length === 4, 'daily missions screen'); $('mClose').click();
+  $('bSet').click(); w.document.querySelector('.hklist button[data-h="sell"]').click(); key('j');
+  ok(E("G.UI.hk('sell')") === 'j', 'hotkeys can be rebound');
+  $('mClose').click();
+  // duo with a bot buddy
+  E("G.Game.start('city','easy',true)"); frames(2);
+  E("(function(){var m=G.Game.match;m.claimTimer=0.01;for(var k=0;k<5;k++)m.update(G.TICK);})()");
+  ok(E('(function(){var m=G.Game.match,r=m.roomOf(m.players[0]);return r.partner>=0 && m.players[r.partner].bank===m.players[0].bank;})()'), 'duo room with shared money');
   E('G.Game.toLobby()'); frames(2);
   // online lobby with the fake realtime
   $('bOnline').click(); for (let i = 0; i < 8; i++) { await new Promise((r) => setTimeout(r, 30)); bus.flush(); }

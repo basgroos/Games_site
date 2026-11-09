@@ -37,11 +37,12 @@ function boot() {
     G.Audio.music(m.map.music);
     UI.banner('CLAIM EEN KAMER', '#ffd23f', 'Online potje • ' + m.map.name + ' • ' + m.diff.name);
   };
-  Game.start = function (mapId, diffId) {
+  Game.start = function (mapId, diffId, duo) {
     G.Audio.init(); Game.mode = 'solo'; MP.leave();
     var stars = {}; P.d.loadout.forEach(function (id) { stars[id] = P.stars(id); });
-    var players = [{ name: P.d.name, isBot: false, loadout: P.d.loadout.slice(), stars: stars }].concat(botPlayers(diffId, 7));
-    var m = new G.Match({ mapId: mapId, diffId: diffId, players: players, fx: FX.api });
+    var players = [{ name: P.d.name, isBot: false, loadout: P.d.loadout.slice(), stars: stars, cos: P.cosMap(), hat: P.d.hat }].concat(botPlayers(diffId, 7));
+    if (duo) players[1].duoWith = 0;   // a bot buddy shares your room and wallet
+    var m = new G.Match({ mapId: mapId, diffId: diffId, players: players, fx: FX.api, duo: !!duo });
     m.bots = players.map(function (p, i) { return p.isBot ? new G.Bot(m, i) : null; }).filter(Boolean);
     Game.match = m; Game.net = new G.LocalNet(m, 0); Game.me = 0; Game.state = 'match'; Game.ended = false;
     Game.ui = { placing: null, hover: null, selTower: null, selDoor: false, marker: null }; Game.speed = 1; Game.paused = false; Game.acc = 0;
@@ -58,7 +59,7 @@ function boot() {
     if (m.phase === 'claim' || !me.alive) return;
     Game.ui.placing = Game.ui.placing === id ? null : id;
     Game.ui.selTower = null; Game.ui.selDoor = false;
-    if (Game.ui.placing && !m.canBuild(me)) UI.toast('Loop naar je kamer om te bouwen — druk op <b>R</b> om terug te lopen', '#ff9f1c');
+    if (Game.ui.placing && !m.canBuild(me)) UI.toast('Loop naar je kamer om te bouwen — druk op <b>' + UI.keyName(UI.hk('home')) + '</b> om terug te lopen', '#ff9f1c');
   };
   Game.cycleSpeed = function () {
     if (Game.mode === 'client') { UI.toast('Alleen de host kan de snelheid aanpassen.'); return; }
@@ -87,8 +88,11 @@ function boot() {
   // ---------------------------------------------------------------------
   FX.hooks = {
     claim: function (room, p) {
-      if (!Game.match || p.id !== Game.me) return;
-      UI.toast('🚪 Je hebt de <b>' + room.def.name + '</b> geclaimd! Dit is nu jouw basis.', '#ffd23f');
+      if (!Game.match) return;
+      var m = Game.match, other = room.partner === p.id ? m.players[room.owner] : null;
+      if (p.id === Game.me && other) UI.toast('🤝 Je deelt nu de <b>' + room.def.name + '</b> met <b>' + other.name + '</b> — samen één portemonnee!', '#7dff9a');
+      else if (p.id === Game.me) UI.toast('🚪 Je hebt de <b>' + room.def.name + '</b> geclaimd! Dit is nu jouw basis.' + (m.duo ? ' (Duo: een maatje kan nog bij je komen)' : ''), '#ffd23f');
+      else if (other && other.id === Game.me) UI.toast('🤝 <b>' + p.name + '</b> speelt nu samen met jou in jouw kamer!', '#7dff9a');
     },
     event: function (type, d) {
       if (!Game.match) return;
@@ -126,6 +130,12 @@ function boot() {
       if (!Game.match) return;
       if (p.id === Game.me) { UI.banner('VICTORY!', '#4cd964', 'Je hebt alle waves overleefd'); setTimeout(function () { Game.finish(); }, 2200); }
     },
+    evolve: function (room, t, nx) {
+      if (!Game.match) return;
+      var me = Game.match.players[Game.me];
+      if (room.index === me.room) { UI.banner('EVOLUTIE!', '#ffd23f', t.item.name + ' → ' + nx.name); UI.panelDirty(); }
+    },
+    upgrade: function (room) { if (Game.match && room.index === Game.match.players[Game.me].room) UI.panelDirty(); },
     banner: function (t, c) { UI.banner(t, c); },
     door: function () { }
   };
@@ -194,6 +204,8 @@ function boot() {
         }
       }
       var t = room.tile[tx + ',' + ty], d = room.def.door;
+      if (Game.ui.build && !t && m.canBuild(me) && UI.buildPick(tx, ty, e.clientX, e.clientY)) return;
+      Game.ui.buildPick = null; UI.hideBuildPick();
       if (t) { Game.ui.selTower = t.id; Game.ui.selDoor = false; Game.ui.placing = null; G.Audio.sfx('click'); UI.$('hPanel').dataset.k = ''; return; }
       if (tx === d.x && ty === d.y) { Game.ui.selDoor = true; Game.ui.selTower = null; Game.ui.placing = null; G.Audio.sfx('click'); UI.$('hPanel').dataset.k = ''; return; }
     }
@@ -202,20 +214,16 @@ function boot() {
     if (Game.net.send({ type: 'move', x: w.x, y: w.y }).ok) Game.ui.marker = { x: w.x, y: w.y, t: 1 };
   });
   window.addEventListener('keydown', function (e) {
-    if (e.target && e.target.tagName === 'INPUT') return;
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;   // never while typing
     var k = e.key.toLowerCase();
-    Game.keys[k] = true;
+    if (UI.handleKey(e)) { updateKeys(); return; }
+    if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].indexOf(k) >= 0) Game.keys[k] = true;
     if (Game.state !== 'match') return;
-    var m = Game.match, me = m.players[Game.me];
-    var n = parseInt(e.key, 10);
-    if (n >= 1 && n <= 5 && me.loadout[n - 1]) Game.selectItem(me.loadout[n - 1]);
-    if (e.key === 'Escape') { Game.ui.placing = null; Game.ui.selTower = null; Game.ui.selDoor = false; }
-    if (e.key === ' ') { e.preventDefault(); Game.cycleSpeed(); }
-    if (k === 'r' && me.room >= 0) Game.goRoom(me.room);
     if (k.indexOf('arrow') === 0) e.preventDefault();
     updateKeys();
   });
-  window.addEventListener('keyup', function (e) { Game.keys[e.key.toLowerCase()] = false; updateKeys(); });
+  window.addEventListener('keyup', function (e) { Game.keys[e.key.toLowerCase()] = false; UI.handleKeyUp(e); updateKeys(); });
   window.addEventListener('blur', function () { Game.keys = {}; updateKeys(); });
   function updateKeys() {
     if (Game.state !== 'match') return;
@@ -299,7 +307,7 @@ function boot() {
   // ---------------------------------------------------------------------
   P.load();
   MP.hooks = {
-    myInfo: function () { var st = {}; P.d.loadout.forEach(function (id) { st[id] = P.stars(id); }); return { name: P.d.name, loadout: P.d.loadout.slice(), stars: st }; },
+    myInfo: function () { var st = {}; P.d.loadout.forEach(function (id) { st[id] = P.stars(id); }); return { name: P.d.name, loadout: P.d.loadout.slice(), stars: st, cos: P.cosMap(), hat: P.d.hat }; },
     toast: function (msg) { UI.toast(msg, '#3fa2ff'); },
     roster: function () { if (UI.renderOnline) UI.renderOnline(); },
     start: function (m, pid) { Game.startOnline(m, pid, 'client'); },

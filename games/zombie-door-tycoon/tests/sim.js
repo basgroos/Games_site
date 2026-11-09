@@ -32,4 +32,70 @@ ok(bossSeen, 'a boss appeared');
 const winners = m.players.filter((p) => p.finished && p.alive).length;
 ok(winners >= 4, winners + '/8 bots survived Easy with starter towers');
 ok(m.players.every((p) => p.room >= 0), 'every bot claimed a room');
+
+// ---- 2.0: new towers, evolutions, quick upgrades, kill money, rewards, mastery, missions, duo ----
+ok(G.ITEMS.length >= 72, G.ITEMS.length + ' towers (30 new)');
+ok(Object.keys(G.EVO).length >= 10 && Object.keys(G.EVO).every((id) => G.EVO[id].length === 2), 'evolution lines with 2 stages');
+ok(G.ZOMBIES.normal.reward === 5 && G.ZOMBIES.fast.reward === 7 && G.ZOMBIES.armored.reward === 15 && G.ZOMBIES.poisonz.reward === 12 && G.ZOMBIES.giant.reward === 50, 'kill money per zombie type');
+(function () {
+  const pl = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => ({ name: 'p' + i, isBot: i > 1, loadout: ['pistol', 'shotgun', 'minicash', 'scout', 'slowtrap'], duoWith: i === 1 ? 0 : undefined }));
+  pl[1].isBot = true;
+  const d = new G.Match({ mapId: 'city', diffId: 'easy', players: pl, seed: 3, duo: true });
+  d.claim(d.players[0], 2); d.claim(d.players[1], 2);
+  const r = d.rooms[2];
+  ok(r.owner === 0 && r.partner === 1 && d.players[1].room === 2, 'duo: buddy joins your room');
+  d.players[0].cash = 10000;
+  ok(d.players[1].cash === 10000, 'duo: one shared wallet');
+  d.phase = 'prep';
+  [0, 1].forEach((i) => { const p = d.players[i]; p.pos.x = r.def.center.x; p.pos.y = r.def.center.y; });
+  const s = r.def.slots.filter((q) => !r.tile[q.x + ',' + q.y]);
+  const a = d.command(0, { type: 'place', item: 'pistol', x: s[0].x, y: s[0].y }).tower;
+  const b = d.command(1, { type: 'place', item: 'scout', x: s[1].x, y: s[1].y }).tower;
+  ok(a && b && a.by === 0 && b.by === 1, 'duo: both players place their own towers');
+  ok(d.command(1, { type: 'upgradeTower', tower: a.id }).ok && d.towerLevel(a) === 1, 'duo: partner upgrades your tower');
+  ok(d.command(0, { type: 'upgradeAll' }).ok, 'upgrade all');
+  d.command(0, { type: 'auto', tower: a.id, on: true }); d.command(0, { type: 'prio', tower: a.id, on: true });
+  ok(a.auto && a.prio, 'auto + priority toggles');
+  const before = d.towerLevel(a); d.autoUpgrade(r);
+  ok(d.towerLevel(a) > before, 'auto upgrade buys levels');
+  d.players[0].cash = 1e6; while (d.towerLevel(a) < 6) d.command(0, { type: 'upgradeTower', tower: a.id });
+  ok(d.command(0, { type: 'evolve', tower: a.id }).ok && a.evo === 1, 'evolution: Pistol → ' + G.EVO.pistol[0].name);
+  ok(G.towerTier(a) >= 6, 'visual tier follows upgrades (' + G.towerTier(a) + ')');
+  // kill money goes to the player who placed the tower
+  const z = d.spawnZombie(r, 'normal'); const k0 = d.players[1].stats.killMoney, k0o = d.players[0].stats.killMoney;
+  d.kill(r, z, b);
+  ok(z.reward >= 5 && d.players[1].stats.killMoney - k0 === Math.round(z.reward) && d.players[0].stats.killMoney === k0o && d.players[1].stats.kills === 1, 'kill money ($' + z.reward + ') credited to the placer');
+  d.kill(r, z, b);
+  ok(d.players[1].stats.kills === 1, 'no double reward for one kill');
+})();
+// rewards: Easy win = 10x Normal Summon price (x map), Medium 30x, Hard 80x
+(function () {
+  const P = G.Profile; P.d = null; P.load();
+  const fake = (diff, win, extra) => {
+    const pl = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => ({ name: 'x' + i, isBot: i > 0, loadout: ['pistol', 'shotgun', 'minicash', 'scout', 'slowtrap'] }));
+    const mm = new G.Match({ mapId: 'city', diffId: diff, players: pl, seed: 1 });
+    const p = mm.players[0]; p.finished = win; p.stats.waveReached = win ? mm.diff.waves : 3; p.stats.doorDamage = 50; Object.assign(p.stats, extra || {});
+    mm.players.forEach((q, i) => { if (i) { q.alive = false; q.stats.waveReached = 1; } });
+    return P.rewards(mm, 0);
+  };
+  const price = G.SUMMON.normal.cost;
+  const comp = (r) => r.lines.filter((l) => l.cat === 'completion')[0].coins;
+  ok(comp(fake('easy', true)) === 10 * price && comp(fake('medium', true)) === 30 * price && comp(fake('hard', true)) === 80 * price, 'win rewards 10x / 30x / 80x the summon price');
+  const lose = fake('hard', false); ok(comp(lose) < 80 * price * 0.1, 'early defeat gives only a small part');
+  const bo = fake('medium', true, { bosses: 4, kills: 900 }); ok(bo.lines.some((l) => l.cat === 'bosses') && bo.lines.some((l) => l.cat === 'kills') && bo.lines.some((l) => l.cat === 'waves'), 'boss, kill and 10-wave bonuses');
+  // mastery
+  const pl = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => ({ name: 'm' + i, isBot: i > 0, loadout: ['pistol', 'shotgun', 'minicash', 'scout', 'slowtrap'] }));
+  const mm = new G.Match({ mapId: 'city', diffId: 'easy', players: pl, seed: 1 });
+  mm.players[0].mast.pistol = [200, 50000, 2];
+  const res = P.addMastery(mm, 0, true);
+  ok(res.length === 1 && res[0].xp > 400 && P.d.mastery.pistol.lvl > 1, 'mastery XP from kills/damage/bosses (Lv ' + P.d.mastery.pistol.lvl + ')');
+  ok(!P.equip('pistol', 'skin', 'prism') && P.equip('pistol', 'kill', 'sparks') !== undefined, 'locked cosmetics cannot be equipped');
+  // daily missions
+  const ms = P.missions();
+  ok(ms.length === 4 && ms.every((m) => m.goal > 0 && m.reward), '4 daily missions');
+  P.missionAdd(ms[0].stat, 1e9); const cl = P.claimMission(0);
+  ok(cl && ms[0].claimed && !P.claimMission(0), 'claim a mission once');
+  ['firstwin', 'kills1000', 'boss100', 'rich', 'collect25', 'secret', 'endless100', 'build100'].forEach((id) => { if (!G.ACHIEVEMENTS.some((a) => a.id === id)) throw new Error('missing achievement ' + id); });
+  ok(G.ACHIEVEMENTS.every((a) => a.icon && a.goal && a.reward), G.ACHIEVEMENTS.length + ' achievements with icon, progress and reward');
+})();
 console.log('sim OK');

@@ -96,6 +96,9 @@
     this.t -= dt;
     if (this.t > 0) return;
     this.t = this.style.think * (0.7 + Math.random() * 0.6);
+    // a bot sharing a wallet with a human acts calmer, so the human keeps most of the money
+    var mate = room.partner >= 0 ? m.players[room.owner === p.id ? room.partner : room.owner] : null;
+    if (mate && !mate.isBot) this.t *= 2.2;
     var wantVote = m.canVote(p) && !room.zombies.length && room.door.hp > room.door.max * 0.6;
     if (wantVote !== p.vote && m.canVote(p)) m.command(this.pid, { type: 'vote' });
     if (!m.canVote(p) && p.vote) p.vote = false;
@@ -103,7 +106,7 @@
     if (room.door.hp < room.door.max * 0.6 && room.door.repairReady <= room.time && Math.random() > this.style.mistakes) m.command(this.pid, { type: 'repair' });
     for (var i = 0; i < 3; i++) if (!this.act(room)) break;
   };
-  var UTIL_CAP = { slowtrap: 2, wall: 2, radar: 1, overclock: 2, wardrum: 2, medic: 2, shieldgen: 1, landmine: 3, spiketrap: 3 };
+  var UTIL_CAP = { slowtrap: 2, wall: 2, barricade: 2, radar: 1, radartower: 1, overclock: 2, wardrum: 2, medic: 2, shieldgen: 1, landmine: 3, spiketrap: 3, repairbot: 1, timetower: 2, emptower: 1, portal: 2, sonic: 2, gravity: 2, teslacoil: 3 };
   G.Bot.prototype.fake = function (it, x, y) {
     return { item: it, x: x, y: y, px: x * T + T / 2, py: y * T + T / 2, lvl: { dmg: 0, spd: 0, rng: 0, spc: 0, inc: 0 },
       buff: { dmg: 1, spd: 1, rng: 1, detect: false, farm: 1 }, data: { souls: 0, drones: [] }, pathIdx: 0 };
@@ -169,6 +172,12 @@
           if (g <= 0) g = Math.max(before, 5) * 0.08;
           acts.push({ v: g / c * st.upgrade * 2, cost: c, run: function () { return m.command(self.pid, { type: 'upgrade', tower: t.id, track: tr }).ok; } });
         });
+      });
+      room.towers.forEach(function (t) {
+        var nx = t.item.evo && t.item.evo[t.evo];
+        if (!nx || m.towerLevel(t) < nx.lvl) return;
+        var gain = Math.max(G.estimateDps(m, room, t), 20) * ((nx.mul.dmg || nx.mul.inc || 1.5) - 1 + (nx.multi || nx.rockets || nx.beams || 1) * 0.3);
+        acts.push({ v: gain / nx.cost * 1.3, cost: nx.cost, run: function () { return m.command(self.pid, { type: 'evolve', tower: t.id }).ok; } });
       });
       if (door.lvl < 2 + m.wave * 0.3) acts.push({ v: (dps * 0.15 + 5) / doorCost * (0.5 + st.door), cost: doorCost, run: function () { return m.command(self.pid, { type: 'door' }).ok; } });
     }

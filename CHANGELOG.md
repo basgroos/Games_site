@@ -1,5 +1,21 @@
 # Wijzigingen
 
+## Zombie Door Tycoon 2.0.0 (2026-11-09)
+Grote update. Alles wat er al was blijft; dit komt erbij.
+- **Sneltoetsen** (allemaal aan te passen in ⚙️ Instellingen, met een knop om ze uit te zetten en een knop voor de hints): 1–5 item kiezen, **E** upgrade geselecteerde tower (of de dichtstbijzijnde), **U** upgrade-menu, **R** verkopen, **Q** deur upgraden, **F** dichtstbijzijnde farm upgraden, **X** alles upgraden, **C** alle farms, **T** auto-upgrade, **P** prioriteit, **V** evolueren, **B** deur repareren, **Tab** (vasthouden) scorebord, **Esc** sluiten, **Spatie** bouwmodus, **H** naar je kamer, **G** snelheid. Werkt niet terwijl je typt, laat bij elke toets kort zien wat er gebeurde en werkt ook online. Let op: Spatie is nu de bouwmodus (snelheid zit op G) en R is verkopen (terug naar je kamer is H).
+- **Snel upgraden:** knoppen Upgrade alles, Upgrade farms, Deur en Upgrade-menu boven je loadout. In het upgrade-menu zie je al je towers met hun goedkoopste upgrade, en kun je per tower **Auto-upgrade** (koopt vanzelf zodra je geld hebt) en **Prioriteit** (wordt eerst geüpgraded; auto spaart ervoor) aanzetten.
+- **Elke upgrade verandert het model** (10 stappen): tandwielen, pantserplaten, neon, een dubbele loop, een energiekern, een hex-platform, een draaiende ring, vonken en een kroon. Lopen worden langer. Per tower komen er onderdelen bij: Frost krijgt meer ijskristallen, Tesla meer spoelen, de Rocket Launcher extra werpers, de Laser extra emitters, de Money Printer extra verdiepingen, de Sniper een grotere scope en een bipod.
+- **Evoluties** voor 10 towers, elk in 2 stappen (bijv. Pistol → SMG Turret → Gatling Destroyer, Frost → Cryo Tower → Absolute Zero, Money Printer → Gold Works → Diamond Empire). Je hebt een level en geld nodig; je krijgt een nieuw model, nieuwe abilities en een evolutie-animatie.
+- **30 nieuwe towers** met eigen model en gedrag, van Double Barrel, Revolver en Basic Barricade tot Mortar, Drone Factory, Satellite Cannon, Nuclear Reactor, Flame Dragon, Storm Generator, World Ender en Eternal Machine.
+- **Geld per kill** met zwevende tekst, en een kill-teller met je kill-geld bovenin. Het geld gaat naar wie de tower plaatste, nooit dubbel.
+- **Grotere beloningen:** een gewonnen Easy-potje levert 10× de prijs van een Normal Summon op, Medium 30× en Hard 80× (maal de map-bonus); Endless per wave. Extra voor bosses, per 10 waves, geen deurdamage (+25%), alle spelers overleefd (+20%) en je plaats. Het resultatenscherm telt alles per categorie op met een animatie.
+- **Tower Mastery:** elke tower krijgt XP van kills, damage, bosses en potjes en gaat tot level 20. Beloningen zijn alleen cosmetisch: badges, kill-effecten (vonken, zielen, prisma), skins (camo, neon, goud, prisma) en een zweef-animatie. Eigen scherm met level, XP, kills en uitrusten.
+- **Daily missions:** elke dag 4 nieuwe opdrachten met voortgang en beloningen (munten, Normal- en Premium-summontickets, hoeden voor je poppetje).
+- **Achievements** met icoon, voortgangsbalk en melding, o.a. First Victory, Zombie Hunter (1.000 kills), Boss Slayer (100 bosses), Millionaire, Tower Collector (25 towers), Secret Hunter, Endless Survivor (wave 100) en Master Builder (100 upgrades).
+- **Nieuw torenpaneel:** naam, rarity, level, damage, attack speed, range, DPS, special, kosten, evolutie-eisen, mastery-voortgang, kills, farm-geld, sneltoetsen en een voorbeeld van hoe de tower er na de volgende upgrade uitziet.
+- **Duo-kamer:** speel met z'n tweeën in één kamer met één gedeelde portemonnee. Allebei gebruik je je eigen 5 towers en je kunt elkaars towers upgraden. Solo met een bot-maatje, of online (host kiest "Duo-kamers"; loop bij het claimen de kamer van een andere speler in).
+- Online protocol naar versie 2 (oude tabbladen kunnen niet meer meedoen met een nieuwe host). Tests uitgebreid: sneltoetsen, menu's, beloningen, mastery, missions, evoluties en duo, ook online.
+
 ## Zombie Door Tycoon 1.1.0 (2026-11-08)
 - **Legendary, Mythic en Secret zijn een stuk goedkoper om te plaatsen**, zodat je ze in een normaal potje ook echt neerzet:
   - Legendary ongeveer de helft: Plasma Cannon $1.800, Black Hole $1.500, Drone Commander $1.600, Shield Generator $1.300, War Drum $1.300, Quantum Farm $1.600, Bank $1.800.

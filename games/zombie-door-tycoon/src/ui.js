@@ -55,10 +55,12 @@
       '<button class="mcard" id="bCol"><div class="ic">📚</div><b>Collectie</b><small>' + P.ownedCount() + ' van ' + G.ITEMS.length + ' items</small></button>' +
       '<button class="mcard" id="bLb"><div class="ic">🏆</div><b>Leaderboard</b><small>Records van jou en bots</small></button>' +
       '<button class="mcard" id="bAch"><div class="ic">🎖️</div><b>Achievements</b><small>' + Object.keys(d.ach).length + '/' + G.ACHIEVEMENTS.length + ' behaald</small></button>' +
+      '<button class="mcard" id="bMast"><div class="ic">🎖</div><b>Tower Mastery</b><small>Skins, kill-effecten & badges</small></button>' +
+      '<button class="mcard" id="bMis"><div class="ic">📅</div><b>Daily Missions</b><small>' + P.missions().filter(function (m) { return m.prog >= m.goal && !m.claimed; }).length + ' klaar om te claimen</small>' + (P.missions().some(function (m) { return m.prog >= m.goal && !m.claimed; }) ? '<span class="badge">CLAIM</span>' : '') + '</button>' +
       '<button class="mcard" id="bHelp" style="grid-column:span 2"><div class="ic">❓</div><b>Hoe speel je?</b><small>Kamers claimen, bouwen, verdedigen, summonen</small>' + (d.seenHelp ? '' : '<span class="badge">NIEUW</span>') + '</button>' +
       '</section></main>' +
       '<footer>Solo: jij + 7 bots • Online: tot 8 spelers, lege plekken worden bots (Beginner, Balanced, Aggressive, Economy, Defensive)</footer>';
-    var ac = $('ava').getContext('2d'); ac.clearRect(0, 0, 80, 90); R.drawAvatar(ac, 40, 82, '#ffd23f', '', 0, 1, false);
+    var ac = $('ava').getContext('2d'); ac.clearRect(0, 0, 80, 90); R.drawAvatar(ac, 40, 82, '#ffd23f', '', 0, 1, false, d.hat);
     renderSlots($('loSlots'), 52);
     $('pname').onchange = function () { d.name = this.value.trim().slice(0, 16) || 'Speler'; P.save(); };
     $('pname').onkeydown = function (e) { e.stopPropagation(); };
@@ -70,8 +72,10 @@
     $('bLb').onclick = function () { click(); UI.openLeaderboard(); };
     $('bAch').onclick = function () { click(); UI.openAch(); };
     $('bHelp').onclick = function () { click(); UI.openHelp(); };
+    $('bMast').onclick = function () { click(); UI.openMastery(); };
+    $('bMis').onclick = function () { click(); UI.openMissions(); };
     $('bSet').onclick = function () { click(); UI.openSettings(); };
-    if (P.newAch.length) { P.newAch.forEach(function (a) { UI.toast('🎖️ Achievement: <b>' + esc(a.name) + '</b> +🪙' + a.reward, '#ffd23f'); }); P.newAch = []; }
+    UI.flushAch();
   };
   function renderSlots(el, size) {
     el.innerHTML = '';
@@ -84,6 +88,7 @@
   }
   UI.refreshCoins = function () { if ($('lcoins')) $('lcoins').textContent = fmt(P.d.coins); if ($('mcoins')) $('mcoins').textContent = fmt(P.d.coins); };
 
+  UI._modal = function (a, b, c) { return modal(a, b, c); };
   function modal(title, body, cls) {
     var m = $('modal'); m.classList.remove('hidden');
     m.innerHTML = '<div class="mbox ' + (cls || '') + '"><div class="mhead"><h2>' + title + '</h2><div class="grow"></div><div class="coinbox" style="font-size:15px;padding:5px 11px">🪙 <span class="coin" id="mcoins">' + fmt(P.d.coins) + '</span></div><button class="x" id="mClose">✕</button></div><div class="mbody" id="mbody">' + body + '</div></div>';
@@ -100,7 +105,9 @@
   UI.openPlay = function () {
     var sel = UI._map || 'city', dsel = UI._diff || 'easy';
     var b = modal('Kies map & difficulty', '<div class="maps" id="maps"></div><div class="diffs" id="diffs"></div>' +
+      '<div class="modes" id="modes"></div>' +
       '<div style="display:flex;gap:12px;align-items:center;margin-top:16px;flex-wrap:wrap"><div class="tip" id="lotip" style="flex:1"></div><button class="btn green" id="bStart" style="font-size:20px;padding:12px 28px">START POTJE ▶</button></div>');
+    var duo = !!UI._duo;
     function draw() {
       $('maps').innerHTML = ''; $('diffs').innerHTML = '';
       G.MAPS.forEach(function (m) {
@@ -118,11 +125,14 @@
       G.DIFFS.forEach(function (df) {
         var c = document.createElement('div'); c.className = 'diffc' + (df.id === dsel ? ' sel' : ''); c.style.color = df.color;
         var best = P.d.best[sel + '_' + df.id] || 0, mm = G.MAP[sel].reward;
-        var rew = df.id === 'endless' ? 'Beloning per wave' : '🪙 ' + Math.round(df.reward * mm) + ' (≈' + Math.round(df.reward * mm / 100) + ' summons)';
+        var base = { easy: 10, medium: 30, hard: 80 }[df.id] * G.SUMMON.normal.cost * mm;
+        var rew = df.id === 'endless' ? 'Beloning per wave' : '🪙 ' + Math.round(base) + '+ (≈' + Math.round(base / G.SUMMON.normal.cost) + ' summons)';
         c.innerHTML = '<b>' + df.name + '</b><small>' + (df.id === 'endless' ? '∞ waves' : df.waves + ' waves • boss iedere 5') + '</small><small style="color:#ffd23f">' + rew + '</small><small>Record: wave ' + best + '</small>';
         c.onclick = function () { click(); dsel = UI._diff = df.id; draw(); };
         $('diffs').appendChild(c);
       });
+      $('modes').innerHTML = '<div class="modec' + (duo ? '' : ' sel') + '" data-d="0"><b>👤 Solo-kamer</b><small>Jij + 7 bots, ieder een eigen kamer</small></div><div class="modec' + (duo ? ' sel' : '') + '" data-d="1"><b>🤝 Duo-kamer</b><small>Deel je kamer en geld met een bot-maatje. Allebei je eigen 5 towers, je kunt elkaars towers upgraden.</small></div>';
+      Array.prototype.forEach.call($('modes').children, function (c) { c.onclick = function () { click(); duo = UI._duo = c.dataset.d === '1'; draw(); }; });
       $('lotip').innerHTML = 'Loadout: ' + P.d.loadout.map(function (id) { var it = G.ITEM[id]; return '<span style="color:' + G.RAR[it.rarity].color + '">' + it.name + '</span>'; }).join(', ');
     }
     draw();
@@ -130,7 +140,7 @@
       click();
       if (P.d.loadout.length !== 5) { UI.toast('Je loadout moet precies 5 items bevatten.', '#ff4d4d'); return; }
       $('modal').classList.add('hidden'); $('modal').innerHTML = '';
-      G.Game.start(sel, dsel);
+      G.Game.start(sel, dsel, duo);
     };
   };
 
@@ -191,15 +201,17 @@
     });
     var set = $('oSet');
     if (host) {
-      set.innerHTML = '<h3 style="margin:0 0 8px">Map & difficulty</h3><div class="filters" id="oMaps"></div><div class="filters" id="oDiffs"></div>';
+      set.innerHTML = '<h3 style="margin:0 0 8px">Map & difficulty</h3><div class="filters" id="oMaps"></div><div class="filters" id="oDiffs"></div><div class="filters" id="oMode"></div><p class="tip" id="oModeTip"></p>';
       G.MAPS.forEach(function (mp) { var c = document.createElement('span'); c.className = 'chip' + (MP.settings.map === mp.id ? ' on' : ''); c.textContent = mp.name; c.onclick = function () { UI._map = mp.id; MP.setSettings(mp.id, MP.settings.diff); UI.renderOnline(); }; $('oMaps').appendChild(c); });
       G.DIFFS.forEach(function (df) { var c = document.createElement('span'); c.className = 'chip' + (MP.settings.diff === df.id ? ' on' : ''); c.style.color = df.color; c.textContent = df.name; c.onclick = function () { UI._diff = df.id; MP.setSettings(MP.settings.map, df.id); UI.renderOnline(); }; $('oDiffs').appendChild(c); });
+      [[false, '👤 Solo-kamers'], [true, '🤝 Duo-kamers']].forEach(function (o) { var c = document.createElement('span'); c.className = 'chip' + (!!MP.settings.duo === o[0] ? ' on' : ''); c.textContent = o[1]; c.onclick = function () { MP.setSettings(MP.settings.map, MP.settings.diff, o[0]); UI.renderOnline(); }; $('oMode').appendChild(c); });
+      $('oModeTip').textContent = MP.settings.duo ? 'Duo: loop tijdens het claimen de kamer van een andere speler binnen om samen één kamer en één portemonnee te delen. Ieder gebruikt zijn eigen 5 towers en je kunt elkaars towers upgraden.' : 'Iedere speler krijgt een eigen kamer.';
       $('oStart').onclick = function () {
         click();
         var m = MP.startMatch(G.Game.botPlayers);
         G.Game.startOnline(m, 0, 'host');
       };
-    } else set.innerHTML = '<h3 style="margin:0 0 8px">Instellingen</h3><div class="srow"><span>Map</span><b>' + esc((G.MAP[MP.settings.map] || {}).name || '…') + '</b></div><div class="srow"><span>Difficulty</span><b>' + esc((G.DIFF[MP.settings.diff] || {}).name || '…') + '</b></div><p class="tip">Jouw loadout: ' + P.d.loadout.map(function (id) { return esc(G.ITEM[id].name); }).join(', ') + '</p>';
+    } else set.innerHTML = '<h3 style="margin:0 0 8px">Instellingen</h3><div class="srow"><span>Map</span><b>' + esc((G.MAP[MP.settings.map] || {}).name || '…') + '</b></div><div class="srow"><span>Difficulty</span><b>' + esc((G.DIFF[MP.settings.diff] || {}).name || '…') + '</b></div><div class="srow"><span>Kamers</span><b>' + (MP.settings.duo ? '🤝 Duo' : '👤 Solo') + '</b></div>' + (MP.settings.duo ? '<p class="tip">Duo: loop bij het claimen de kamer van een andere speler in om samen te spelen.</p>' : '') + '<p class="tip">Jouw loadout: ' + P.d.loadout.map(function (id) { return esc(G.ITEM[id].name); }).join(', ') + '</p>';
     $('oLeave').onclick = function () { click(); MP.leave(); UI.renderOnline(); };
   };
   UI.joinOnline = function (code) {
@@ -228,15 +240,17 @@
         G.RARITIES.slice().reverse().forEach(function (r) {
           h += '<tr><td><span class="rdot" style="background:' + r.color + '"></span>' + r.name + ' <span class="tip">(' + G.itemsByRarity(r.id).length + ' items)</span></td><td style="color:' + r.color + '">' + (+odds[r.id].toFixed(2)) + '%</td></tr>';
         });
-        h += '</table><div style="display:flex;gap:8px"><button class="btn ' + (bid === 'premium' ? 'purple' : 'blue') + '" data-b="' + bid + '" data-n="1" style="flex:1">x1 • 🪙' + fmt(bn.cost) + '</button><button class="btn ' + (bid === 'premium' ? 'purple' : 'blue') + '" data-b="' + bid + '" data-n="10" style="flex:1">x10 • 🪙' + fmt(bn.cost * 10) + '</button></div></div>';
+        var tk = P.d.tickets[bid] || 0;
+        h += '</table><div style="display:flex;gap:8px"><button class="btn ' + (bid === 'premium' ? 'purple' : 'blue') + '" data-b="' + bid + '" data-n="1" style="flex:1">x1 • 🪙' + fmt(bn.cost) + '</button><button class="btn ' + (bid === 'premium' ? 'purple' : 'blue') + '" data-b="' + bid + '" data-n="10" style="flex:1">x10 • 🪙' + fmt(bn.cost * 10) + '</button></div>' +
+          (tk ? '<button class="btn green" data-b="' + bid + '" data-n="1" data-t="1" style="width:100%;margin-top:8px">🎟️ Gebruik ticket (' + tk + ' over)</button>' : '') + '</div>';
       });
       $('bnrs').innerHTML = h;
       Array.prototype.forEach.call($('bnrs').querySelectorAll('button[data-b]'), function (btn) {
         var cost = G.SUMMON[btn.dataset.b].cost * btn.dataset.n;
-        if (P.d.coins < cost) btn.disabled = true;
+        if (P.d.coins < cost && !btn.dataset.t) btn.disabled = true;
         btn.onclick = function () {
           G.Audio.init();
-          var r = P.summon(btn.dataset.b, +btn.dataset.n);
+          var r = P.summon(btn.dataset.b, +btn.dataset.n, !!btn.dataset.t);
           if (!r.ok) { UI.toast(r.msg, '#ff4d4d'); G.Audio.sfx('error'); return; }
           UI.refreshCoins(); UI.reveal(r.results, function () { draw(); });
         };
@@ -273,7 +287,7 @@
         setTimeout(function () { card.classList.add('flip'); if (rar.index >= 3) G.Audio.sfx('upgrade'); }, 250 + i * (one ? 0 : 180));
       });
       $('rSkip').onclick = function () { Array.prototype.forEach.call(document.querySelectorAll('.rcard'), function (c) { c.classList.add('flip'); }); };
-      $('rDone').onclick = function () { fx.classList.add('hidden'); fx.innerHTML = ''; if (P.newAch.length) { P.newAch.forEach(function (a) { UI.toast('🎖️ Achievement: <b>' + esc(a.name) + '</b> +🪙' + a.reward, '#ffd23f'); }); P.newAch = []; UI.refreshCoins(); } done && done(); };
+      $('rDone').onclick = function () { fx.classList.add('hidden'); fx.innerHTML = ''; if (P.newAch.length) { UI.flushAch(); UI.refreshCoins(); } done && done(); };
     }
     fx.onclick = function (e) { if (stage === 0) open(); };
     timer = setTimeout(open, br.index >= 3 ? 1800 : 1100);
@@ -388,7 +402,9 @@
       '<p><b>3. Verdien geld en bouw.</b> Je Cash Register geeft elke 5 seconden geld. Kies een item uit je loadout (toetsen <b>1–5</b>) en klik op een tegel in je kamer. Traps en muren zet je op de vloer vlak vóór jouw deur. Klik op een tower voor upgrades, targeting en verkopen; klik op je <b>deur</b> om hem te upgraden.</p>' +
       '<p><b>4. Overleef de waves.</b> Zombies komen uit de grote poorten in de buitenmuur en lopen via de kortste weg naar de deur van hun doelkamer. Jouw towers schieten op álle zombies binnen bereik — ook als ze op weg zijn naar iemand anders (wie de kill maakt krijgt het geld). Met <b>Repair Door</b> herstel je je deur. Waves starten automatisch. Elke 5 waves komt er een <b>boss</b> naar de kamer van een willekeurige speler. Onzichtbare zombies zie je alleen met detectie (Scout, Sniper, Laser, Radar…). Vliegende zombies negeren traps.</p>' +
       '<p><b>5. Summon & verzamel.</b> Win potjes voor munten, summon nieuwe towers en stel een loadout van precies 5 items samen.</p>' +
-      '<p class="tip">Sneltoetsen: WASD lopen • 1–5 item kiezen • Esc annuleren • Spatie snelheid • R terug naar je kamer. Klik op een speler in de lijst of op de minimap om erheen te lopen.</p></div>', 'sm');
+      '<p><b>6. Sneller upgraden.</b> Selecteer een tower en druk op <b>E</b> (goedkoopste upgrade), <b>R</b> (verkopen), <b>T</b> (auto-upgrade) of <b>P</b> (prioriteit). <b>X</b> upgradet alles wat je kunt betalen, <b>C</b> al je farms, <b>F</b> de dichtstbijzijnde farm, <b>Q</b> je deur. <b>U</b> opent het upgrade-menu, <b>Spatie</b> de bouwmodus, <b>Tab</b> (vasthouden) het scorebord. Elke upgrade verandert het model van de tower; op hoge levels kun je towers <b>evolueren</b> (V).</p>' +
+      '<p><b>7. Duo-kamer.</b> In een Duo-potje deel je één kamer en één portemonnee met een maatje. Jullie gebruiken allebei je eigen 5 towers en kunnen elkaars towers upgraden.</p>' +
+      '<p class="tip">Sneltoetsen: WASD lopen • 1–5 item • E upgrade • R verkoop • Q deur • F farm • X alles • C farms • U menu • Spatie bouwmodus • Tab scores • H naar huis • G snelheid • Esc sluiten. Alles aan te passen in ⚙️ Instellingen.</p></div>', 'sm');
   };
   UI.openSettings = function () {
     var s = P.d.settings;

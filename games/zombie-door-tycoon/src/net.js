@@ -14,7 +14,7 @@
   var BUILD = G.BUILD = Object.assign({ env: 'live', version: 'dev', home: '' }, W.HW_BUILD || {});
   var T = G.T;
   var SNAP_EVERY = 0.2, TOWERS_EVERY = 1.0, START_EVERY = 3, ROSTER_EVERY = 1.5, POS_EVERY = 0.12;
-  var MAX_PLAYERS = 8, PROTO = 1;
+  var MAX_PLAYERS = 8, PROTO = 2;
 
   function rid(n) { var s = '', a = 'abcdefghijklmnopqrstuvwxyz0123456789'; for (var i = 0; i < n; i++) s += a[(Math.random() * a.length) | 0]; return s; }
   function code5() { var s = '', a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; for (var i = 0; i < 5; i++) s += a[(Math.random() * a.length) | 0]; return s; }
@@ -115,16 +115,18 @@
   //  Snapshot encode (host) / apply (client)
   // ------------------------------------------------------------------
   var ZF = { fly: 1, invis: 2, revealed: 4, slowed: 8, burn: 16, poison: 32, stun: 64, mark: 128, immune: 256, elite: 512, moving: 1024, child: 2048, armor: 4096, swing: 8192, atk: 16384 };
+  function mastOut(ms) { var o = {}; for (var k in ms) o[k] = [ms[k][0], Math.round(ms[k][1]), ms[k][2]]; return o; }
   G.encodeSnap = function (m, withTowers, events, speed) {
     var now = m.time, s = { v: PROTO, mid: m.mid, t: r1(now), ph: m.phase, w: m.wave, wt: r1(m.waveTimer), ct: r1(m.claimTimer), pt: r1(m.prepTimer), sp: speed || 1 };
     s.P = m.players.map(function (p) {
       var st = p.stats;
       return [p.room, Math.floor(p.cash), p.alive ? 1 : 0, p.finished ? 1 : 0, p.vote ? 1 : 0, Math.round(p.pos.x), Math.round(p.pos.y), p.face, p.moving ? 1 : 0,
-        st.kills, st.bosses, Math.round(st.moneyEarned), Math.round(st.doorDamage), st.waveReached, Math.round(st.damage), p.isBot ? 1 : 0, p.incomeLast || 0];
+        st.kills, st.bosses, Math.round(st.moneyEarned), Math.round(st.doorDamage), st.waveReached, Math.round(st.damage), p.isBot ? 1 : 0, p.incomeLast || 0,
+        Math.round(st.killMoney), st.upgrades, st.evolves, mastOut(p.mast)];
     });
     s.R = m.rooms.map(function (r) {
       var d = r.door;
-      return [r.owner, d.lvl, Math.round(d.hp), d.max, Math.round(d.shield), r1(d.shieldUntil), r1(d.repairUntil), r1(d.repairReady), r1(d.lastHit), r1(r.timeSlowUntil), r.timeSlowAmt, r1(r.blessUntil), r1(r.incomeT), r.queue.length];
+      return [r.owner, d.lvl, Math.round(d.hp), d.max, Math.round(d.shield), r1(d.shieldUntil), r1(d.repairUntil), r1(d.repairReady), r1(d.lastHit), r1(r.timeSlowUntil), r.timeSlowAmt, r1(r.blessUntil), r1(r.incomeT), r.queue.length, r.partner];
     });
     s.Z = [];
     m.rooms.forEach(function (r) {
@@ -139,20 +141,31 @@
     s.D = []; // dynamic tower state
     m.rooms.forEach(function (r) {
       r.towers.forEach(function (t) {
-        if (t.item.isFarm && t.item.kind !== 'goldengod' && t.item.kind !== 'mine_farm' && !t.fire) return;
+        if (t.item.isFarm && t.item.kind !== 'goldengod' && t.item.kind !== 'mine_farm' && t.item.kind !== 'jackpot' && !t.fire) return;
         var row = [r.index, t.id, Math.round(t.angle * 100), Math.round(t.fire * 100), t.stunUntil > now ? 1 : 0, t.data.mode || 0, t.data.souls || 0, t.data.armed ? 1 : 0, t.hp != null ? Math.round(t.hp) : -1];
-        if (t.data.drones && t.data.drones.length) row.push(t.data.drones.map(function (d) { return [Math.round(d.x), Math.round(d.y)]; }));
+        row.push(t.data.drones && t.data.drones.length ? t.data.drones.map(function (d) { return [Math.round(d.x), Math.round(d.y)]; }) : 0);
+        var x = null, dd = t.data;
+        if (dd.spin) (x = x || {}).s = Math.round(dd.spin * 100) / 100;
+        if (dd.ammo != null) (x = x || {}).a = dd.ammo;
+        if (dd.reloadUntil > now) (x = x || {}).r = 1;
+        if (dd.charge != null) (x = x || {}).c = Math.round(dd.charge * 100) / 100;
+        if (dd.stormUntil > now) (x = x || {}).st = 1;
+        if (dd.kz && dd.kz.length) (x = x || {}).k = dd.kz.map(function (k) { return [Math.round(k.x), Math.round(k.y)]; });
+        if (x) row.push(x);
         s.D.push(row);
       });
     });
     s.V = [];
     m.rooms.forEach(function (r) { r.vortices.forEach(function (v) { s.V.push([r.index, Math.round(v.x), Math.round(v.y), Math.round(v.r), r1(v.until), r1(v.start)]); }); });
+    s.F = [];
+    m.rooms.forEach(function (r) { (r.fields || []).forEach(function (f) { s.F.push([r.index, Math.round(f.x), Math.round(f.y), Math.round(f.r), r1(f.until), f.col || '#9dff5a']); }); });
     if (withTowers) {
       s.T = m.rooms.map(function (r) {
         return r.towers.map(function (t) {
           var L = t.lvl, b = t.buff;
           return [t.id, t.item.index, t.x, t.y, [L.dmg, L.spd, L.rng, L.spc, L.inc], t.target, t.hp != null ? Math.round(t.hp) : -1, t.maxHp || 0, r1(t.downUntil || 0), r1(t.placedAt),
-            t.kills, Math.round(t.dmgDealt), Math.round(t.earned), t.spent, t.starter ? 1 : 0, [r1(b.dmg), r1(b.spd), r1(b.rng), b.detect ? 1 : 0, r1(b.farm || 1)]];
+            t.kills, Math.round(t.dmgDealt), Math.round(t.earned), t.spent, t.starter ? 1 : 0, [r1(b.dmg), r1(b.spd), r1(b.rng), b.detect ? 1 : 0, r1(b.farm || 1)],
+            t.evo || 0, (t.auto ? 1 : 0) | (t.prio ? 2 : 0), t.by != null ? t.by : -1];
         });
       });
     }
@@ -170,6 +183,7 @@
       else if (Math.hypot(p.pos.x - a[5], p.pos.y - a[6]) > 8 * T && !m.netPosSent) { p.pos.x = a[5]; p.pos.y = a[6]; }
       var st = p.stats; st.kills = a[9]; st.bosses = a[10]; st.moneyEarned = a[11]; st.doorDamage = a[12]; st.waveReached = a[13]; st.damage = a[14];
       p.isBot = !!a[15]; p.incomeLast = a[16];
+      if (a.length > 17) { st.killMoney = a[17]; st.upgrades = a[18]; st.evolves = a[19]; p.mast = a[20] || {}; }
     });
     s.R.forEach(function (a, i) {
       var r = m.rooms[i], d = r.door;
@@ -177,6 +191,7 @@
       if (a[8] > d.lastHit) d.lastHit = a[8];
       r.timeSlowUntil = a[9]; r.timeSlowAmt = a[10]; r.blessUntil = a[11]; r.incomeT = a[12];
       if (r.queue.length !== a[13]) r.queue = new Array(a[13]);
+      if (a[14] != null) r.partner = a[14];
       r.time = now;
     });
     if (s.T) s.T.forEach(function (list, ri) {
@@ -189,6 +204,8 @@
         t.target = a[5]; if (a[6] >= 0) t.hp = a[6]; t.maxHp = a[7]; t.downUntil = a[8]; t.placedAt = a[9];
         t.kills = a[10]; t.dmgDealt = a[11]; t.earned = a[12]; t.spent = a[13]; t.starter = !!a[14];
         t.buff = { dmg: a[15][0], spd: a[15][1], rng: a[15][2], detect: !!a[15][3], farm: a[15][4] };
+        t.evo = a[16] || 0; t.auto = !!(a[17] & 1); t.prio = !!(a[17] & 2); t.by = a[18] >= 0 ? a[18] : r.owner; t.roomIdx = ri;
+        var bp = m.players[t.by]; t.cos = (bp && bp.cos && bp.cos[it.id]) || null;
         r.towers.push(t); r.tile[t.x + ',' + t.y] = t; if (it.kind === 'wall') r.walls.push(t);
       });
     });
@@ -198,6 +215,9 @@
       t.angle = a[2] / 100; t.fire = a[3] / 100; t.stunUntil = a[4] ? now + 0.3 : 0; t.data.mode = a[5]; t.data.souls = a[6]; t.data.armed = !!a[7];
       if (a[8] >= 0) t.hp = a[8];
       if (a[9]) { var ds = t.data.drones || (t.data.drones = []); a[9].forEach(function (p, k) { if (!ds[k]) ds[k] = { x: p[0], y: p[1] }; ds[k].tx = p[0]; ds[k].ty = p[1]; }); ds.length = a[9].length; }
+      var x = a[10] || {}, dd = t.data;
+      dd.spin = x.s || 0; dd.ammo = x.a; dd.reloadUntil = x.r ? now + 0.3 : 0; dd.charge = x.c; dd.stormUntil = x.st ? now + 0.3 : 0;
+      if (x.k) { var kz = dd.kz || (dd.kz = []); x.k.forEach(function (p, k) { if (!kz[k]) kz[k] = { x: p[0], y: p[1] }; kz[k].x += (p[0] - kz[k].x) * 0.6; kz[k].y += (p[1] - kz[k].y) * 0.6; }); kz.length = x.k.length; } else dd.kz = null;
     });
     // zombies: reuse objects so they can glide between snapshots
     var oldZ = {}; m.rooms.forEach(function (r) { r.zombies.forEach(function (z) { oldZ[r.index + ':' + z.id] = z; }); r.zombies = []; });
@@ -219,6 +239,7 @@
     });
     m.rooms.forEach(function (r) { r.vortices = []; });
     (s.V || []).forEach(function (a) { m.rooms[a[0]].vortices.push({ room: a[0], x: a[1], y: a[2], r: a[3], until: a[4], start: a[5] }); });
+    if (s.F) { m.rooms.forEach(function (r) { r.fields = []; }); s.F.forEach(function (a) { m.rooms[a[0]].fields.push({ x: a[1], y: a[2], r: a[3], until: a[4], col: a[5] }); }); }
     if (s.ev) s.ev.forEach(function (e) {
       var fn = m.fx && m.fx[e[0]]; if (typeof fn !== 'function') return;
       try { fn.apply(null, e.slice(1).map(function (a) { return deser(a, m); })); } catch (err) { /* cosmetic only */ }
@@ -269,7 +290,7 @@
   MP.unwatchLobby = function () { if (MP.lobby && MP.role !== 'host') { MP.lobby.close(); MP.lobby = null; } };
   function advertise() {
     if (MP.role !== 'host' || !MP.lobby) return;
-    MP.lobby.track({ v: PROTO, code: MP.code, host: MP.myInfo().name, n: MP.roster.length, map: MP.settings.map, diff: MP.settings.diff, open: !MP.match, at: Date.now() });
+    MP.lobby.track({ v: PROTO, code: MP.code, host: MP.myInfo().name, n: MP.roster.length, map: MP.settings.map, diff: MP.settings.diff, duo: !!MP.settings.duo, open: !MP.match, at: Date.now() });
   }
 
   // ---------- HOST ----------
@@ -277,7 +298,7 @@
     MP.leave();
     MP.role = 'host'; MP.code = code5(); MP.match = null;
     var me = MP.myInfo();
-    MP.roster = [{ cid: Net.me, name: me.name, loadout: me.loadout, stars: me.stars, host: true }];
+    MP.roster = [{ cid: Net.me, name: me.name, loadout: me.loadout, stars: me.stars, cos: sanitizeCos(me.cos), hat: sanitizeHat(me.hat), host: true }];
     return Net.open(Net.roomChannel(MP.code), { name: me.name, cid: Net.me }).then(function (ch) {
       MP.ch = ch;
       ch.on('hello', function (p) {
@@ -290,9 +311,9 @@
         var ex = MP.roster.filter(function (r) { return r.cid === p.cid; })[0];
         if (!ex) {
           if (MP.roster.length >= MAX_PLAYERS) { ch.send('reply', { cid: p.cid, msg: 'Deze kamer is vol (8 spelers).', kick: 1 }); return; }
-          MP.roster.push({ cid: p.cid, name: String(p.name || 'Speler').slice(0, 16), loadout: sanitizeLoadout(p.loadout), stars: p.stars || {} });
+          MP.roster.push({ cid: p.cid, name: String(p.name || 'Speler').slice(0, 16), loadout: sanitizeLoadout(p.loadout), stars: p.stars || {}, cos: sanitizeCos(p.cos), hat: sanitizeHat(p.hat) });
           hook('toast', '👋 ' + String(p.name || 'Speler').slice(0, 16) + ' doet mee');
-        } else { ex.name = String(p.name || ex.name).slice(0, 16); ex.loadout = sanitizeLoadout(p.loadout); ex.stars = p.stars || {}; ex.seen = Date.now(); }
+        } else { ex.name = String(p.name || ex.name).slice(0, 16); ex.loadout = sanitizeLoadout(p.loadout); ex.stars = p.stars || {}; ex.cos = sanitizeCos(p.cos); ex.hat = sanitizeHat(p.hat); ex.seen = Date.now(); }
         sendRoster(); hook('roster', MP.roster);
       });
       ch.on('bye', function (p) { dropPlayer(p.cid); });
@@ -317,13 +338,20 @@
     });
   };
   MP.lobbyReady = function () { return MP.lobby ? Promise.resolve(MP.lobby) : Net.open(Net.lobbyChannel(), null).then(function (ch) { MP.lobby = ch; return ch; }); };
+  var SKINS = ['camo', 'neon', 'gold', 'prism'], KILLS = ['sparks', 'souls', 'prism'];
+  function sanitizeCos(c) {
+    var out = {}; if (!c || typeof c !== 'object') return out;
+    Object.keys(c).slice(0, 5).forEach(function (id) { var v = c[id]; if (!G.ITEM[id] || !v) return; out[id] = { skin: SKINS.indexOf(v.skin) >= 0 ? v.skin : null, kill: KILLS.indexOf(v.kill) >= 0 ? v.kill : null, anim: !!v.anim }; });
+    return out;
+  }
+  function sanitizeHat(h) { return G.HATS && G.HATS.some(function (x) { return x.id === h; }) ? h : null; }
   function sanitizeLoadout(lo) {
     var out = (Array.isArray(lo) ? lo : []).filter(function (id, i, a) { return G.ITEM[id] && a.indexOf(id) === i; }).slice(0, 5);
     ['pistol', 'shotgun', 'minicash', 'scout', 'slowtrap'].forEach(function (id) { if (out.length < 5 && out.indexOf(id) < 0) out.push(id); });
     return out;
   }
-  function sendRoster() { if (MP.ch) MP.ch.send('roster', { v: PROTO, code: MP.code, players: MP.roster.map(function (r) { return { cid: r.cid, name: r.name, host: !!r.host }; }), map: MP.settings.map, diff: MP.settings.diff }); advertise(); }
-  MP.setSettings = function (map, diff) { MP.settings = { map: map, diff: diff }; sendRoster(); };
+  function sendRoster() { if (MP.ch) MP.ch.send('roster', { v: PROTO, code: MP.code, players: MP.roster.map(function (r) { return { cid: r.cid, name: r.name, host: !!r.host }; }), map: MP.settings.map, diff: MP.settings.diff, duo: !!MP.settings.duo }); advertise(); }
+  MP.setSettings = function (map, diff, duo) { MP.settings = { map: map, diff: diff, duo: duo == null ? !!MP.settings.duo : !!duo }; sendRoster(); };
   MP.kick = function (cid) { MP.roster = MP.roster.filter(function (r) { return r.cid !== cid || r.host; }); if (MP.ch) MP.ch.send('reply', { cid: cid, msg: 'De host heeft je uit de kamer gehaald.', kick: 1 }); sendRoster(); hook('roster', MP.roster); };
   MP.pidOf = function (cid) { var m = MP.match; if (!m) return -1; for (var i = 0; i < m.players.length; i++) if (m.players[i].cid === cid && !m.players[i].left) return i; return -1; };
   function dropPlayer(cid) {
@@ -337,10 +365,10 @@
   // host: build the match (humans first, bots fill the remaining seats)
   MP.startMatch = function (botFactory) {
     var seed = (Math.random() * 1e9) | 0, players = [];
-    MP.roster.slice(0, MAX_PLAYERS).forEach(function (r) { players.push({ name: r.name, isBot: false, loadout: r.loadout, stars: r.stars, cid: r.cid }); });
+    MP.roster.slice(0, MAX_PLAYERS).forEach(function (r) { players.push({ name: r.name, isBot: false, loadout: r.loadout, stars: r.stars, cid: r.cid, cos: r.cos || {}, hat: r.hat || null }); });
     var bots = botFactory(MP.settings.diff, MAX_PLAYERS - players.length);
     players = players.concat(bots);
-    MP.startInfo = { v: PROTO, mid: rid(6), seed: seed, map: MP.settings.map, diff: MP.settings.diff, players: players };
+    MP.startInfo = { v: PROTO, mid: rid(6), seed: seed, map: MP.settings.map, diff: MP.settings.diff, duo: !!MP.settings.duo, players: players };
     var m = MP.buildMatch(MP.startInfo, true);
     MP.match = m; MP.outbox = []; MP.acks = {}; MP.t = { snap: 0, towers: 0, start: 0, check: 0 };
     sendStart(); advertise();
@@ -350,7 +378,7 @@
   MP.buildMatch = function (info, asHost) {
     var outbox = [];
     var real = G.FX ? G.FX.api : {};
-    var m = new G.Match({ mapId: info.map, diffId: info.diff, seed: info.seed, players: info.players.map(function (p) { return { name: p.name, isBot: p.isBot, style: p.style, loadout: p.loadout, stars: p.stars }; }), fx: asHost ? recordingFx(real, outbox) : real });
+    var m = new G.Match({ mapId: info.map, diffId: info.diff, seed: info.seed, duo: !!info.duo, players: info.players.map(function (p) { return { name: p.name, isBot: p.isBot, style: p.style, loadout: p.loadout, stars: p.stars, cos: p.cos, hat: p.hat, duoWith: p.duoWith }; }), fx: asHost ? recordingFx(real, outbox) : real });
     m.mid = info.mid; m.online = true;
     info.players.forEach(function (p, i) { m.players[i].cid = p.cid || null; m.players[i].remote = asHost && !p.isBot && p.cid !== Net.me; m.players[i].isBot = !!p.isBot; m.players[i].style = p.style || null; });
     m.bots = asHost ? m.players.filter(function (p) { return p.isBot; }).map(function (p) { return new G.Bot(m, p.id); }) : [];
@@ -397,9 +425,9 @@
     var me = MP.myInfo();
     return Net.open(Net.roomChannel(code), { name: me.name, cid: Net.me }).then(function (ch) {
       MP.ch = ch;
-      var hello = function () { var i = MP.myInfo(); ch.send('hello', { v: PROTO, cid: Net.me, name: i.name, loadout: i.loadout, stars: i.stars }); };
+      var hello = function () { var i = MP.myInfo(); ch.send('hello', { v: PROTO, cid: Net.me, name: i.name, loadout: i.loadout, stars: i.stars, cos: i.cos, hat: i.hat }); };
       hello(); MP._hello = setInterval(function () { if (!MP.match || Date.now() - MP.lastSnap > 4000) hello(); }, 2000);
-      ch.on('roster', function (p) { if (MP.match) return; MP.roster = p.players || []; MP.settings = { map: p.map, diff: p.diff }; MP.gotRoster = Date.now(); hook('roster', MP.roster); });
+      ch.on('roster', function (p) { if (MP.match) return; MP.roster = p.players || []; MP.settings = { map: p.map, diff: p.diff, duo: !!p.duo }; MP.gotRoster = Date.now(); hook('roster', MP.roster); });
       ch.on('reply', function (p) { if (p.cid !== Net.me) return; hook('toast', p.msg); if (p.kick) { MP.leave(); hook('kicked', p.msg); } });
       ch.on('start', function (info) {
         if (info.v !== PROTO) return;
@@ -432,6 +460,18 @@
     } else if ((cmd.type === 'sell' || cmd.type === 'door' || cmd.type === 'repair') && !m.canBuild(me)) err = 'Loop naar je kamer';
     else if (cmd.type === 'door' && me.cash < G.doorUpgradeCost(room.door.lvl)) err = 'Niet genoeg geld';
     else if (cmd.type === 'vote' && !m.canVote(me)) err = 'Skippen kan pas als jouw wave volledig gespawned is.';
+    else if ((cmd.type === 'upgradeTower' || cmd.type === 'upgradeAll' || cmd.type === 'evolve') && !m.canBuild(me)) err = 'Loop naar je kamer om te upgraden';
+    else if (cmd.type === 'upgradeTower') {
+      t = room && room.towers.filter(function (q) { return q.id === cmd.tower; })[0];
+      var tr = t && m.cheapestTrack(t);
+      if (!t) err = 'Geen tower'; else if (!tr) err = 'Deze tower is volledig geüpgraded'; else if (me.cash < m.upgradeCost(t, tr)) err = 'Niet genoeg geld ($' + m.upgradeCost(t, tr) + ')';
+    } else if (cmd.type === 'evolve') {
+      t = room && room.towers.filter(function (q) { return q.id === cmd.tower; })[0];
+      var nx = t && t.item.evo && t.item.evo[t.evo || 0];
+      if (!nx) err = 'Kan niet (verder) evolueren'; else if (m.towerLevel(t) < nx.lvl) err = 'Eerst level ' + nx.lvl + ' nodig'; else if (me.cash < nx.cost) err = 'Niet genoeg geld ($' + nx.cost + ')';
+    } else if (cmd.type === 'auto' || cmd.type === 'prio') {   // optimistic toggle
+      t = room && room.towers.filter(function (q) { return q.id === cmd.tower; })[0]; if (t) t[cmd.type] = !!cmd.on;
+    }
     if (err) return { ok: false, msg: err };
     MP.seq = (MP.seq || 0) + 1;
     var q = { s: MP.seq, c: cmd, age: 0 }; MP.pending.push(q);

@@ -179,13 +179,118 @@ G.ITEMS = [
     desc: 'Herschrijft iedere 6s de werkelijkheid: zombies verliezen armor, onzichtbaarheid, vliegen en regeneratie, en kunnen in goud veranderen.', ability: 'Rewrite enemies' },
   { id: 'lastdefense', name: 'The Last Defense', rarity: 'secret', cat: 'turret', cost: 7500, upCost: 14000, kind: 'lastdef',
     dmg: 300, cd: 0.5, range: 6.24, detect: true, tracks: ['dmg', 'spd', 'rng'],
-    desc: 'Wordt sterker naarmate je deur minder HP heeft: tot 5x damage en 2x attack speed.', ability: 'Desperation scaling' }
+    desc: 'Wordt sterker naarmate je deur minder HP heeft: tot 5x damage en 2x attack speed.', ability: 'Desperation scaling' },
+  // =================== EXPANSION: 30 NEW TOWERS ===================
+  // ---------------- COMMON ----------------
+  { id: 'doublebarrel', name: 'Double Barrel', rarity: 'common', cat: 'turret', cost: 220, kind: 'bullet', shots: 2,
+    dmg: 4, cd: 0.6, range: 4.5, tracks: ['dmg', 'spd', 'rng'], desc: 'Vuurt twee kogels tegelijk af.', ability: '2 kogels per schot' },
+  { id: 'revolver', name: 'Revolver Tower', rarity: 'common', cat: 'turret', cost: 260, kind: 'revolver',
+    dmg: 20, cd: 0.32, clip: 6, reload: 2.4, range: 5, tracks: ['dmg', 'spd', 'rng'], desc: 'Zes krachtige schoten achter elkaar, daarna herladen.', ability: '6 schoten, dan herladen' },
+  { id: 'slingshot', name: 'Slingshot Tower', rarity: 'common', cat: 'turret', cost: 120, kind: 'bounce',
+    dmg: 4, cd: 0.9, range: 4.2, bounces: 2, tracks: ['dmg', 'spd', 'spc'], desc: 'Goedkope stenen die doorstuiteren naar 2 andere zombies.', ability: 'Stuitert 2x (+1 per SPC)' },
+  { id: 'barricade', name: 'Basic Barricade', rarity: 'common', cat: 'trap', cost: 130, kind: 'wall', place: 'path',
+    hp: 160, thorns: 6, rebuild: 10, tracks: ['spc'], desc: 'Prikkeldraad-barricade vóór je deur. Zombies die erop slaan, prikken zichzelf.', ability: 'Blokkeert + terugprikken' },
+  { id: 'minifarm', name: 'Mini Farm', rarity: 'common', cat: 'farm', cost: 140, kind: 'harvest',
+    income: 10, growth: 3, tracks: ['inc'], desc: 'Een moestuintje: levert elke wave $3 per 5s meer op.', ability: 'Groeit elke wave' },
+  // ---------------- RARE ----------------
+  { id: 'minigun', name: 'Minigun', rarity: 'rare', cat: 'turret', cost: 550, kind: 'minigun',
+    dmg: 3, cd: 0.3, spin: 3, range: 4.5, tracks: ['dmg', 'spd', 'rng'], desc: 'Draait op en schiet steeds sneller zolang hij blijft vuren.', ability: 'Spin-up tot 5x sneller' },
+  { id: 'radartower', name: 'Radar Tower', rarity: 'rare', cat: 'support', cost: 450, kind: 'revealer',
+    range: 4.5, buffRange: 0.15, tracks: ['rng', 'spc'], desc: 'Maakt onzichtbare zombies in zijn bereik zichtbaar voor iedereen en geeft towers in de buurt +15% range.', ability: 'Onthult gebied + range' },
+  { id: 'boomerang', name: 'Boomerang Tower', rarity: 'rare', cat: 'turret', cost: 480, kind: 'boomerang',
+    dmg: 14, cd: 1.4, range: 5, tracks: ['dmg', 'spd', 'rng'], desc: 'Een boemerang die alles op zijn pad raakt, heen én terug.', ability: 'Raakt 2x in een lijn' },
+  { id: 'sprayer', name: 'Poison Sprayer', rarity: 'rare', cat: 'turret', cost: 500, kind: 'spray', groundOnly: true,
+    dmg: 1, cd: 0.6, range: 3.3, pdps: 4, pdur: 3, stacks: 3, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Sproeit een gifwolk in een kegel: iedereen erin krijgt poison.', ability: 'Gif-kegel' },
+  { id: 'magnet', name: 'Magnetic Cannon', rarity: 'rare', cat: 'turret', cost: 600, kind: 'magnet',
+    dmg: 18, cd: 1.6, range: 4.8, shred: 4, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Trekt het pantser van zombies af (permanent), doet 2x damage tegen gepantserden en duwt ze terug.', ability: 'Armor strip + knockback' },
+  // ---------------- EPIC ----------------
+  { id: 'mortar', name: 'Mortar Tower', rarity: 'epic', cat: 'turret', cost: 900, kind: 'mortar', groundOnly: true,
+    dmg: 60, cd: 3.2, range: 10, minRange: 2.5, splash: 1.5, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Granaten met enorm bereik en splash, maar kan niet dichtbij schieten.', ability: 'Lange afstand splash' },
+  { id: 'dronefactory', name: 'Drone Factory', rarity: 'epic', cat: 'special', cost: 1100, kind: 'kamikaze',
+    dmg: 70, cd: 3.5, range: 8, splash: 1.0, drones: 3, tracks: ['dmg', 'spd', 'spc'], desc: 'Bouwt kamikaze-drones die op zombies afvliegen en ontploffen.', ability: 'Zelfzoekende drones' },
+  { id: 'teslacoil', name: 'Tesla Coil', rarity: 'epic', cat: 'special', cost: 950, kind: 'overload',
+    dmg: 26, cd: 2.4, range: 4.2, jump: 1.8, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Laadt statische stroom op en ontlaadt die in een kettingbliksem die van zombie naar zombie springt — zonder limiet, zolang ze dicht genoeg bij elkaar lopen.', ability: 'Onbeperkte keten' },
+  { id: 'sonic', name: 'Sonic Tower', rarity: 'epic', cat: 'special', cost: 850, kind: 'sonic',
+    dmg: 6, cd: 3, range: 3.6, slow: 0.5, slowDur: 2, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Geluidsgolven vertragen alles in de buurt en onderbreken healers.', ability: 'Pulse-slow' },
+  { id: 'repairbot', name: 'Repair Bot Factory', rarity: 'epic', cat: 'support', cost: 1000, kind: 'repairbot',
+    cd: 8, heal: 0.06, limit: 2, tracks: ['spd', 'spc'], desc: 'Stuurt elke 8s een repair-bot: +6% deur-HP en herstelt barricades.', ability: 'Deur + muren repareren' },
+  { id: 'gravity', name: 'Gravity Tower', rarity: 'epic', cat: 'special', cost: 1200, kind: 'gravity',
+    dmg: 10, cd: 5, range: 4.2, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Trekt zombies in zijn bereik naar elkaar toe: perfect voor splash-towers.', ability: 'Groepeert zombies' },
+  // ---------------- LEGENDARY ----------------
+  { id: 'satellite', name: 'Satellite Cannon', rarity: 'legendary', cat: 'special', cost: 1700, kind: 'orbital', global: true,
+    dmg: 900, cd: 6, radius: 1.0, tracks: ['dmg', 'spd', 'spc'], desc: 'Richt een satelliet op de sterkste zombie die naar jouw kamer komt: na 1s een orbitale inslag.', ability: 'Orbital strike' },
+  { id: 'assassin', name: 'Shadow Assassin', rarity: 'legendary', cat: 'turret', cost: 1600, kind: 'assassin', detect: true, target: 'strongest',
+    dmg: 120, cd: 1.1, range: 6, execute: 0.15, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Valt altijd de sterkste zombie aan en executeert zombies onder 15% HP (geen bosses).', ability: 'Execute' },
+  { id: 'timetower', name: 'Time Tower', rarity: 'legendary', cat: 'boost', cost: 1500, kind: 'timetower',
+    cd: 10, range: 3, tracks: ['spd', 'rng', 'spc'], desc: 'Geeft towers in de buurt elke 10s 3s lang dubbele vuursnelheid en vertraagt zombies in zijn bereik.', ability: 'Haste-burst' },
+  { id: 'emptower', name: 'EMP Tower', rarity: 'legendary', cat: 'special', cost: 1400, kind: 'emp',
+    cd: 7, range: 4.2, tracks: ['spd', 'rng', 'spc'], desc: 'Schakelt speciale vaardigheden uit: geen healing, regeneratie, onzichtbaarheid, schilden of boss-abilities.', ability: 'Ability-blokker' },
+  { id: 'bloodbank', name: 'Blood Bank', rarity: 'legendary', cat: 'farm', cost: 1500, kind: 'bloodbank',
+    income: 0, bounty: 0.6, range: 4.5, limit: 2, tracks: ['inc', 'rng'], desc: 'Zombies die in zijn bereik sterven leveren 60% meer geld op.', ability: '+60% kill-geld' },
+  { id: 'jackpot', name: 'Jackpot Machine', rarity: 'legendary', cat: 'farm', cost: 1300, kind: 'jackpot',
+    income: 200, tracks: ['inc'], desc: 'Gokkast: elke 5s een spin. Vaak niets, soms veel, heel soms de jackpot (15x).', ability: 'Random uitbetaling' },
+  // ---------------- MYTHIC ----------------
+  { id: 'nuke', name: 'Nuclear Reactor', rarity: 'mythic', cat: 'special', cost: 4200, kind: 'nuke',
+    dmg: 1500, cd: 12, range: 7, radius: 3.5, tracks: ['dmg', 'spd', 'spc'], desc: 'Laadt op en lanceert een kernexplosie op de grootste groep, met een stralingsveld erna.', ability: 'Nuke + straling' },
+  { id: 'dragon', name: 'Flame Dragon', rarity: 'mythic', cat: 'turret', cost: 4000, kind: 'dragon',
+    dmg: 20, cd: 0.15, range: 6.5, burn: 40, burnDur: 3, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Een draak die een enorme vuurstroom spuwt — raakt ook vliegende zombies.', ability: 'Lange vuurstroom' },
+  { id: 'portal', name: 'Portal Tower', rarity: 'mythic', cat: 'special', cost: 3600, kind: 'portal',
+    cd: 6, range: 5, count: 5, back: 0.45, tracks: ['spd', 'rng', 'spc'], desc: 'Stuurt de voorste zombies door een portaal terug naar het begin van hun route.', ability: 'Terugsturen' },
+  { id: 'celestial', name: 'Celestial Cannon', rarity: 'mythic', cat: 'turret', cost: 4400, kind: 'celestial', detect: true,
+    dmg: 350, cd: 2.2, range: 8, splash: 1.4, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Schiet een sterrenbol die door alle zombies heen gaat en aan het eind ontploft.', ability: 'Pierce + explosie' },
+  { id: 'dimension', name: 'Dimension Tower', rarity: 'mythic', cat: 'special', cost: 3800, kind: 'dimension',
+    dmg: 80, cd: 5, range: 6, links: 5, share: 0.6, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Verbindt 5 zombies via een dimensie-scheur: damage op één wordt voor 60% gedeeld met de rest.', ability: 'Damage-link' },
+  { id: 'storm', name: 'Storm Generator', rarity: 'mythic', cat: 'special', cost: 4000, kind: 'storm',
+    dmg: 160, cd: 7, range: 7, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Roept een onweersbui op: 6 seconden lang slaan bliksems in op zombies in de buurt.', ability: 'Bliksemstorm' },
+  // ---------------- SECRET ----------------
+  { id: 'worldender', name: 'World Ender', rarity: 'secret', cat: 'special', cost: 9500, kind: 'worldender',
+    cd: 40, range: 7, limit: 1, tracks: ['spd', 'rng', 'spc'], desc: 'Eens per 40s: vaagt álle gewone zombies in bereik weg en haalt 25% van de HP van bosses af.', ability: 'Totale vernietiging' },
+  { id: 'eternal', name: 'Eternal Machine', rarity: 'secret', cat: 'special', cost: 9000, kind: 'eternal', detect: true,
+    dmg: 180, cd: 0.5, range: 6.5, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Elk schot is kogel, bliksem, vuur, ijs én gif tegelijk.', ability: 'Alles-in-één' }
+
 ];
 G.ITEM = {}; G.ITEMS.forEach(function (it, i) {
   it.index = i; it.place = it.place || 'slot'; G.ITEM[it.id] = it;
   it.isFarm = it.cat === 'farm';
   it.limit = it.limit || G.RAR[it.rarity].limit;
 });
+// ---------------------------------------------------------------------
+//  EVOLUTIONS — two stages per line; need a tower level + money
+//  mul: stat multipliers | extra fields are abilities read by the simulation
+// ---------------------------------------------------------------------
+G.EVO = {
+  pistol: [
+    { name: 'SMG Turret', lvl: 6, cost: 450, mul: { dmg: 1.5, cd: 0.7 }, multi: 2, ability: 'Raakt 2 zombies tegelijk' },
+    { name: 'Gatling Destroyer', lvl: 14, cost: 2200, mul: { dmg: 2.6, cd: 0.45, rng: 1.15 }, multi: 3, pierceArmor: 0.5, ability: '3 doelen, negeert 50% armor' }],
+  shotgun: [
+    { name: 'Riot Shotgun', lvl: 6, cost: 700, mul: { dmg: 1.5 }, pellets: 2, knock: 0.3, ability: '+2 pellets, duwt terug' },
+    { name: 'Doom Blaster', lvl: 14, cost: 2800, mul: { dmg: 2.6, rng: 1.2 }, pellets: 5, splashHit: 0.8, ability: '+5 pellets met mini-explosies' }],
+  frost: [
+    { name: 'Cryo Tower', lvl: 6, cost: 1100, mul: { dmg: 1.6 }, slowAdd: 0.15, freeze: { chance: 0.15, dur: 0.6 }, ability: 'Kans om te bevriezen' },
+    { name: 'Absolute Zero', lvl: 14, cost: 4000, mul: { dmg: 3, rng: 1.15 }, slowAdd: 0.25, freeze: { chance: 0.3, dur: 1 }, splashHit: 1.2, ability: 'Bevriest vaker, ijsscherven-splash' }],
+  sniper: [
+    { name: 'Railgun', lvl: 6, cost: 1300, mul: { dmg: 1.8 }, pierce: true, ability: 'Schiet door alle zombies in een lijn' },
+    { name: 'Hyper Sniper', lvl: 14, cost: 4500, mul: { dmg: 3.2, rng: 1.2 }, pierce: true, crit: { chance: 0.25, mult: 3 }, ability: 'Pierce + 25% kans op 3x crit' }],
+  flamethrower: [
+    { name: 'Inferno Cannon', lvl: 6, cost: 1500, mul: { dmg: 1.6, rng: 1.25 }, burnMul: 1.8, ability: 'Groter bereik, hetere brand' },
+    { name: "Dragon's Breath", lvl: 14, cost: 5000, mul: { dmg: 2.8, rng: 1.5 }, burnMul: 3, hitAir: true, ability: 'Raakt ook vliegende zombies' }],
+  tesla: [
+    { name: 'Storm Coil', lvl: 6, cost: 1300, mul: { dmg: 1.6 }, chainAdd: 2, ability: '+2 sprongen' },
+    { name: "Thor's Hammer", lvl: 14, cost: 4200, mul: { dmg: 2.8, rng: 1.2 }, chainAdd: 5, stun: 0.3, ability: '+5 sprongen, verdooft' }],
+  rocket: [
+    { name: 'Missile Battery', lvl: 6, cost: 1500, mul: { dmg: 1.4 }, rockets: 3, ability: '3 raketten op 3 doelen' },
+    { name: 'Apocalypse Silo', lvl: 14, cost: 5000, mul: { dmg: 2.4, rng: 1.2 }, rockets: 5, splashMul: 1.4, ability: '5 raketten, grotere explosies' }],
+  laser: [
+    { name: 'Prism Array', lvl: 6, cost: 1600, mul: { dmg: 1.6 }, beams: 2, ability: '2 laserstralen' },
+    { name: 'Photon Annihilator', lvl: 14, cost: 5200, mul: { dmg: 2.8, rng: 1.15 }, beams: 3, burnHit: 30, ability: '3 stralen die laten branden' }],
+  printer: [
+    { name: 'Gold Works', lvl: 4, cost: 1400, mul: { inc: 2.0 }, ability: '2x inkomen' },
+    { name: 'Diamond Empire', lvl: 9, cost: 5000, mul: { inc: 4.2 }, gem: { chance: 0.03, amount: 5000 }, ability: '4.2x inkomen + diamanten' }],
+  cashreg: [
+    { name: 'Golden Register', lvl: 4, cost: 600, mul: { inc: 1.8 }, ability: '1.8x inkomen' },
+    { name: 'Bank Vault', lvl: 9, cost: 2500, mul: { inc: 3.6 }, ability: '3.6x inkomen' }]
+};
+Object.keys(G.EVO).forEach(function (id) { G.ITEM[id].evo = G.EVO[id]; });
 G.itemsByRarity = function (rid) { return G.ITEMS.filter(function (i) { return i.rarity === rid; }); };
 
 // ---------------------------------------------------------------------
@@ -193,14 +298,14 @@ G.itemsByRarity = function (rid) { return G.ITEMS.filter(function (i) { return i
 // ---------------------------------------------------------------------
 // hp / speed (tiles/s) / dmg per hit (1 hit per second) / reward ($)
 G.ZOMBIES = {
-  normal:    { name: 'Normal Zombie',    hp: 30,  speed: 0.9,  dmg: 8,  reward: 6,  color: '#6fbf4a', size: 1 },
-  fast:      { name: 'Fast Zombie',      hp: 18,  speed: 1.8,  dmg: 5,  reward: 6,  color: '#e0503a', size: 0.85 },
+  normal:    { name: 'Normal Zombie',    hp: 30,  speed: 0.9,  dmg: 8,  reward: 5,  color: '#6fbf4a', size: 1 },
+  fast:      { name: 'Fast Zombie',      hp: 18,  speed: 1.8,  dmg: 5,  reward: 7,  color: '#e0503a', size: 0.85 },
   tank:      { name: 'Tank Zombie',      hp: 150, speed: 0.6,  dmg: 20, reward: 18, color: '#4a6a3a', size: 1.3 },
-  armored:   { name: 'Armored Zombie',   hp: 60,  speed: 0.8,  dmg: 10, reward: 12, color: '#7a8a94', size: 1.05, armor: 2.5 },
+  armored:   { name: 'Armored Zombie',   hp: 60,  speed: 0.8,  dmg: 10, reward: 15, color: '#7a8a94', size: 1.05, armor: 2.5 },
   exploding: { name: 'Exploding Zombie', hp: 35,  speed: 1.2,  dmg: 6,  reward: 10, color: '#ff8a1e', size: 1, explode: 15 },
-  poisonz:   { name: 'Poison Zombie',    hp: 45,  speed: 0.9,  dmg: 6,  reward: 10, color: '#9be03a', size: 1, doorPoison: true },
+  poisonz:   { name: 'Poison Zombie',    hp: 45,  speed: 0.9,  dmg: 6,  reward: 12, color: '#9be03a', size: 1, doorPoison: true },
   invisible: { name: 'Invisible Zombie', hp: 35,  speed: 1.1,  dmg: 8,  reward: 12, color: '#b9c4ff', size: 0.95, invis: true },
-  giant:     { name: 'Giant Zombie',     hp: 520, speed: 0.45, dmg: 45, reward: 60, color: '#3d5e2e', size: 1.7, heavy: true },
+  giant:     { name: 'Giant Zombie',     hp: 520, speed: 0.45, dmg: 45, reward: 50, color: '#3d5e2e', size: 1.7, heavy: true },
   healer:    { name: 'Healer Zombie',    hp: 70,  speed: 0.8,  dmg: 6,  reward: 16, color: '#f1f1f1', size: 1, healer: true },
   flying:    { name: 'Flying Zombie',    hp: 40,  speed: 1.3,  dmg: 8,  reward: 12, color: '#8f5ac8', size: 0.9, fly: true },
   // map specific
@@ -496,20 +601,75 @@ G.BOT_NAMES = ['Kevin_B0t', 'ZombieSlayer', 'NoobMaster', 'xX_Tank_Xx', 'LunaPla
 G.PLAYER_COLORS = ['#ffd23f', '#ff6b6b', '#4ecdc4', '#a06cd5', '#ff9f1c', '#2ec4b6', '#e84a8a', '#7bd389'];
 
 G.ACHIEVEMENTS = [
-  { id: 'firstwin',   name: 'Eerste Overwinning',  desc: 'Win een potje.',                         reward: 200 },
-  { id: 'boss1',      name: 'Boss Slayer',         desc: 'Versla een boss in jouw kamer.',         reward: 150 },
-  { id: 'boss10',     name: 'Boss Hunter',         desc: 'Versla in totaal 10 bosses.',            reward: 800 },
-  { id: 'flawless',   name: 'Onaantastbaar',       desc: 'Win zonder dat je deur damage krijgt.',  reward: 500 },
-  { id: 'medium',     name: 'Doorzetter',          desc: 'Win op Medium.',                         reward: 400 },
-  { id: 'hard',       name: 'Hardcore',            desc: 'Win op Hard.',                           reward: 1500 },
-  { id: 'allmaps',    name: 'Wereldreiziger',      desc: 'Win op alle 3 maps.',                    reward: 1000 },
-  { id: 'endless20',  name: 'Uithoudingsvermogen', desc: 'Haal wave 20 in Endless.',               reward: 600 },
-  { id: 'endless40',  name: 'Onsterfelijk',        desc: 'Haal wave 40 in Endless.',               reward: 2500 },
-  { id: 'collect15',  name: 'Verzamelaar',         desc: 'Bezit 15 verschillende items.',          reward: 500 },
-  { id: 'collect30',  name: 'Museumdirecteur',     desc: 'Bezit 30 verschillende items.',          reward: 2000 },
-  { id: 'secret',     name: 'Geheim Ontdekt',      desc: 'Summon een Secret item.',                reward: 3000 },
-  { id: 'rich',       name: 'Miljonair',           desc: 'Verdien $1.000.000 in één potje.',       reward: 1000 },
-  { id: 'door15',     name: 'Poortwachter',        desc: 'Upgrade je deur naar level 15.',         reward: 700 }
+  // stat: lifetime stat key (or special) • goal: amount needed — progress is shown in the menu
+  { id: 'firstwin',  icon: '🏆', name: 'First Victory',      desc: 'Win je eerste potje.',                     stat: 'wins',        goal: 1,       reward: 200 },
+  { id: 'boss1',     icon: '👑', name: 'Boss Breaker',       desc: 'Versla je eerste boss.',                   stat: 'bosses',      goal: 1,       reward: 150 },
+  { id: 'boss10',    icon: '⚔️', name: 'Boss Hunter',        desc: 'Versla in totaal 10 bosses.',              stat: 'bosses',      goal: 10,      reward: 800 },
+  { id: 'boss100',   icon: '🐉', name: 'Boss Slayer',        desc: 'Versla in totaal 100 bosses.',             stat: 'bosses',      goal: 100,     reward: 5000 },
+  { id: 'kills1000', icon: '🧟', name: 'Zombie Hunter',      desc: 'Versla in totaal 1.000 zombies.',          stat: 'kills',       goal: 1000,    reward: 600 },
+  { id: 'kills25k',  icon: '💀', name: 'Zombie Exterminator', desc: 'Versla in totaal 25.000 zombies.',        stat: 'kills',       goal: 25000,   reward: 4000 },
+  { id: 'flawless',  icon: '🛡️', name: 'Onaantastbaar',      desc: 'Win zonder dat je deur damage krijgt.',    stat: 'flawless',    goal: 1,       reward: 500 },
+  { id: 'medium',    icon: '🟨', name: 'Doorzetter',         desc: 'Win op Medium.',                           stat: 'medWins',     goal: 1,       reward: 400 },
+  { id: 'hard',      icon: '🟥', name: 'Hardcore',           desc: 'Win op Hard.',                             stat: 'hardWins',    goal: 1,       reward: 1500 },
+  { id: 'allmaps',   icon: '🗺️', name: 'Wereldreiziger',     desc: 'Win op alle 3 maps.',                      stat: 'mapsWon',     goal: 3,       reward: 1000 },
+  { id: 'endless20', icon: '♾️', name: 'Uithoudingsvermogen', desc: 'Haal wave 20 in Endless.',                stat: 'bestEndless', goal: 20,      reward: 600 },
+  { id: 'endless40', icon: '🔥', name: 'Onsterfelijk',       desc: 'Haal wave 40 in Endless.',                 stat: 'bestEndless', goal: 40,      reward: 2500 },
+  { id: 'endless100', icon: '🌌', name: 'Endless Survivor',  desc: 'Haal wave 100 in Endless.',                stat: 'bestEndless', goal: 100,     reward: 10000 },
+  { id: 'collect15', icon: '📦', name: 'Verzamelaar',        desc: 'Bezit 15 verschillende towers.',           stat: 'owned',       goal: 15,      reward: 500 },
+  { id: 'collect25', icon: '🗃️', name: 'Tower Collector',    desc: 'Bezit 25 verschillende towers.',           stat: 'owned',       goal: 25,      reward: 1200 },
+  { id: 'collect30', icon: '🏛️', name: 'Museumdirecteur',    desc: 'Bezit 30 verschillende towers.',           stat: 'owned',       goal: 30,      reward: 2000 },
+  { id: 'secret',    icon: '❓', name: 'Secret Hunter',      desc: 'Summon een Secret tower.',                 stat: 'secrets',     goal: 1,       reward: 3000 },
+  { id: 'rich',      icon: '💰', name: 'Millionaire',        desc: 'Verdien $1.000.000 in één potje.',         stat: 'bestMoney',   goal: 1000000, reward: 1000 },
+  { id: 'door15',    icon: '🚪', name: 'Poortwachter',       desc: 'Upgrade je deur naar level 15.',           stat: 'bestDoor',    goal: 15,      reward: 700 },
+  { id: 'build100',  icon: '🔨', name: 'Master Builder',     desc: 'Doe in totaal 100 tower-upgrades.',        stat: 'upgrades',    goal: 100,     reward: 800 },
+  { id: 'evolve10',  icon: '🧬', name: 'Evolutionist',       desc: 'Evolueer in totaal 10 towers.',            stat: 'evolves',     goal: 10,      reward: 1500 },
+  { id: 'master10',  icon: '🎖️', name: 'Tower Master',       desc: 'Breng één tower naar mastery level 10.',   stat: 'bestMastery', goal: 10,      reward: 2000 },
+  { id: 'duo1',      icon: '🤝', name: 'Samen Sterk',        desc: 'Win een potje in een Duo-kamer.',          stat: 'duoWins',     goal: 1,       reward: 500 },
+  { id: 'missions10', icon: '📅', name: 'Plichtsgetrouw',    desc: 'Voltooi 10 daily missions.',               stat: 'missions',    goal: 10,      reward: 1000 }
+];
+
+// ---------------------------------------------------------------------
+//  TOWER MASTERY — cosmetic only (no stats)
+// ---------------------------------------------------------------------
+G.MASTERY_MAX = 20;
+G.masteryXpFor = function (lvl) { return Math.round(80 * Math.pow(1.3, lvl - 1)); }; // xp needed to go from lvl-1 → lvl
+G.MASTERY_REWARDS = [
+  { lvl: 2,  type: 'badge', id: 'bronze', name: 'Bronzen badge', icon: '🥉' },
+  { lvl: 4,  type: 'kill',  id: 'sparks', name: 'Kill-effect: Vonken', icon: '✨' },
+  { lvl: 6,  type: 'skin',  id: 'camo',   name: 'Skin: Camo', icon: '🪖' },
+  { lvl: 8,  type: 'anim',  id: 'float',  name: 'Animatie: Zweven', icon: '🎈' },
+  { lvl: 10, type: 'skin',  id: 'neon',   name: 'Skin: Neon', icon: '💡' },
+  { lvl: 10, type: 'badge', id: 'silver', name: 'Zilveren badge', icon: '🥈' },
+  { lvl: 12, type: 'kill',  id: 'souls',  name: 'Kill-effect: Zielen', icon: '👻' },
+  { lvl: 15, type: 'skin',  id: 'gold',   name: 'Skin: Goud', icon: '🥇' },
+  { lvl: 20, type: 'skin',  id: 'prism',  name: 'Skin: Prisma', icon: '🌈' },
+  { lvl: 20, type: 'kill',  id: 'prism',  name: 'Kill-effect: Prisma', icon: '🌈' },
+  { lvl: 20, type: 'badge', id: 'gold',   name: 'Gouden badge', icon: '🏅' }
+];
+
+// ---------------------------------------------------------------------
+//  DAILY MISSIONS — 4 per day, same for everyone on that date
+// ---------------------------------------------------------------------
+G.MISSIONS = [
+  { id: 'kills',    stat: 'kills',    goals: [300, 600, 1200],   text: 'Versla {n} zombies' },
+  { id: 'bosses',   stat: 'bosses',   goals: [2, 4, 8],          text: 'Versla {n} bosses' },
+  { id: 'waves',    stat: 'waves',    goals: [25, 50, 90],       text: 'Overleef in totaal {n} waves' },
+  { id: 'wins',     stat: 'wins',     goals: [1, 2, 3],          text: 'Win {n} potje(s)' },
+  { id: 'money',    stat: 'money',    goals: [50000, 150000, 400000], text: 'Verdien ${n} in potjes' },
+  { id: 'upgrades', stat: 'upgrades', goals: [40, 90, 160],      text: 'Upgrade {n} keer een tower' },
+  { id: 'evolves',  stat: 'evolves',  goals: [1, 2, 4],          text: 'Evolueer {n} tower(s)' },
+  { id: 'summons',  stat: 'summons',  goals: [5, 10, 20],        text: 'Doe {n} summons' },
+  { id: 'games',    stat: 'games',    goals: [2, 3, 5],          text: 'Speel {n} potjes' },
+  { id: 'killcash', stat: 'killMoney', goals: [5000, 12000, 30000], text: 'Verdien ${n} met kills' }
+];
+G.MISSION_REWARDS = [
+  [{ type: 'coins', n: 250 }, { type: 'normal', n: 1 }],
+  [{ type: 'coins', n: 500 }, { type: 'normal', n: 3 }, { type: 'hat', n: 1 }],
+  [{ type: 'coins', n: 1000 }, { type: 'premium', n: 1 }, { type: 'normal', n: 5 }]
+];
+G.HATS = [
+  { id: 'cap', name: 'Pet', icon: '🧢' }, { id: 'crown', name: 'Kroon', icon: '👑' }, { id: 'tophat', name: 'Hoge hoed', icon: '🎩' },
+  { id: 'helmet', name: 'Helm', icon: '⛑️' }, { id: 'party', name: 'Feesthoed', icon: '🥳' }, { id: 'halo', name: 'Halo', icon: '😇' }
 ];
 
 if (typeof module !== 'undefined') module.exports = G;

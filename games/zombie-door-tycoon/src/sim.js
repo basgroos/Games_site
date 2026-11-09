@@ -75,14 +75,20 @@
       return {
         id: i, name: p.name, isBot: !!p.isBot, style: p.style || null, color: G.PLAYER_COLORS[i % 8],
         loadout: p.loadout.slice(0, 5), stars: p.stars || {}, room: -1, alive: true, finished: false,
-        cash: 700, vote: false,
+        vote: false,
         pos: { x: 32 * G.T + Math.cos(i / 8 * Math.PI * 2) * 150, y: 21.5 * G.T + Math.sin(i / 8 * Math.PI * 2) * 120 }, path: null, kx: 0, ky: 0, face: 1, walk: 0, moving: false,
-        stats: { moneyEarned: 0, kills: 0, bosses: 0, doorDamage: 0, waveReached: 0, damage: 0 },
-        incomeLast: 0
+        stats: { moneyEarned: 0, kills: 0, bosses: 0, doorDamage: 0, waveReached: 0, damage: 0, killMoney: 0, upgrades: 0, evolves: 0 },
+        incomeLast: 0, mast: {}, cos: p.cos || {}, hat: p.hat || null, duoWith: p.duoWith != null ? p.duoWith : null
       };
     });
+    // money lives in a "bank" so two players in a duo room can share one wallet
+    this.players.forEach(function (pl) {
+      pl.bank = { cash: 700 };
+      Object.defineProperty(pl, 'cash', { get: function () { return this.bank.cash; }, set: function (v) { this.bank.cash = v; }, enumerable: true, configurable: true });
+    });
+    this.duo = !!opts.duo;
     this.rooms = G.ROOMS.map(function (def, i) {
-      return { index: i, def: def, owner: -1, towers: [], zombies: [], queue: [], pending: [], vortices: [],
+      return { index: i, def: def, owner: -1, partner: -1, towers: [], zombies: [], queue: [], pending: [], vortices: [], fields: [],
         door: { lvl: 0, hp: G.doorMaxHp(0), max: G.doorMaxHp(0), shield: 0, shieldUntil: 0, poison: [], lastHit: -99, repairUntil: 0, repairReady: 0, repairRate: 0 },
         tile: {}, walls: [], incomeT: G.INCOME_INTERVAL, time: 0, timeSlowUntil: 0, timeSlowAmt: 0,
         blessUntil: 0, buffT: 0, nextZid: 1, nextTid: 1, waveSpawned: true };
@@ -108,8 +114,24 @@
   // -------------------------------------------------------------------
   //  Claim phase (hub)
   // -------------------------------------------------------------------
+  M.canJoinDuo = function (p, room) {
+    if (!this.duo || room.owner < 0 || room.partner >= 0 || p.room >= 0) return false;
+    var owner = this.players[room.owner];
+    if (owner.isBot && !p.isBot) return false;
+    if (p.isBot && p.duoWith !== owner.id) return false;
+    return true;
+  };
+  M.joinDuo = function (p, room) {
+    var owner = this.players[room.owner];
+    room.partner = p.id; p.room = room.index;
+    owner.bank.cash += p.bank.cash; p.bank = owner.bank;
+    this.fx.claim(room, p);
+    return true;
+  };
+  M.roomPlayers = function (room) { var out = []; if (room.owner >= 0) out.push(this.players[room.owner]); if (room.partner >= 0) out.push(this.players[room.partner]); return out; };
   M.claim = function (p, ri) {
     var room = this.rooms[ri];
+    if (this.phase === 'claim' && room.owner >= 0 && this.canJoinDuo(p, room)) return this.joinDuo(p, room);
     if (this.phase !== 'claim' || p.room >= 0 || room.owner >= 0) return false;
     room.owner = p.id; p.room = ri;
     this.setupRoom(room, p);
@@ -181,13 +203,18 @@
     this.players.forEach(function (p) {
       if (p.room >= 0) return;
       var t = self.tileOf(p), r = self.roomAt(t.x, t.y);
-      if (r && r.owner < 0 && G.WORLD.grid[t.y][t.x] !== '#') self.claim(p, r.index);
+      if (r && G.WORLD.grid[t.y][t.x] !== '#' && (r.owner < 0 || self.canJoinDuo(p, r))) self.claim(p, r.index);
     });
     // bots pick rooms and walk there
     this.players.forEach(function (p) {
       if (!p.isBot || p.room >= 0) return;
       p.botClaimDelay = (p.botClaimDelay == null) ? 0.5 + self.rnd() * 5 : p.botClaimDelay - dt;
       if (p.botClaimDelay > 0) return;
+      if (p.duoWith != null) {
+        var buddy = self.players[p.duoWith];
+        if (buddy.room >= 0) { if (!p.path) self.goRoom(p, buddy.room); }
+        return;
+      }
       var tgt = p.botTarget;
       if (tgt == null || self.rooms[tgt].owner >= 0) {
         var free = self.rooms.filter(function (r) { return r.owner < 0; });
@@ -201,6 +228,7 @@
     var unclaimed = this.players.filter(function (p) { return p.room < 0; });
     if (this.claimTimer <= 0 && unclaimed.length) {
       unclaimed.forEach(function (p) {
+        if (p.duoWith != null && self.players[p.duoWith].room >= 0) { var br = self.rooms[self.players[p.duoWith].room]; if (br.partner < 0) { self.joinDuo(p, br); self.goRoom(p, br.index); return; } }
         var free = self.rooms.filter(function (r) { return r.owner < 0; });
         var r = free[(self.rnd() * free.length) | 0];
         self.claim(p, r.index);
@@ -216,8 +244,10 @@
   // -------------------------------------------------------------------
   //  Towers
   // -------------------------------------------------------------------
-  M.addTower = function (room, item, x, y) {
-    var t = { id: room.nextTid++, item: item, x: x, y: y, px: x * T + T / 2, py: y * T + T / 2,
+  M.addTower = function (room, item, x, y, by) {
+    if (by == null) by = room.owner;
+    var bp = this.players[by];
+    var t = { id: room.nextTid++, roomIdx: room.index, by: by, auto: false, prio: false, evo: 0, cos: (bp && bp.cos && bp.cos[item.id]) || null, item: item, x: x, y: y, px: x * T + T / 2, py: y * T + T / 2,
       lvl: { dmg: 0, spd: 0, rng: 0, spc: 0, inc: 0 }, spent: item.cost, cd: 0.3, angle: -Math.PI / 2,
       target: item.target || 'first', stunUntil: 0, placedAt: room.time, kills: 0, dmgDealt: 0, earned: 0,
       buff: { dmg: 1, spd: 1, rng: 1, detect: false }, fire: 0, data: {} };
@@ -239,13 +269,15 @@
     room.towers.push(t);
     room.tile[x + ',' + y] = t;
     room.buffT = 0;
+    if (bp) { var ms = bp.mast[item.id] || (bp.mast[item.id] = [0, 0, 0]); }
     return t;
   };
-  M.ownerStars = function (room, item) { var p = this.players[room.owner]; return (p && p.stars[item.id]) || 0; };
+  M.ownerStars = function (room, item, by) { var p = this.players[by != null ? by : room.owner]; return (p && p.stars[item.id]) || 0; };
+  M.evoOf = function (t) { return t.evo && t.item.evo ? t.item.evo[t.evo - 1] : null; };
 
   // Effective stats of a tower (levels, stars, buffs)
   M.stats = function (t, room) {
-    var it = t.item, L = t.lvl, stars = this.ownerStars(room, it), s = {};
+    var it = t.item, L = t.lvl, stars = this.ownerStars(room, it, t.by), s = {}, ev = this.evoOf(t), em = (ev && ev.mul) || {};
     var starMul = 1 + 0.05 * stars;
     var bless = room.blessUntil > room.time ? 1.5 : 1;
     s.dmg = (it.dmg || 0) * (1 + G.TRACKS.dmg.per * L.dmg) * starMul * t.buff.dmg * bless;
@@ -253,7 +285,9 @@
     s.range = (it.range || 0) * (1 + G.TRACKS.rng.per * L.rng) * t.buff.rng * T;
     s.spc = 1 + G.TRACKS.spc.per * L.spc;
     s.income = (it.income || 0) * (1 + G.TRACKS.inc.per * L.inc) * starMul;
-    s.detect = !!it.detect || t.buff.detect;
+    s.detect = !!it.detect || t.buff.detect || !!(ev && ev.detect);
+    if (em.dmg) s.dmg *= em.dmg; if (em.cd) s.cd *= em.cd; if (em.rng) s.range *= em.rng; if (em.inc) s.income *= em.inc;
+    if (t.hasteUntil > room.time) s.cd /= 2;
     if (it.kind === 'lastdef') {
       var miss = 1 - room.door.hp / room.door.max;
       s.dmg *= 1 + 4 * miss; s.cd /= 1 + miss;
@@ -270,6 +304,35 @@
     return Math.round((t.item.upCost || t.item.cost) * 0.55 * mul * Math.pow(1.5, lvl) / 5) * 5;
   };
   M.towerLevel = function (t) { var s = 0; for (var k in t.lvl) s += t.lvl[k]; return s; };
+  // visual tier 0..10 for the model (each upgrade changes the look)
+  G.towerTier = function (t) { var s = 0; for (var k in t.lvl) s += t.lvl[k]; return Math.min(10, s); };
+  M.cheapestTrack = function (t) {
+    var best = null, bc = Infinity, self = this;
+    t.item.tracks.forEach(function (tr) { if (t.lvl[tr] >= G.MAX_TRACK_LEVEL) return; var c = self.upgradeCost(t, tr) * (tr === 'dmg' || tr === 'inc' ? 0.9 : tr === 'rng' && t.lvl.rng >= 4 ? 1.6 : 1); if (c < bc) { bc = c; best = tr; } });
+    return best;
+  };
+  M.doUpgrade = function (p, room, t, track) {
+    var cost = this.upgradeCost(t, track);
+    p.cash -= cost; t.spent += cost; t.lvl[track]++; p.stats.upgrades++;
+    if (t.item.kind === 'wall') { var nm = this.wallHp(t, room); t.hp += nm - t.maxHp; t.maxHp = nm; }
+    room.buffT = 0;
+    this.fx.upgrade(room, t);
+  };
+  M.upgradeOrder = function (room, farmsOnly) {
+    var self = this;
+    return room.towers.filter(function (q) { return !farmsOnly || q.item.isFarm; }).map(function (q) { var tr = self.cheapestTrack(q); return { q: q, c: tr ? self.upgradeCost(q, tr) : Infinity }; })
+      .sort(function (a, b) { return (b.q.prio - a.q.prio) || (a.c - b.c); }).map(function (o) { return o.q; });
+  };
+  M.autoUpgrade = function (room) {
+    var owner = this.players[room.owner]; if (!owner || !owner.alive) return;
+    var self = this, list = this.upgradeOrder(room).filter(function (q) { return q.auto; });
+    for (var i = 0; i < list.length; i++) {
+      var q = list[i], tr = this.cheapestTrack(q); if (!tr) continue;
+      var c = this.upgradeCost(q, tr);
+      if (owner.cash >= c) { this.doUpgrade(this.players[q.by] && this.players[q.by].room === room.index ? this.players[q.by] : owner, room, q, tr); break; }
+      if (q.prio) break; // save up for the priority tower first
+    }
+  };
   M.sellValue = function (t) { return Math.round(t.spent * 0.6); };
   M.countPlaced = function (room, itemId) { return room.towers.filter(function (t) { return t.item.id === itemId && !t.starter; }).length; };
 
@@ -299,7 +362,7 @@
         err = this.canPlace(p, cmd.item, cmd.x, cmd.y);
         if (err) return { ok: false, msg: err };
         p.cash -= G.ITEM[cmd.item].cost;
-        t = this.addTower(room, G.ITEM[cmd.item], cmd.x, cmd.y);
+        t = this.addTower(room, G.ITEM[cmd.item], cmd.x, cmd.y, pid);
         this.fx.place(room, t);
         return { ok: true, tower: t };
       case 'upgrade':
@@ -308,12 +371,44 @@
         if (!this.canBuild(p)) return { ok: false, msg: 'Loop naar je kamer om te upgraden' };
         if (t.item.tracks.indexOf(cmd.track) < 0) return { ok: false, msg: 'Kan niet' };
         if (t.lvl[cmd.track] >= G.MAX_TRACK_LEVEL) return { ok: false, msg: 'Max level' };
-        var cost = this.upgradeCost(t, cmd.track);
-        if (p.cash < cost) return { ok: false, msg: 'Niet genoeg geld' };
-        p.cash -= cost; t.spent += cost; t.lvl[cmd.track]++;
-        if (t.item.kind === 'wall') { var nm = this.wallHp(t, room); t.hp += nm - t.maxHp; t.maxHp = nm; }
+        if (p.cash < this.upgradeCost(t, cmd.track)) return { ok: false, msg: 'Niet genoeg geld' };
+        this.doUpgrade(p, room, t, cmd.track);
+        return { ok: true };
+      case 'upgradeTower':   // hotkey E: cheapest affordable track of one tower
+        t = room && room.towers.filter(function (q) { return q.id === cmd.tower; })[0];
+        if (!t || !p.alive) return { ok: false, msg: 'Geen tower' };
+        if (!this.canBuild(p)) return { ok: false, msg: 'Loop naar je kamer om te upgraden' };
+        var tr0 = this.cheapestTrack(t);
+        if (!tr0) return { ok: false, msg: 'Deze tower is volledig geüpgraded' };
+        if (p.cash < this.upgradeCost(t, tr0)) return { ok: false, msg: 'Niet genoeg geld ($' + this.upgradeCost(t, tr0) + ')' };
+        this.doUpgrade(p, room, t, tr0);
+        return { ok: true, track: tr0 };
+      case 'upgradeAll':     // one level for every tower (or every farm) you can afford, priority first
+        if (!room || !p.alive) return { ok: false };
+        if (!this.canBuild(p)) return { ok: false, msg: 'Loop naar je kamer om te upgraden' };
+        var self0 = this, n0 = 0;
+        this.upgradeOrder(room, cmd.farms).forEach(function (q) {
+          var tr = self0.cheapestTrack(q); if (!tr) return;
+          if (p.cash >= self0.upgradeCost(q, tr)) { self0.doUpgrade(p, room, q, tr); n0++; }
+        });
+        return n0 ? { ok: true, count: n0 } : { ok: false, msg: cmd.farms ? 'Geen farm-upgrade betaalbaar' : 'Geen upgrade betaalbaar' };
+      case 'auto':
+        t = room && room.towers.filter(function (q) { return q.id === cmd.tower; })[0];
+        if (!t) return { ok: false }; t.auto = !!cmd.on; return { ok: true };
+      case 'prio':
+        t = room && room.towers.filter(function (q) { return q.id === cmd.tower; })[0];
+        if (!t) return { ok: false }; t.prio = !!cmd.on; return { ok: true };
+      case 'evolve':
+        t = room && room.towers.filter(function (q) { return q.id === cmd.tower; })[0];
+        if (!t || !p.alive) return { ok: false, msg: 'Geen tower' };
+        if (!this.canBuild(p)) return { ok: false, msg: 'Loop naar je kamer om te evolueren' };
+        var nx = t.item.evo && t.item.evo[t.evo];
+        if (!nx) return { ok: false, msg: 'Kan niet (verder) evolueren' };
+        if (this.towerLevel(t) < nx.lvl) return { ok: false, msg: 'Eerst level ' + nx.lvl + ' nodig' };
+        if (p.cash < nx.cost) return { ok: false, msg: 'Niet genoeg geld ($' + nx.cost + ')' };
+        p.cash -= nx.cost; t.spent += nx.cost; t.evo++; p.stats.evolves++;
         room.buffT = 0;
-        this.fx.upgrade(room, t);
+        this.fx.evolve(room, t, nx);
         return { ok: true };
       case 'sell':
         t = room && room.towers.filter(function (q) { return q.id === cmd.tower; })[0];
@@ -409,6 +504,7 @@
       z = { type: type, def: d, hp: zhp, maxHp: zhp, speed: d.speed * T * sc.speed * (opts.spdMul || 1), dmg: d.dmg * sc.dmg, reward: Math.max(1, Math.round(d.reward * sc.reward * (opts.rewMul || 1))),
         armor: (d.armor || 0) * (1 + 0.05 * this.wave), color: d.color, size: d.size * (opts.elite ? 1.15 : 1), fly: !!d.fly, invis: !!d.invis, immuneSlow: !!d.immuneSlow,
         immuneBurn: !!d.immuneBurn, heavy: !!d.heavy, regen: d.regen || 0, healer: !!d.healer, blocks: d.blocks || 0, elite: !!opts.elite };
+      if (opts.elite) z.reward = Math.max(z.reward, Math.round(75 * sc.reward));
       z.baseSpeed = z.speed;
     }
     z.id = room.nextZid++; z.room = room.index; z.dist = opts.dist || 0; z.atk = 0.5;
@@ -463,15 +559,20 @@
   M.damage = function (room, z, amount, src, o) {
     o = o || {};
     if (z.dead || amount <= 0) return 0;
-    if (z.immuneUntil > room.time) { if (!o.dot) this.fx.text(room, z.x, z.y - 20, 'IMMUUN', '#aaa'); return 0; }
-    if (z.blocks > 0 && !o.dot && !o.aoe) { z.blocks--; this.fx.text(room, z.x, z.y - 20, 'BLOCK', '#7ab'); return 0; }
+    var emp = z.empUntil > room.time;
+    if (z.immuneUntil > room.time && !emp) { if (!o.dot) this.fx.text(room, z.x, z.y - 20, 'IMMUUN', '#aaa'); return 0; }
+    if (z.blocks > 0 && !o.dot && !o.aoe && !emp) { z.blocks--; this.fx.text(room, z.x, z.y - 20, 'BLOCK', '#7ab'); return 0; }
     var mult = 1;
     if (z.markUntil > room.time) mult += z.markAmt;
     if (z.weakUntil > room.time) mult += 0.5;
     var amt = amount * mult;
-    if (!o.pierce) { var ar = Math.max(0, z.armor - z.shred); amt = Math.max(amt * 0.4, amt - ar); }
+    if (!o.pierce) { var ar = Math.max(0, z.armor - z.shred) * (1 - (o.ap || 0)); amt = Math.max(amt * 0.4, amt - ar); }
     z.hp -= amt; z.flash = 0.08;
-    if (src) { src.dmgDealt += amt; z.lastBy = room.index; }
+    if (z.link && !o.linked && z.link.until > room.time) {
+      var lk = z.link, self = this;
+      lk.members.forEach(function (m) { if (m !== z && !m.dead) self.damage(room, m, amt * lk.share, lk.src, { linked: true, dot: true, pierce: true }); });
+    }
+    if (src) { src.dmgDealt += amt; z.lastBy = room.index; z.lastSrc = src; var mp = src.by != null && this.players[src.by]; if (mp && src.item) { var mm = mp.mast[src.item.id] || (mp.mast[src.item.id] = [0, 0, 0]); mm[1] += amt; } }
     var p = this.players[room.owner]; if (p) p.stats.damage += amt;
     if (!o.dot) this.fx.hit(room, z, amt, o.color);
     else if (o.showDot) this.fx.hit(room, z, amt, o.color, true);
@@ -482,14 +583,16 @@
     if (z.dead) return;
     var self = this;
     z.dead = true; z.hp = 0;
-    var p = this.players[room.owner];
+    var p = this.players[src && src.by != null ? src.by : room.owner] || this.players[room.owner];
     if (!noReward && p) {
-      p.cash += z.reward; p.stats.moneyEarned += z.reward; p.stats.kills++;
-      if (src) src.kills++;
-      this.fx.cash(room, z.x, z.y, z.reward);
+      var bb = this.bloodBonus(room, z), bonus = bb ? bb.b : 0, rew = Math.round(z.reward * (1 + bonus));
+      if (bb) bb.t.earned += rew - z.reward;
+      p.cash += rew; p.stats.moneyEarned += rew; p.stats.kills++; p.stats.killMoney += rew;
+      if (src) { src.kills++; var ms = p.mast[src.item.id] || (p.mast[src.item.id] = [0, 0, 0]); ms[0]++; if (z.isBoss) ms[2]++; }
+      this.fx.cash(room, z.x, z.y, rew, false, bonus > 0);
     }
     room.towers.forEach(function (t) { if (t.item.kind === 'soul' && t.data.souls < t.item.maxSouls * (1 + 0.15 * t.lvl.spc)) t.data.souls++; });
-    this.fx.kill(room, z);
+    this.fx.kill(room, z, src);
     var home = this.rooms[z.room];
     if (z.def && z.def.split) for (var i = 0; i < z.def.split; i++) this.spawnZombie(home, 'labspawn', { dist: Math.max(0, z.dist - 10 - i * 14), route: z.route });
     if (z.def && z.def.freezeOnDeath) {
@@ -502,13 +605,21 @@
       if (bid === 'toxic') for (var k = 0; k < 6; k++) this.spawnZombie(home, 'poisonz', { dist: Math.max(0, z.dist - k * 12), hpMul: 1.5, rewMul: 0.5, route: z.route });
       if (bid === 'mutantboss' && !z.child) for (var m = 0; m < 2; m++) {
         var c = this.spawnZombie(home, 'boss', { boss: 'mutantboss', num: 0, dist: Math.max(0, z.dist - m * 20), route: z.route });
-        c.hp = c.maxHp = z.maxHp * 0.3; c.size = 1.5; c.child = true; c.reward = Math.round(z.reward * 0.2); c.name = 'Mutant Spawn';
+        c.hp = c.maxHp = z.maxHp * 0.3; c.size = 1.5; c.child = true; c.reward = Math.round(150 * G.scaling(this.map, this.diff, this.wave).reward); c.name = 'Mutant Spawn';
       }
     }
   };
+  M.bloodBonus = function (room, z) {
+    var best = null;
+    room.towers.forEach(function (t) {
+      if (t.item.kind !== 'bloodbank' || Math.hypot(t.px - z.x, t.py - z.y) > t.item.range * T * (1 + G.TRACKS.rng.per * t.lvl.rng)) return;
+      var b = t.item.bounty * (1 + G.TRACKS.inc.per * t.lvl.inc); if (!best || b > best.b) best = { b: b, t: t };
+    });
+    return best;
+  };
   M.targetable = function (room, z, detect, groundOnly) {
     if (z.dead) return false;
-    if (z.invis && !detect && z.revealUntil <= room.time) return false;
+    if (z.invis && !detect && z.revealUntil <= room.time && !(z.empUntil > room.time)) return false;
     if (groundOnly && z.fly) return false;
     return true;
   };
@@ -553,22 +664,24 @@
     if (amount <= 0) return;
     door.hp -= amount; door.lastHit = room.time;
     p.stats.doorDamage += amount;
+    if (room.partner >= 0) this.players[room.partner].stats.doorDamage += amount;
     this.fx.door(room, amount);
     if (door.hp <= 0) this.eliminate(p);
   };
   M.eliminate = function (p) {
     if (!p.alive) return;
-    var room = this.roomOf(p);
+    var room = this.roomOf(p), self = this;
+    this.roomPlayers(room).forEach(function (q) { if (q !== p && q.alive) { q.alive = false; q.stats.waveReached = self.wave; q.vote = false; self.fx.eliminated(room, q); } });
     p.alive = false; p.stats.waveReached = this.wave; room.door.hp = 0; p.vote = false;
     this.fx.eliminated(room, p);
-    room.zombies = []; room.queue = []; room.pending = []; room.vortices = [];
+    room.zombies = []; room.queue = []; room.pending = []; room.vortices = []; room.fields = [];
   };
 
   // -------------------------------------------------------------------
   //  Buff recompute (support towers)
   // -------------------------------------------------------------------
   M.recomputeBuffs = function (room) {
-    var self = this, buffers = room.towers.filter(function (t) { return t.item.kind === 'buff'; });
+    var self = this, buffers = room.towers.filter(function (t) { return t.item.kind === 'buff' || t.item.kind === 'revealer'; });
     var farmers = room.towers.filter(function (t) { return t.item.id === 'farmer'; });
     room.towers.forEach(function (t) {
       var b = { dmg: 1, spd: 1, rng: 1, detect: false, farm: 1 };
@@ -607,6 +720,8 @@
     // buffs
     room.buffT -= dt;
     if (room.buffT <= 0) { this.recomputeBuffs(room); room.buffT = 0.5; }
+    room.autoT = (room.autoT || 0) - dt;
+    if (room.autoT <= 0) { room.autoT = 0.5; this.autoUpgrade(room); }
     // income
     room.incomeT -= dt;
     if (room.incomeT <= 0) { room.incomeT += G.INCOME_INTERVAL; this.payIncome(room, p); }
@@ -624,6 +739,12 @@
     if (door.shieldUntil <= now) door.shield = 0;
     if (door.repairUntil > now) door.hp = Math.min(door.max, door.hp + door.repairRate * dt);
     for (var v = room.vortices.length - 1; v >= 0; v--) if (room.vortices[v].until <= now) room.vortices.splice(v, 1);
+    var self = this;
+    for (var fi = room.fields.length - 1; fi >= 0; fi--) {
+      var fd = room.fields[fi];
+      if (fd.until <= now) { room.fields.splice(fi, 1); continue; }
+      this.inRadius(room, fd.x, fd.y, fd.r).forEach(function (z) { self.damage(room, z, fd.dps * dt, fd.src, { dot: true, pierce: true }); });
+    }
 
     this.updateTraps(room, dt);
     this.updateZombies(room, dt);
@@ -641,7 +762,10 @@
       switch (it.kind) {
         case 'farm':
           if (it.warmup && room.time - t.placedAt < it.warmup) { got = 0; break; }
-          got = inc; break;
+          got = inc;
+          var evg = self.evoOf(t);
+          if (evg && evg.gem && self.rnd() < evg.gem.chance) { got += evg.gem.amount; self.fx.text(room, t.px, t.py - 30, '💎 +$' + evg.gem.amount, '#a8f0ff', true); }
+          break;
         case 'crypto': got = inc * (self.rnd() * 2.2); break;
         case 'quantum': got = (inc + it.growth * elapsedMin * (1 + G.TRACKS.inc.per * t.lvl.inc)) * t.buff.farm; break;
         case 'bank': got = inc + Math.min(1000 * (1 + 0.2 * t.lvl.inc), p.cash * it.interest * (1 + 0.1 * t.lvl.inc)); break;
@@ -650,12 +774,19 @@
           if (self.rnd() < it.chance) { got += it.jackpot; self.fx.text(room, t.px, t.py - 30, '💎 DIAMOND! +$' + it.jackpot, '#a8f0ff', true); }
           break;
         case 'goldengod': got = inc; break;
+        case 'harvest': got = (inc + it.growth * Math.max(0, self.wave - 1) * (1 + G.TRACKS.inc.per * t.lvl.inc)) * t.buff.farm; break;
+        case 'jackpot':
+          var r = self.rnd();
+          got = r < 0.5 ? 0 : r < 0.85 ? inc : r < 0.98 ? inc * 2.5 : inc * 15;
+          if (r >= 0.98) self.fx.text(room, t.px, t.py - 30, '🎰 JACKPOT! +$' + Math.round(got), '#ffd23f', true);
+          t.fire = 0.6; break;
+        case 'bloodbank': got = 0; break;
         case 'mine_farm': got = 0; break;
       }
       got = Math.round(got);
-      if (got > 0) { t.earned += got; total += got; self.fx.cash(room, t.px, t.py - 10, got, true); }
+      if (got > 0) { t.earned += got; total += got; self.fx.cash(room, t.px, t.py - 10, got, true); var bp = self.players[t.by]; (bp || p).stats.moneyEarned += got; }
     });
-    p.cash += total; p.stats.moneyEarned += total; p.incomeLast = total;
+    p.cash += total; p.incomeLast = total;
   };
   M.incomePer5 = function (room) {
     var self = this, total = 0, p = this.players[room.owner];
@@ -666,6 +797,8 @@
       if (it.kind === 'quantum') inc = (inc + it.growth * (self.time / 60) * (1 + G.TRACKS.inc.per * t.lvl.inc)) * t.buff.farm;
       if (it.kind === 'bank') inc += Math.min(1000 * (1 + 0.2 * t.lvl.inc), p.cash * it.interest * (1 + 0.1 * t.lvl.inc));
       if (it.kind === 'mine_farm') inc = inc * 5 / (it.every / (1 + G.TRACKS.spd.per * t.lvl.spd));
+      if (it.kind === 'harvest') inc = (inc + it.growth * Math.max(0, self.wave - 1) * (1 + G.TRACKS.inc.per * t.lvl.inc)) * t.buff.farm;
+      if (it.kind === 'jackpot') inc *= 0.975;
       if (it.warmup && room.time - t.placedAt < it.warmup) inc = 0;
       total += inc;
     });
@@ -718,8 +851,9 @@
         if (pd) self.damage(dotRoom, z, pd * dt, null, { dot: true, pierce: true });
         if (z.dead) continue;
       }
-      if (z.regen) z.hp = Math.min(z.maxHp, z.hp + z.maxHp * z.regen * dt);
-      if (z.healer) {
+      var empd = z.empUntil > now;
+      if (z.regen && !empd) z.hp = Math.min(z.maxHp, z.hp + z.maxHp * z.regen * dt);
+      if (z.healer && !empd) {
         z.healT -= dt;
         if (z.healT <= 0) {
           z.healT = 2;
@@ -727,7 +861,7 @@
           self.fx.heal(room, z);
         }
       }
-      if (z.isBoss) { self.bossAbility(room, z, dt); if (z.dead) continue; }
+      if (z.isBoss && !empd) { self.bossAbility(room, z, dt); if (z.dead) continue; }
       if (z.stunUntil > now) continue;
       // speed
       var sp = z.speed;
@@ -741,11 +875,11 @@
       for (var v = 0; v < vxs.length; v++) {
         var vx = vxs[v], ddx = vx.x - z.x, ddy = vx.y - z.y, dd = Math.hypot(ddx, ddy);
         if (dd < vx.r) {
-          self.damage(self.rooms[vx.room], z, vx.dps * dt, vx.src, { dot: true });
+          if (vx.dps) self.damage(self.rooms[vx.room], z, vx.dps * dt, vx.src, { dot: true });
           var pull = (z.isBoss || z.heavy) ? 0.25 : z.fly ? 0.4 : 1, step = Math.min(dd, 3 * T * dt * pull);
           if (dd > 1) { z.ox += ddx / dd * step; z.oy += ddy / dd * step; }
           pulled = true;
-          if (!z.isBoss && !z.heavy) held = true; else sp *= 0.5;
+          if (vx.soft) sp *= 0.6; else if (!z.isBoss && !z.heavy) held = true; else sp *= 0.5;
         }
       }
       if (!pulled && (z.ox || z.oy)) { var dk = Math.min(1, dt * 2.5); z.ox -= z.ox * dk; z.oy -= z.oy * dk; if (Math.abs(z.ox) + Math.abs(z.oy) < 0.5) z.ox = z.oy = 0; }
@@ -775,6 +909,7 @@
           if (z.attackingWall) {
             var wd = z.dmg * (z.boss && z.boss.id === 'butcher' ? 5 : 1);
             z.attackingWall.hp -= wd;
+            if (z.attackingWall.item.thorns) self.damage(self.rooms[z.attackingWall.roomIdx != null ? z.attackingWall.roomIdx : room.index], z, z.attackingWall.item.thorns * (1 + 0.4 * z.attackingWall.lvl.spc) * (1 + 0.1 * self.wave), z.attackingWall, { pierce: true, aoe: true });
             if (z.attackingWall.hp <= 0) { z.attackingWall.downUntil = now + z.attackingWall.item.rebuild; self.fx.wallBreak(room, z.attackingWall); }
           } else if (z.def && z.def.explode) {
             self.hitDoor(room, z.dmg * z.def.explode, z);
@@ -943,6 +1078,174 @@
             }
           }
           break;
+        case 'revealer':
+          t.data.tick = (t.data.tick || 0) - dt;
+          if (t.data.tick <= 0) { t.data.tick = 0.25; this.eachNear(t.px, t.py, st.range, function (z) { if (Math.hypot(z.x - t.px, z.y - t.py) <= st.range) z.revealUntil = Math.max(z.revealUntil, now + 0.5); }); }
+          break;
+        case 'overload':
+          if (t.cd <= 0) {
+            var first = this.findTarget(room, t.px, t.py, st.range, 'first', false, false);
+            if (first) {
+              t.cd = st.cd;
+              var hitO = [first], ptsO = [{ x: t.px, y: t.py - 22 }, { x: first.x, y: first.y }], curO = first, jumpO = it.jump * T * (1 + 0.1 * t.lvl.spc);
+              this.damage(room, first, st.dmg, t, { color: '#bfe8ff' });
+              for (var oi = 0; oi < 40; oi++) {
+                var nb = null, bd = jumpO;
+                this.eachNear(curO.x, curO.y, jumpO, function (z) { if (hitO.indexOf(z) >= 0) return; var dd = Math.hypot(z.x - curO.x, z.y - curO.y); if (dd < bd) { bd = dd; nb = z; } });
+                if (!nb) break;
+                hitO.push(nb); ptsO.push({ x: nb.x, y: nb.y }); curO = nb; this.damage(room, nb, st.dmg, t, { color: '#bfe8ff' });
+              }
+              t.fire = 0.5; this.fx.chain(room, ptsO, '#bfe8ff');
+            } else t.cd = 0.1;
+          }
+          break;
+        case 'sonic':
+          if (t.cd <= 0) {
+            var sv = this.inRadius(room, t.px, t.py, st.range);
+            if (sv.length) {
+              t.cd = st.cd;
+              sv.forEach(function (z) { self.damage(room, z, st.dmg, t, { aoe: true }); self.slow(room, z, Math.min(0.8, it.slow * st.spc), it.slowDur); if (z.healer) z.healT = 2; });
+              t.fire = 0.4; this.fx.nova(room, { x: t.px, y: t.py - 6 }, st.range, '#c9b8ff');
+            } else t.cd = 0.1;
+          }
+          break;
+        case 'repairbot':
+          if (t.cd <= 0) {
+            t.cd = it.cd / (1 + G.TRACKS.spd.per * t.lvl.spd);
+            var fixed = false;
+            if (door.hp < door.max) { door.hp = Math.min(door.max, door.hp + door.max * it.heal * st.spc); fixed = true; }
+            room.walls.forEach(function (w) { if (w.hp > 0 && w.hp < w.maxHp) { w.hp = Math.min(w.maxHp, w.hp + w.maxHp * 0.5); fixed = true; } });
+            if (fixed) { t.fire = 0.6; this.fx.repair(room, t); }
+          }
+          break;
+        case 'gravity':
+          if (t.cd <= 0) {
+            var gv = this.inRadius(room, t.px, t.py, st.range);
+            if (gv.length >= 2) {
+              t.cd = it.cd / (1 + G.TRACKS.spd.per * t.lvl.spd);
+              var cx = 0, cy = 0; gv.forEach(function (z) { cx += z.x; cy += z.y; }); cx /= gv.length; cy /= gv.length;
+              room.vortices.push({ room: room.index, soft: true, x: cx, y: cy, r: st.range * 0.9 * (1 + 0.1 * t.lvl.spc), until: now + 1.4, dps: st.dmg, src: t, start: now });
+              t.fire = 0.6; this.fx.vortex(room, cx, cy);
+            } else t.cd = 0.2;
+          }
+          break;
+        case 'orbital':
+          if (t.cd <= 0) {
+            var cand = room.zombies.filter(function (z) { return !z.dead; });
+            this.eachNear(t.px, t.py, 12 * T, function (z) { if (cand.indexOf(z) < 0) cand.push(z); });
+            var big = null; cand.forEach(function (z) { if (!big || z.hp > big.hp) big = z; });
+            if (big) {
+              t.cd = st.cd; t.fire = 0.8;
+              var Ro = it.radius * T * st.spc;
+              this.fx.orbital(room, big.x, big.y, 1);
+              (function (z0, st0) {
+                room.pending.push({ at: now + 1, fn: function () {
+                  self.inRadius(room, z0.x, z0.y, Ro).forEach(function (z) { self.damage(room, z, z === z0 ? st0.dmg : st0.dmg * 0.3, t, { aoe: true, color: '#9ef' }); });
+                  self.fx.beam(room, z0.x, z0.y - 600, z0.x, z0.y, '#bff4ff', 14); self.fx.explosion(room, z0.x, z0.y, Ro, '#bff4ff', true);
+                } });
+              })(big, st);
+            } else t.cd = 0.3;
+          }
+          break;
+        case 'timetower':
+          this.eachNear(t.px, t.py, st.range, function (z) { if (Math.hypot(z.x - t.px, z.y - t.py) <= st.range) z.trapSlowNext = Math.max(z.trapSlowNext || 0, 0.25); });
+          if (t.cd <= 0) {
+            t.cd = it.cd / (1 + G.TRACKS.spd.per * t.lvl.spd);
+            room.towers.forEach(function (o) { if (o !== t && Math.hypot(o.px - t.px, o.py - t.py) <= st.range + 1) o.hasteUntil = now + 3 * st.spc; });
+            t.fire = 0.8; this.fx.nova(room, { x: t.px, y: t.py }, st.range, '#ffe9a8');
+          }
+          break;
+        case 'emp':
+          if (t.cd <= 0) {
+            var ev2 = this.inRadius(room, t.px, t.py, st.range);
+            if (ev2.length) {
+              t.cd = it.cd / (1 + G.TRACKS.spd.per * t.lvl.spd);
+              ev2.forEach(function (z) { z.empUntil = now + 4 * st.spc; });
+              t.fire = 0.6; this.fx.emp(room, { x: t.px, y: t.py }, st.range);
+            } else t.cd = 0.2;
+          }
+          break;
+        case 'kamikaze':
+          var kz = t.data.kz || (t.data.kz = []), maxK = it.drones + Math.floor(t.lvl.spc / 2);
+          if (t.cd <= 0 && kz.length < maxK) { t.cd = st.cd; kz.push({ x: t.px, y: t.py - 12, tgt: null }); t.fire = 0.3; }
+          for (var ki = kz.length - 1; ki >= 0; ki--) {
+            var kd = kz[ki];
+            if (!kd.tgt || kd.tgt.dead) kd.tgt = this.findTarget(room, t.px, t.py, st.range, 'strongest', true, false);
+            var hx = kd.tgt ? kd.tgt.x : t.px + Math.cos(now * 2 + ki * 2) * 24, hy = kd.tgt ? kd.tgt.y - 6 : t.py - 20 + Math.sin(now * 2 + ki * 2) * 10;
+            var kdx = hx - kd.x, kdy = hy - kd.y, kl = Math.hypot(kdx, kdy), ks = 5 * T * dt;
+            if (kl > 1) { kd.x += kdx / kl * Math.min(ks, kl); kd.y += kdy / kl * Math.min(ks, kl); }
+            if (kd.tgt && kl < 12) {
+              var Rk = it.splash * T * (1 + 0.15 * t.lvl.spc);
+              this.inRadius(room, kd.x, kd.y, Rk).forEach(function (z) { self.damage(room, z, st.dmg, t, { aoe: true }); });
+              this.fx.explosion(room, kd.x, kd.y, Rk, '#ffae42'); kz.splice(ki, 1);
+            }
+          }
+          break;
+        case 'nuke':
+          t.data.charge = Math.max(0, Math.min(1, 1 - t.cd / st.cd));
+          if (t.cd <= 0) {
+            var Rn = it.radius * T * (1 + 0.1 * t.lvl.spc), pool = this.inRadius(room, t.px, t.py, st.range);
+            if (pool.length) {
+              var bestN = null, bcN = -1;
+              pool.forEach(function (z) { var c = 0; pool.forEach(function (o) { if (Math.hypot(o.x - z.x, o.y - z.y) < Rn) c += 1 + o.hp / o.maxHp; }); if (c > bcN) { bcN = c; bestN = z; } });
+              t.cd = st.cd; t.fire = 1;
+              this.fx.shot(room, t, bestN.x, bestN.y, 'nuke', 1.2);
+              (function (x0, y0, st0) {
+                room.pending.push({ at: now + 1.2, fn: function () {
+                  self.inRadius(room, x0, y0, Rn).forEach(function (z) { self.damage(room, z, st0.dmg, t, { aoe: true }); });
+                  room.fields.push({ x: x0, y: y0, r: Rn * 0.8, until: room.time + 5, dps: st0.dmg * 0.08, src: t, col: '#9dff5a' });
+                  self.fx.explosion(room, x0, y0, Rn, '#d7ff5a', true); self.fx.nuke(room, x0, y0, Rn);
+                } });
+              })(bestN.x, bestN.y, st);
+            } else t.cd = 0.3;
+          }
+          break;
+        case 'portal':
+          if (t.cd <= 0) {
+            var pv = this.inRadius(room, t.px, t.py, st.range, function (z) { return !z.isBoss; }).sort(function (a, b) { return self.remaining(a) - self.remaining(b); }).slice(0, Math.round(it.count * st.spc));
+            if (pv.length) {
+              t.cd = it.cd / (1 + G.TRACKS.spd.per * t.lvl.spd);
+              pv.forEach(function (z) { var x0 = z.x, y0 = z.y; z.dist = Math.max(0, z.dist - it.back * z.route.len); z.ox = z.oy = 0; self.placeZombie(room, z); self.fx.portal(room, x0, y0, z.x, z.y); });
+              t.fire = 0.6;
+            } else t.cd = 0.2;
+          }
+          break;
+        case 'dimension':
+          if (t.cd <= 0) {
+            var dv = this.findTargets(room, t.px, t.py, st.range, 'strongest', true, false, Math.round(it.links * st.spc));
+            if (dv.length >= 2) {
+              t.cd = st.cd;
+              var link = { share: it.share, until: now + 6, members: dv, src: t };
+              dv.forEach(function (z) { z.link = link; self.damage(room, z, st.dmg, t, { color: '#e08bff' }); });
+              t.fire = 0.6; this.fx.rift(room, dv.map(function (z) { return { x: z.x, y: z.y }; }));
+            } else t.cd = 0.2;
+          }
+          break;
+        case 'storm':
+          if (t.cd <= 0 && !(t.data.stormUntil > now)) {
+            if (this.findTarget(room, t.px, t.py, st.range, 'first', true, false)) { t.data.stormUntil = now + 6; t.data.bolt = 0; t.cd = st.cd + 6; t.fire = 1; }
+            else t.cd = 0.3;
+          }
+          if (t.data.stormUntil > now) {
+            t.data.bolt -= dt;
+            if (t.data.bolt <= 0) {
+              t.data.bolt = 0.35;
+              var sz = this.inRadius(room, t.px, t.py, st.range);
+              if (sz.length) { var vz = sz[(this.rnd() * sz.length) | 0]; this.inRadius(room, vz.x, vz.y, 0.8 * T).forEach(function (z) { self.damage(room, z, st.dmg, t, { aoe: true, color: '#e8f4ff' }); }); this.fx.bolt(room, vz.x, vz.y); }
+            }
+          }
+          break;
+        case 'worldender':
+          t.data.charge = Math.max(0, Math.min(1, 1 - t.cd / (it.cd / (1 + G.TRACKS.spd.per * t.lvl.spd))));
+          if (t.cd <= 0) {
+            var wv = this.inRadius(room, t.px, t.py, st.range);
+            if (wv.length >= 3 || wv.some(function (z) { return z.isBoss; })) {
+              t.cd = it.cd / (1 + G.TRACKS.spd.per * t.lvl.spd);
+              wv.forEach(function (z) { self.damage(room, z, z.isBoss ? z.maxHp * 0.25 * st.spc : z.hp + 10, t, { pierce: true, aoe: true, color: '#ff5050' }); });
+              t.fire = 1.5; this.fx.worldEnd(room, t, st.range);
+            } else t.cd = 0.3;
+          }
+          break;
         case 'drones':
           this.updateDrones(room, t, st, dt);
           break;
@@ -1013,21 +1316,56 @@
       }
     }
     if (t.cd > 0) {
-      if (kind === 'flame' || kind === 'beam') { var tg0 = this.findTarget(room, t.px, t.py, st.range, mode, st.detect, it.groundOnly); if (tg0) t.angle = Math.atan2(tg0.y - t.py, tg0.x - t.px); }
+      if (kind === 'flame' || kind === 'beam' || kind === 'dragon' || kind === 'spray') { var tg0 = this.findTarget(room, t.px, t.py, st.range, mode, st.detect, it.groundOnly); if (tg0) t.angle = Math.atan2(tg0.y - t.py, tg0.x - t.px); }
       return;
     }
-    var tgt = this.findTarget(room, t.px, t.py, st.range, mode, st.detect, it.groundOnly);
-    if (!tgt) { t.cd = 0.05; return; }
+    var ev = this.evoOf(t) || {};
+    var minR = it.minRange ? it.minRange * T : 0;
+    var tgt = minR ? this.findTargets(room, t.px, t.py, st.range, mode, st.detect, it.groundOnly, 1, minR)[0] : this.findTarget(room, t.px, t.py, st.range, mode, st.detect, it.groundOnly && !ev.hitAir);
+    if (!tgt) { t.cd = 0.05; if (kind === 'minigun') t.data.spin = Math.max(0, (t.data.spin || 0) - dt * 2); return; }
     t.cd = st.cd;
     t.angle = Math.atan2(tgt.y - t.py, tgt.x - t.px);
     t.fire = 0.12;
     var dmg = st.dmg;
     var reveal = function (z) { if (it.reveal) z.revealUntil = Math.max(z.revealUntil, now + it.reveal * st.spc); };
+    var hitOpts = function (o) { o = o || {}; if (ev.pierceArmor) o.ap = ev.pierceArmor; return o; };
+    var critDmg = function () { return ev.crit && self.rnd() < ev.crit.chance ? dmg * ev.crit.mult : dmg; };
+    var afterHit = function (z, base) {
+      if (ev.freeze && !z.isBoss && self.rnd() < ev.freeze.chance) z.stunUntil = Math.max(z.stunUntil, now + ev.freeze.dur);
+      if (ev.splashHit) self.inRadius(room, z.x, z.y, ev.splashHit * T, function (o) { return o !== z; }).forEach(function (o) { self.damage(room, o, base * 0.5, t, { aoe: true }); });
+      if (ev.knock && !z.isBoss && !z.heavy) z.dist = Math.max(0, z.dist - ev.knock * T);
+    };
     switch (kind) {
       case 'bullet': case 'hitscan': case 'soul': case 'lastdef':
-        this.damage(room, tgt, dmg, t, {}); reveal(tgt);
-        if (kind === 'lastdef' && room.door.hp < room.door.max * 0.25) this.slow(room, tgt, 0.4, 1);
-        this.fx.shot(room, t, tgt.x, tgt.y, kind);
+        if (ev.pierce) { this.lineHit(room, t, st.range, critDmg(), '#fff7c0', 3); break; }
+        var targets = ev.multi ? this.findTargets(room, t.px, t.py, st.range, mode, st.detect, it.groundOnly, ev.multi) : [tgt];
+        targets.forEach(function (z) {
+          var d = critDmg();
+          for (var sh = 0; sh < (it.shots || 1); sh++) { self.damage(room, z, d, t, hitOpts({})); self.fx.shot(room, t, z.x + (sh ? 6 : 0), z.y + (sh ? -4 : 0), kind); }
+          reveal(z); afterHit(z, d);
+          if (kind === 'lastdef' && room.door.hp < room.door.max * 0.25) self.slow(room, z, 0.4, 1);
+        });
+        break;
+      case 'revolver':
+        if (t.data.ammo == null) t.data.ammo = it.clip;
+        this.damage(room, tgt, dmg, t, {}); this.fx.shot(room, t, tgt.x, tgt.y, 'hitscan');
+        t.data.ammo--;
+        if (t.data.ammo <= 0) { t.data.ammo = it.clip; t.cd = it.reload / (1 + G.TRACKS.spd.per * t.lvl.spd); t.data.reloadUntil = now + t.cd; }
+        break;
+      case 'minigun':
+        t.data.spin = Math.min(1, (t.data.spin || 0) + st.cd / it.spin);
+        t.cd = st.cd / (1 + 4 * t.data.spin);
+        this.damage(room, tgt, dmg, t, {}); if (Math.random() < 0.6) this.fx.shot(room, t, tgt.x + (Math.random() - 0.5) * 8, tgt.y, 'bullet');
+        break;
+      case 'bounce':
+        var hitB = [tgt], curB = tgt, dB = dmg, nB = (it.bounces || 2) + t.lvl.spc;
+        this.damage(room, tgt, dB, t, {}); this.fx.shot(room, t, tgt.x, tgt.y, 'pellet');
+        for (var bi = 0; bi < nB; bi++) {
+          var nxt = null, bdB = 2.5 * T;
+          this.eachNear(curB.x, curB.y, bdB, function (z) { if (hitB.indexOf(z) >= 0 || !self.targetable(room, z, st.detect, false)) return; var dd = Math.hypot(z.x - curB.x, z.y - curB.y); if (dd < bdB) { bdB = dd; nxt = z; } });
+          if (!nxt) break;
+          dB *= 0.8; this.damage(room, nxt, dB, t, {}); this.fx.shot(room, { px: curB.x, py: curB.y + 7, item: it }, nxt.x, nxt.y, 'pellet'); hitB.push(nxt); curB = nxt;
+        }
         break;
       case 'plasma':
         var bonus = tgt.isBoss ? tgt.maxHp * 0.015 : tgt.maxHp * 0.04;
@@ -1035,57 +1373,92 @@
         this.fx.shot(room, t, tgt.x, tgt.y, 'plasma');
         break;
       case 'spread':
-        var pel = it.pellets + t.lvl.spc;
+        var pel = it.pellets + t.lvl.spc + (ev.pellets || 0);
         var near = this.inRadius(room, tgt.x, tgt.y, 1.0 * T, function (z) { return self.targetable(room, z, st.detect, false); });
         if (!near.length) near = [tgt];
         for (var pi = 0; pi < pel; pi++) {
           var z = pi < 2 ? tgt : near[(Math.random() * near.length) | 0];
           this.damage(room, z, dmg, t, {});
+          if (pi < 3) afterHit(z, dmg);
           this.fx.shot(room, t, z.x + (Math.random() - 0.5) * 10, z.y + (Math.random() - 0.5) * 10, 'pellet');
         }
         break;
       case 'frost':
         this.damage(room, tgt, dmg, t, { color: '#9be8ff' });
-        this.slow(room, tgt, Math.min(0.75, it.slow * st.spc), it.slowDur);
+        this.slow(room, tgt, Math.min(0.85, it.slow * st.spc + (ev.slowAdd || 0)), it.slowDur);
+        afterHit(tgt, dmg);
         this.fx.shot(room, t, tgt.x, tgt.y, 'frost');
         break;
       case 'poison':
         this.damage(room, tgt, dmg, t, { color: '#9f3' });
-        var maxSt = it.stacks + t.lvl.spc;
-        tgt.poison.push({ dps: it.pdps * (dmg / it.dmg), until: now + it.pdur });
-        if (tgt.poison.length > maxSt) tgt.poison.shift();
+        this.poison(tgt, it.pdps * (dmg / it.dmg), it.pdur, it.stacks + t.lvl.spc, now);
         this.fx.shot(room, t, tgt.x, tgt.y, 'poison');
         break;
       case 'chain':
-        this.doChain(room, t, tgt, dmg, it.chain + t.lvl.spc, it.jump * T, '#8ef');
+        this.doChain(room, t, tgt, dmg, it.chain + t.lvl.spc + (ev.chainAdd || 0), it.jump * T, ev.stun ? '#fff' : '#8ef', ev.stun);
         break;
-      case 'flame':
-        var hitAny = false;
-        this.inRadius(room, t.px, t.py, st.range, function (z) { return !z.fly; }).forEach(function (z) {
+      case 'flame': case 'dragon': case 'spray':
+        var cone = kind === 'dragon' ? 0.42 : kind === 'spray' ? 0.6 : 0.55, air = kind === 'dragon' || ev.hitAir;
+        this.inRadius(room, t.px, t.py, st.range, function (z) { return air || !z.fly; }).forEach(function (z) {
           var a = Math.atan2(z.y - t.py, z.x - t.px), da = Math.abs(((a - t.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
-          if (da < 0.55) { self.damage(room, z, z.def && z.def.immuneBurn ? dmg * 0.5 : dmg, t, { dot: true, showDot: Math.random() < 0.2, color: '#ff9a3c' }); self.burn(room, z, it.burn * st.spc, it.burnDur); hitAny = true; }
+          if (da >= cone) return;
+          if (kind === 'spray') { self.damage(room, z, dmg, t, { dot: true }); self.poison(z, it.pdps * (1 + G.TRACKS.dmg.per * t.lvl.dmg), it.pdur, it.stacks + t.lvl.spc, now); return; }
+          self.damage(room, z, z.def && z.def.immuneBurn ? dmg * 0.5 : dmg, t, { dot: true, showDot: Math.random() < 0.2, color: '#ff9a3c' });
+          self.burn(room, z, it.burn * st.spc * (ev.burnMul || 1), it.burnDur);
         });
-        this.fx.flame(room, t, st.range);
+        this.fx.flame(room, t, st.range, kind);
         break;
-      case 'splash':
-        var R = it.splash * T * (1 + 0.12 * t.lvl.spc), fl = it.big ? 0.45 : 0.3, tz = tgt;
-        this.fx.shot(room, t, tgt.x, tgt.y, it.big ? 'kaiju' : 'rocket', fl);
-        (function (x0, y0, d0) {
-          room.pending.push({ at: now + fl, fn: function () {
-            var x = tz.dead ? x0 : tz.x, y = tz.dead ? y0 : tz.y;
-            self.inRadius(room, x, y, R).forEach(function (z) { self.damage(room, z, d0, t, { aoe: true }); if (it.stun) z.stunUntil = Math.max(z.stunUntil, room.time + it.stun * (1 + 0.1 * t.lvl.spc)); });
-            self.fx.explosion(room, x, y, R, it.big ? '#7dff4a' : '#ff8c1a', it.big);
-          } });
-        })(tgt.x, tgt.y, dmg);
+      case 'magnet':
+        var armored = tgt.armor - tgt.shred > 0.5;
+        this.damage(room, tgt, dmg * (armored ? 2 : 1), t, { color: '#9cf' });
+        tgt.armor = Math.max(0, tgt.armor - it.shred * st.spc);
+        if (!tgt.isBoss && !tgt.heavy) tgt.dist = Math.max(0, tgt.dist - 0.6 * T);
+        this.fx.beam(room, t.px, t.py - 10, tgt.x, tgt.y, '#7fb8ff', 4);
+        break;
+      case 'splash': case 'mortar':
+        var nR = ev.rockets || 1, rTargets = nR > 1 ? this.findTargets(room, t.px, t.py, st.range, mode, st.detect, it.groundOnly, nR) : [tgt];
+        var R = it.splash * T * (1 + 0.12 * t.lvl.spc) * (ev.splashMul || 1), fl = kind === 'mortar' ? 0.9 : it.big ? 0.45 : 0.3;
+        rTargets.forEach(function (tz) {
+          self.fx.shot(room, t, tz.x, tz.y, kind === 'mortar' ? 'mortar' : it.big ? 'kaiju' : 'rocket', fl);
+          (function (x0, y0, d0) {
+            room.pending.push({ at: now + fl, fn: function () {
+              var x = tz.dead || kind === 'mortar' ? x0 : tz.x, y = tz.dead || kind === 'mortar' ? y0 : tz.y;
+              self.inRadius(room, x, y, R, function (z) { return kind !== 'mortar' || !z.fly; }).forEach(function (z) { self.damage(room, z, d0, t, { aoe: true }); if (it.stun) z.stunUntil = Math.max(z.stunUntil, room.time + it.stun * (1 + 0.1 * t.lvl.spc)); });
+              self.fx.explosion(room, x, y, R, it.big ? '#7dff4a' : kind === 'mortar' ? '#c9a24a' : '#ff8c1a', it.big);
+            } });
+          })(kind === 'mortar' ? tz.x + Math.cos(tz.dir) * tz.speed * 0.6 : tz.x, kind === 'mortar' ? tz.y + Math.sin(tz.dir) * tz.speed * 0.6 : tz.y, dmg);
+        });
         break;
       case 'beam':
-        var ex = t.px + Math.cos(t.angle) * st.range, ey = t.py + Math.sin(t.angle) * st.range;
-        var shred = it.shred * st.spc;
-        this.inRadius(room, (t.px + ex) / 2, (t.py + ey) / 2, st.range / 2 + T).forEach(function (z) {
-          var d = distToSeg(z.x, z.y, t.px, t.py, ex, ey);
-          if (d < 0.45 * T + z.size * 4) { self.damage(room, z, dmg, t, { color: '#ff5a7a' }); z.shred = Math.min(z.armor, z.shred + shred); }
+        var nb = ev.beams || 1, bTargets = nb > 1 ? this.findTargets(room, t.px, t.py, st.range, mode, true, false, nb) : [tgt];
+        bTargets.forEach(function (bz) {
+          var ang = Math.atan2(bz.y - t.py, bz.x - t.px);
+          self.lineHit(room, t, st.range, dmg, '#ff3d6e', 5, ang, function (z) { z.shred = Math.min(z.armor, z.shred + it.shred * st.spc); if (ev.burnHit) self.burn(room, z, ev.burnHit, 2); });
         });
-        this.fx.beam(room, t.px, t.py - 14, ex, ey, '#ff3d6e', 5);
+        break;
+      case 'boomerang':
+        this.lineHit(room, t, st.range, dmg, '#c9a24a', 3);
+        var angB = t.angle;
+        (function () { room.pending.push({ at: now + 0.45, fn: function () { self.lineHit(room, t, st.range, dmg, '#c9a24a', 3, angB); } }); })();
+        this.fx.shot(room, t, t.px + Math.cos(t.angle) * st.range, t.py + Math.sin(t.angle) * st.range, 'boomerang', 0.45);
+        break;
+      case 'assassin':
+        var ex2 = !tgt.isBoss && tgt.hp / tgt.maxHp < it.execute * st.spc;
+        if (ex2) { this.damage(room, tgt, tgt.hp + 1, t, { pierce: true, color: '#c58bff' }); this.fx.text(room, tgt.x, tgt.y - 30, 'EXECUTE', '#c58bff'); }
+        else this.damage(room, tgt, dmg, t, { color: '#c58bff' });
+        this.fx.slash(room, t, tgt);
+        break;
+      case 'celestial':
+        var endPt = this.lineHit(room, t, st.range, dmg, '#ffe9a8', 7);
+        var Rc = it.splash * T * (1 + 0.12 * t.lvl.spc);
+        this.inRadius(room, endPt.x, endPt.y, Rc).forEach(function (z) { self.damage(room, z, dmg * 0.6, t, { aoe: true }); });
+        this.fx.explosion(room, endPt.x, endPt.y, Rc, '#ffe9a8');
+        break;
+      case 'eternal':
+        this.damage(room, tgt, dmg, t, { color: '#fff' });
+        this.burn(room, tgt, dmg * 0.2, 3); this.slow(room, tgt, 0.4, 1.5); this.poison(tgt, dmg * 0.15, 3, 5, now);
+        this.doChain(room, t, tgt, dmg * 0.5, 3, 2 * T, '#ffd6ff');
+        this.fx.shot(room, t, tgt.x, tgt.y, 'plasma');
         break;
       case 'reality':
         this.damage(room, tgt, dmg, t, { color: '#28ffd5' });
@@ -1100,7 +1473,31 @@
         break;
     }
   };
-  M.doChain = function (room, t, first, dmg, n, jump, color) {
+  // hit everything on a line from the tower (returns the end point)
+  M.lineHit = function (room, t, range, dmg, color, width, ang, extra) {
+    var self = this, a = ang != null ? ang : t.angle, ex = t.px + Math.cos(a) * range, ey = t.py + Math.sin(a) * range;
+    this.inRadius(room, (t.px + ex) / 2, (t.py + ey) / 2, range / 2 + T).forEach(function (z) {
+      if (distToSeg(z.x, z.y, t.px, t.py, ex, ey) < 0.45 * T + z.size * 4) { self.damage(room, z, dmg, t, { color: color }); if (extra) extra(z); }
+    });
+    this.fx.beam(room, t.px, t.py - 14, ex, ey, color, width);
+    return { x: ex, y: ey };
+  };
+  M.findTargets = function (room, x, y, range, mode, detect, groundOnly, n, minR) {
+    var self = this, list = [];
+    this.eachNear(x, y, range, function (z) {
+      if (!self.targetable(room, z, detect, groundOnly)) return;
+      var d = Math.hypot(z.x - x, z.y - y); if (d > range || (minR && d < minR)) return;
+      var rem = z.route.len - z.dist;
+      list.push({ z: z, v: mode === 'last' ? rem : mode === 'strongest' ? z.hp - rem * 0.01 : mode === 'closest' ? -d : -rem });
+    });
+    list.sort(function (a, b) { return b.v - a.v; });
+    return list.slice(0, n).map(function (o) { return o.z; });
+  };
+  M.poison = function (z, dps, dur, maxStacks, now) {
+    z.poison.push({ dps: dps, until: now + dur });
+    while (z.poison.length > maxStacks) z.poison.shift();
+  };
+  M.doChain = function (room, t, first, dmg, n, jump, color, stun) {
     var self = this, hit = [first], pts = [{ x: t.px, y: t.py - 20 }, { x: first.x, y: first.y }], cur = first, d = dmg;
     this.damage(room, first, d, t, { color: color });
     for (var i = 1; i < n; i++) {
@@ -1109,6 +1506,7 @@
       if (!best) break;
       d *= 0.9; hit.push(best); pts.push({ x: best.x, y: best.y }); cur = best;
       this.damage(room, best, d, t, { color: color });
+      if (stun && !best.isBoss) best.stunUntil = Math.max(best.stunUntil, room.time + stun);
     }
     this.fx.chain(room, pts, color);
   };

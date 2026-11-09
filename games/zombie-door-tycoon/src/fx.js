@@ -4,12 +4,12 @@
 // =====================================================================
 (function () {
   var T = G.T, TAU = Math.PI * 2;
-  var FX = G.FX = { vis: {}, view: -1, parts: [], shots: [], beams: [], nums: [], rings: [], meteors: [], shake: 0, flash: 0, flashCol: '#fff', hooks: {} };
+  var FX = G.FX = { marks: [], coins: [], vis: {}, view: -1, parts: [], shots: [], beams: [], nums: [], rings: [], meteors: [], shake: 0, flash: 0, flashCol: '#fff', hooks: {} };
   function on(room) { return room && FX.vis && FX.vis[room.index]; }
   function inV(x, y) { var v = FX.viewRect; return v && x > v.x0 - 60 && x < v.x1 + 60 && y > v.y0 - 80 && y < v.y1 + 60; }
   FX.inV = inV;
   function hook(name, a, b, c) { if (FX.hooks[name]) FX.hooks[name](a, b, c); }
-  FX.reset = function () { FX.parts = []; FX.shots = []; FX.beams = []; FX.nums = []; FX.rings = []; FX.meteors = []; FX.shake = 0; };
+  FX.reset = function () { FX.marks = []; FX.coins = []; FX.parts = []; FX.shots = []; FX.beams = []; FX.nums = []; FX.rings = []; FX.meteors = []; FX.shake = 0; };
   FX.particle = function (room, p) { if (!(on(room) || inV(p.x, p.y)) || FX.parts.length > 700) return; p.max = p.life; FX.parts.push(p); };
   function burst(room, x, y, n, col, sp, life, size, type) {
     if (!on(room) && !inV(x, y)) return;
@@ -32,7 +32,16 @@
     claim: function (room, p) { hook('claim', room, p); A.sfx('claim'); },
     event: function (type, d) { hook('event', type, d); },
     place: function (room, t) { if (on(room)) { burst(room, t.px, t.py, 14, ['#fff', G.RAR[t.item.rarity].color], 90, 0.5, 3); FX.rings.push({ x: t.px, y: t.py, r: 6, max: 30, life: 0.4, col: G.RAR[t.item.rarity].color }); A.sfx('place'); } },
-    upgrade: function (room, t) { if (on(room)) { burst(room, t.px, t.py - 10, 18, ['#ffd23f', '#fff'], 120, 0.6, 3); num(room, t.px, t.py - 26, 'UPGRADE!', '#ffd23f'); A.sfx('upgrade'); } },
+    upgrade: function (room, t) {
+      hook('upgrade', room, t);
+      if (!on(room)) return;
+      var tier = G.towerTier ? G.towerTier(t) : 0, col = G.RAR[t.item.rarity].color;
+      burst(room, t.px, t.py - 10, 18 + tier * 2, ['#ffd23f', '#fff', col], 120, 0.6, 3);
+      FX.rings.push({ x: t.px, y: t.py, r: 6, max: 26 + tier * 2, life: 0.45, col: col });
+      num(room, t.px, t.py - 26, tier >= 10 ? '👑 MAX LOOK!' : 'LV ' + tier + '!', '#ffd23f', tier === 5 || tier === 10);
+      if (tier === 5 || tier === 10) { FX.rings.push({ x: t.px, y: t.py, r: 4, max: 60, life: 0.5, col: '#ffffff', fill: true }); FX.shake = Math.max(FX.shake, 3); }
+      A.sfx('upgrade');
+    },
     sell: function (room, t, v) { if (on(room)) { num(room, t.px, t.py - 20, '+$' + fmt(v), '#7dff7d'); burst(room, t.px, t.py, 10, '#aaa', 80, 0.5, 3, 'smoke'); A.sfx('cash'); } },
     doorUpgrade: function (room) { if (on(room)) { var d = room.def.door; burst(room, d.x * T + 20, d.y * T + 10, 26, ['#ffd23f', '#fff', G.doorTier(room.door.lvl).trim], 140, 0.7, 3.5); num(room, d.x * T + 20, d.y * T - 20, G.doorTier(room.door.lvl).name, '#ffd23f', true); A.sfx('upgrade'); } },
     bossIncoming: function (room, b, p) { hook('bossIncoming', room, b, p); },
@@ -46,9 +55,13 @@
       num(room, z.x, z.y - z.size * 22, fmt(amt), col || (amt > 200 ? '#ffd23f' : '#fff'), amt > 1000);
       if (!small) burst(room, z.x, z.y - z.size * 10, 2, shadeGreen(z), 60, 0.3, 2);
     },
-    cash: function (room, x, y, v, farm) { if (inV(x, y)) { num(room, x, y - 10, '+$' + fmt(v), farm ? '#7dff7d' : '#c8ff9a'); if (farm) { burst(room, x, y, 4, '#ffd23f', 50, 0.6, 2.5, 'coin'); A.sfx('cash', 0.5); } } },
-    kill: function (room, z) {
+    cash: function (room, x, y, v, farm, blood) { if (inV(x, y)) { num(room, x, y - 10, (blood ? '🩸' : '') + '+$' + fmt(v), farm ? '#7dff7d' : blood ? '#ff8a8a' : '#c8ff9a'); if (!farm) FX.coins.push({ x: x, y: y - 10, t: 0 }); if (farm) { burst(room, x, y, 4, '#ffd23f', 50, 0.6, 2.5, 'coin'); A.sfx('cash', 0.5); } } },
+    kill: function (room, z, src) {
       if (!inV(z.x, z.y)) return;
+      var ke = src && src.cos && src.cos.kill;
+      if (ke === 'sparks') burst(room, z.x, z.y - 14, 18, ['#ffd23f', '#fff', '#ffae42'], 160, 0.6, 3);
+      if (ke === 'souls') for (var si = 0; si < 3; si++) FX.particle(room, { x: z.x + (si - 1) * 8, y: z.y - 10, vx: (si - 1) * 10, vy: -50, life: 1.2, size: 6, color: 'rgba(200,170,255,.8)', type: 'ghost' });
+      if (ke === 'prism') burst(room, z.x, z.y - 14, 24, ['#ff5ad8', '#5ad8ff', '#ffe65a', '#7dff9a'], 180, 0.7, 3);
       burst(room, z.x, z.y - 10, z.isBoss ? 60 : 10, [z.color, '#4a2', '#2a1'], z.isBoss ? 220 : 100, 0.6, z.isBoss ? 5 : 3, 'debris');
       FX.parts.push({ x: z.x, y: z.y + 2, vx: 0, vy: 0, life: 4, max: 4, size: 7 * z.size, color: 'rgba(60,90,30,.5)', type: 'splat' });
       if (z.type === 'golden') burst(room, z.x, z.y, 20, '#ffd700', 120, 0.8, 3, 'coin');
@@ -79,9 +92,10 @@
       if (kind !== 'pellet' || Math.random() < 0.3) FX.parts.push({ x: sx, y: sy, vx: 0, vy: 0, life: 0.06, max: 0.06, size: kind === 'kaiju' ? 14 : 6, color: '#fff3a0', type: 'flash' });
       A.sfx(kind === 'rocket' || kind === 'kaiju' ? 'launch' : kind === 'frost' ? 'ice' : kind === 'plasma' ? 'plasma' : kind === 'drone' ? 'blip' : 'shoot', 0.5);
     },
-    flame: function (room, t, range) {
+    flame: function (room, t, range, kind) {
       if (!on(room)) return;
-      for (var i = 0; i < 4; i++) { var a = t.angle + (Math.random() - 0.5) * 0.9, v = range * 3 * (0.5 + Math.random() * 0.5); FX.particle(room, { x: t.px + Math.cos(t.angle) * 12, y: t.py - 7 + Math.sin(t.angle) * 12, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.32, size: 5 + Math.random() * 4, color: ['#ff7a1a', '#ffd23f', '#ff3a1a'][i % 3], type: 'fire' }); }
+      var spray = kind === 'spray', drg = kind === 'dragon', n = drg ? 7 : 4;
+      for (var i = 0; i < n; i++) { var a = t.angle + (Math.random() - 0.5) * (drg ? 0.7 : 0.9), v = range * 3 * (0.5 + Math.random() * 0.5); FX.particle(room, { x: t.px + Math.cos(t.angle) * 12, y: t.py - 7 + Math.sin(t.angle) * 12, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.32, size: (drg ? 7 : 5) + Math.random() * 4, color: spray ? ['#9f3', '#cf6', '#6c3'][i % 3] : drg ? ['#ff3a1a', '#ff7a1a', '#ffd23f', '#fff3a0'][i % 4] : ['#ff7a1a', '#ffd23f', '#ff3a1a'][i % 3], type: spray ? 'smoke' : 'fire' }); }
       A.sfx('flame', 0.3);
     },
     beam: function (room, x1, y1, x2, y2, col, w) { if (on(room)) { FX.beams.push({ x1: x1, y1: y1, x2: x2, y2: y2, life: 0.18, max: 0.18, col: col, w: w }); A.sfx('laser', 0.6); } },
@@ -94,7 +108,26 @@
     genesis: function (room, t) { if (on(room)) { FX.flash = 0.6; FX.flashCol = '#fffbe0'; FX.shake = 16; room.zombies.forEach(function (z) { FX.beams.push({ x1: z.x, y1: -20, x2: z.x, y2: z.y, life: 0.5, max: 0.5, col: '#fff2a0', w: 8 }); }); hook('banner', '🌟 GENESIS BEAM', '#fff2a0'); A.sfx('boom'); } },
     rewrite: function (room, t, vic) { if (on(room)) { vic.forEach(function (z) { burst(room, z.x, z.y - 10, 8, ['#f0f', '#0ff', '#28ffd5'], 80, 0.4, 3); }); A.sfx('glitch'); } },
     wallBreak: function (room, w) { if (on(room)) { burst(room, w.px, w.py, 20, ['#b5653a', '#7a3a20', '#ccc'], 140, 0.7, 4, 'debris'); A.sfx('boomS'); } },
-    finished: function (p) { hook('finished', p); }
+    finished: function (p) { hook('finished', p); },
+    evolve: function (room, t, nx) {
+      hook('evolve', room, t, nx);
+      if (!inV(t.px, t.py)) return;
+      FX.rings.push({ x: t.px, y: t.py, r: 4, max: 90, life: 0.5, col: '#ffffff', fill: true });
+      FX.rings.push({ x: t.px, y: t.py, r: 4, max: 60, life: 0.5, col: G.RAR[t.item.rarity].color });
+      burst(room, t.px, t.py - 10, 50, ['#fff', '#ffd23f', G.RAR[t.item.rarity].color], 220, 0.9, 4);
+      for (var i = 0; i < 8; i++) FX.beams.push({ x1: t.px, y1: t.py, x2: t.px + Math.cos(i * 0.785) * 70, y2: t.py + Math.sin(i * 0.785) * 70, life: 0.5, max: 0.5, col: '#fff7c0', w: 4 });
+      num(room, t.px, t.py - 40, '✨ ' + nx.name + '!', '#ffd23f', true);
+      FX.flash = Math.max(FX.flash, 0.15); FX.flashCol = '#fffbe0'; FX.shake = Math.max(FX.shake, 6);
+      A.sfx('summon');
+    },
+    slash: function (room, t, z) { if (!inV(z.x, z.y)) return; FX.beams.push({ x1: z.x - 16, y1: z.y - 30, x2: z.x + 16, y2: z.y + 2, life: 0.2, max: 0.2, col: '#c58bff', w: 4 }); FX.beams.push({ x1: z.x + 16, y1: z.y - 30, x2: z.x - 16, y2: z.y + 2, life: 0.2, max: 0.2, col: '#ffffff', w: 2 }); burst(room, z.x, z.y - 14, 8, '#c58bff', 90, 0.4, 3); A.sfx('zap', 0.4); },
+    orbital: function (room, x, y, delay) { if (!inV(x, y)) return; FX.marks.push({ x: x, y: y, t: 0, dur: delay, col: '#9ef' }); A.sfx('laser'); },
+    repair: function (room, t) { if (!inV(t.px, t.py)) return; var d = room.def.doorPx; FX.beams.push({ x1: t.px, y1: t.py - 10, x2: d.x, y2: d.y, life: 0.4, max: 0.4, col: '#7dff9a', w: 3 }); burst(room, d.x, d.y, 14, ['#7dff9a', '#fff'], 90, 0.6, 3); num(room, d.x, d.y - 26, '🔧 +HP', '#7dff9a'); },
+    nuke: function (room, x, y, r) { if (!inV(x, y)) return; FX.flash = 0.5; FX.flashCol = '#eaffc0'; FX.shake = 20; FX.rings.push({ x: x, y: y, r: 4, max: r * 1.6, life: 1, col: '#d7ff5a', fill: true }); burst(room, x, y - 20, 40, ['#555', '#777', '#9dff5a'], 160, 1.6, 10, 'smoke'); },
+    portal: function (room, x0, y0, x1, y1) { if (inV(x0, y0)) { FX.rings.push({ x: x0, y: y0, r: 2, max: 26, life: 0.5, col: '#b05aff', fill: true }); burst(room, x0, y0, 8, '#d9a8ff', 70, 0.4, 3); } if (inV(x1, y1)) FX.rings.push({ x: x1, y: y1, r: 26, max: 2, life: 0.5, col: '#7a3aff', fill: true }); A.sfx('vortex', 0.4); },
+    rift: function (room, pts) { if (!pts.length || !inV(pts[0].x, pts[0].y)) return; FX.beams.push({ pts: pts, life: 0.6, max: 0.6, col: '#e08bff', w: 3, zig: true }); pts.forEach(function (p) { FX.rings.push({ x: p.x, y: p.y, r: 3, max: 18, life: 0.5, col: '#e08bff' }); }); A.sfx('glitch', 0.5); },
+    bolt: function (room, x, y) { if (!inV(x, y)) return; var pts = [{ x: x + (Math.random() - 0.5) * 40, y: y - 260 }]; for (var i = 1; i < 6; i++) pts.push({ x: x + (Math.random() - 0.5) * 30 * (1 - i / 6), y: y - 260 + i * 52 }); pts.push({ x: x, y: y }); FX.beams.push({ pts: pts, life: 0.25, max: 0.25, col: '#e8f4ff', w: 4 }); burst(room, x, y, 8, ['#fff', '#9cf'], 90, 0.3, 3); FX.flash = Math.max(FX.flash, 0.05); FX.flashCol = '#dfeaff'; A.sfx('zap', 0.6); },
+    worldEnd: function (room, t, r) { if (!inV(t.px, t.py)) return; FX.flash = 0.8; FX.flashCol = '#ff3030'; FX.shake = 28; FX.rings.push({ x: t.px, y: t.py, r: 4, max: r, life: 1.2, col: '#ff3030', fill: true }); FX.rings.push({ x: t.px, y: t.py, r: 4, max: r * 0.6, life: 0.8, col: '#000000', fill: true }); hook('banner', '☄ WORLD ENDER', '#ff5050'); A.sfx('boom'); }
   };
   FX.api = api;
   function shadeGreen(z) { return z.isBoss ? '#a22' : '#5a3'; }
@@ -116,6 +149,8 @@
     for (i = FX.nums.length - 1; i >= 0; i--) { p = FX.nums[i]; p.life -= dt; p.y -= dt * (p.big ? 22 : 34); if (p.life <= 0) FX.nums.splice(i, 1); }
     for (i = FX.rings.length - 1; i >= 0; i--) { p = FX.rings[i]; p.life -= dt; if (p.life <= 0) FX.rings.splice(i, 1); }
     for (i = FX.meteors.length - 1; i >= 0; i--) { p = FX.meteors[i]; p.t += dt; if (p.t >= p.dur) FX.meteors.splice(i, 1); }
+    for (i = FX.marks.length - 1; i >= 0; i--) { p = FX.marks[i]; p.t += dt; if (p.t >= p.dur) FX.marks.splice(i, 1); }
+    for (i = FX.coins.length - 1; i >= 0; i--) { p = FX.coins[i]; p.t += dt; if (p.t >= 0.7) FX.coins.splice(i, 1); }
   };
 
   FX.ambient = function (c, map, dt, W, H) {
@@ -150,13 +185,16 @@
       else if (p.type === 'flash') { c.fillStyle = p.color; c.beginPath(); c.arc(p.x, p.y, p.size, 0, TAU); c.fill(); }
       else if (p.type === 'fire') { c.fillStyle = p.color; c.beginPath(); c.arc(p.x, p.y, p.size * f + 1, 0, TAU); c.fill(); }
       else if (p.type === 'coin') { c.fillStyle = p.color; c.beginPath(); c.ellipse(p.x, p.y, p.size, p.size * Math.abs(Math.sin(p.life * 12)) + 0.5, 0, 0, TAU); c.fill(); }
+      else if (p.type === 'ghost') { c.fillStyle = p.color; c.beginPath(); c.arc(p.x, p.y, p.size, Math.PI, 0); c.lineTo(p.x + p.size, p.y + p.size); c.lineTo(p.x - p.size, p.y + p.size); c.fill(); }
       else if (p.type === 'bubble') { c.strokeStyle = p.color; c.lineWidth = 1; c.beginPath(); c.arc(p.x, p.y, p.size, 0, TAU); c.stroke(); }
       else { c.fillStyle = p.color; c.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size); }
     });
     c.globalAlpha = 1;
     FX.shots.forEach(function (s) {
       var f = s.t / s.dur, x = s.sx + (s.tx - s.sx) * f, y = s.sy + (s.ty - s.sy) * f;
-      if (s.kind === 'rocket' || s.kind === 'kaiju') { var arc = Math.sin(f * Math.PI) * (s.kind === 'kaiju' ? 40 : 20); y -= arc; c.fillStyle = s.kind === 'kaiju' ? '#7dff4a' : '#ddd'; c.beginPath(); c.arc(x, y, s.kind === 'kaiju' ? 8 : 3.5, 0, TAU); c.fill(); FX.parts.push({ x: x, y: y, vx: 0, vy: 0, life: 0.3, max: 0.3, size: s.kind === 'kaiju' ? 7 : 3, color: 'rgba(200,200,200,.5)', type: 'smoke' }); }
+      if (s.kind === 'mortar' || s.kind === 'nuke') { var ar = Math.sin(f * Math.PI) * (s.kind === 'nuke' ? 160 : 90); y -= ar; c.fillStyle = s.kind === 'nuke' ? '#d7ff5a' : '#4a4a3a'; c.beginPath(); c.arc(x, y, s.kind === 'nuke' ? 9 : 5, 0, TAU); c.fill(); if (s.kind === 'nuke') { c.strokeStyle = '#222'; c.lineWidth = 2; c.stroke(); } }
+      else if (s.kind === 'boomerang') { var bf = f < 0.5 ? f * 2 : 2 - f * 2, bx = s.sx + (s.tx - s.sx) * bf, by = s.sy + (s.ty - s.sy) * bf; c.save(); c.translate(bx, by); c.rotate(s.t * 25); c.strokeStyle = '#c9a24a'; c.lineWidth = 4; c.beginPath(); c.moveTo(-9, 0); c.lineTo(0, -6); c.lineTo(9, 0); c.stroke(); c.restore(); }
+      else if (s.kind === 'rocket' || s.kind === 'kaiju') { var arc = Math.sin(f * Math.PI) * (s.kind === 'kaiju' ? 40 : 20); y -= arc; c.fillStyle = s.kind === 'kaiju' ? '#7dff4a' : '#ddd'; c.beginPath(); c.arc(x, y, s.kind === 'kaiju' ? 8 : 3.5, 0, TAU); c.fill(); FX.parts.push({ x: x, y: y, vx: 0, vy: 0, life: 0.3, max: 0.3, size: s.kind === 'kaiju' ? 7 : 3, color: 'rgba(200,200,200,.5)', type: 'smoke' }); }
       else if (s.kind === 'plasma') { c.fillStyle = 'rgba(220,140,255,.5)'; c.beginPath(); c.arc(x, y, 8, 0, TAU); c.fill(); c.fillStyle = '#fff'; c.beginPath(); c.arc(x, y, 3.5, 0, TAU); c.fill(); }
       else if (s.kind === 'frost') { c.fillStyle = '#bff'; c.beginPath(); c.arc(x, y, 3, 0, TAU); c.fill(); }
       else if (s.kind === 'poison') { c.fillStyle = '#9f3'; c.beginPath(); c.arc(x, y, 3, 0, TAU); c.fill(); }
@@ -181,6 +219,18 @@
       c.fillStyle = 'rgba(255,80,0,.25)'; c.beginPath(); c.arc(m.x, m.y, 30 * f + 5, 0, TAU); c.fill();
       c.strokeStyle = 'rgba(255,200,80,.6)'; c.lineWidth = 6; c.beginPath(); c.moveTo(x, y); c.lineTo(x - 30, y - 50); c.stroke();
       c.fillStyle = '#ff6a00'; c.beginPath(); c.arc(x, y, 9, 0, TAU); c.fill(); c.fillStyle = '#ffd23f'; c.beginPath(); c.arc(x, y, 5, 0, TAU); c.fill();
+    });
+    FX.marks.forEach(function (m) {
+      var f = m.t / m.dur;
+      c.strokeStyle = m.col; c.lineWidth = 2; c.globalAlpha = 0.8;
+      c.beginPath(); c.arc(m.x, m.y, 26 - f * 18, 0, TAU); c.stroke();
+      c.beginPath(); c.moveTo(m.x - 30, m.y); c.lineTo(m.x + 30, m.y); c.moveTo(m.x, m.y - 30); c.lineTo(m.x, m.y + 30); c.stroke();
+      c.globalAlpha = 0.25 + f * 0.4; c.fillStyle = m.col; c.fillRect(m.x - 3, m.y - 400, 6, 400); c.globalAlpha = 1;
+    });
+    FX.coins.forEach(function (o) {
+      var f = o.t / 0.7;
+      for (var k = 0; k < 3; k++) { c.globalAlpha = 1 - f; c.fillStyle = '#ffd23f'; c.beginPath(); c.ellipse(o.x + (k - 1) * 9 * f, o.y - 34 * f - k * 4, 4, 4 * Math.abs(Math.cos(o.t * 14 + k)), 0, 0, TAU); c.fill(); }
+      c.globalAlpha = 1;
     });
     c.textAlign = 'center';
     FX.nums.forEach(function (n) {

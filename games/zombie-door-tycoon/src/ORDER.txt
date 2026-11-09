@@ -6,4 +6,5 @@ fx.js
 net.js
 profile.js
 ui.js
+extra.js
 main.js
