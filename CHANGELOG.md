@@ -1,5 +1,17 @@
 # Wijzigingen
 
+## Zombie Door Tycoon 2.2.0 (2026-11-09)
+- **Rarity maakt echt verschil in kracht.** Elke rarity geeft een vaste vermenigvuldiger op damage: Common ×1, Rare ×1,15, Epic ×1,35, Legendary ×1,6, Mythic ×1,9, Secret ×2,25 en Godly ×2,75. Farms krijgen de helft van die bonus op hun inkomen. Je ziet de rarity-kracht in de collectie. De Revolver (Common) was sterker dan veel Rares en doet nu minder damage per schot (9 in plaats van 20).
+- **Nieuwe rarity: Godly**, nog zeldzamer dan Secret (0,02% per Normal Summon, 0,06% per Premium Summon). Godly towers hebben een wit-gouden voet met vleugels, lichtstralen en zwevende vonken. Er zijn 4 Godly towers:
+  - **Archangel**: een engel met zwaard en lichtvleugels. Raakt 4 zombies tegelijk met heilige stralen; elke 6e aanval een heilige nova die alles in bereik raakt, verdooft en je deur een beetje heelt.
+  - **Singularity Engine**: opent een zwart gat dat zombies 4 seconden naar binnen zuigt en vermorzelt, en daarna als supernova ontploft voor 9× damage.
+  - **Omega Titan**: een gouden mech met twee kanonnen die 2 doelen tegelijk beschieten. Elke 4e aanval een salvo van 6 raketten.
+  - **Midas Throne**: een gouden troon met groot inkomen. Kills in bereik leveren +150% geld op en elke 15 s verandert hij een zombie in goud (5× beloning).
+- Elke rarity heeft een eigen rand op de voet van de tower (blauwe streep, paarse edelstenen, gouden noppen, rode hoorns, regenboog, gouden vleugels), zodat je de rarity in één oogopslag ziet. Nieuwe achievement **Godlike**: summon een Godly tower.
+- **Collectie weer gesorteerd:** op rarity, daarna op type (turret, special, support, boost, farm, trap) en prijs.
+- **9 towers die niet echt uniek waren zijn eruit gehaald:** Double Barrel, Basic Barricade en Mini Farm (Common), Radar Tower en Poison Sprayer (Rare), Tesla Coil en Drone Factory (Epic), Jackpot Machine en Time Tower (Legendary). Had je er een, dan krijg je munten terug (60 / 200 / 500 / 1.500 per rarity, maal je sterren + 1) en zie je daar een melding van.
+- Online protocol naar versie 3.
+
 ## Zombie Door Tycoon 2.1.0 (2026-11-09)
 - **Nieuw upgradesysteem:** elke tower heeft nu één upgrade-pad van 10 levels in plaats van losse knoppen per stat. Elk level verbetert een mix van stats, bijvoorbeeld Lv 1: +44% damage en +10% attack speed, Lv 2: +16% range en +10% attack speed. Op level 10 is alles volledig geüpgraded, net als vroeger. Een level kost samen ongeveer wat de losse upgrades kostten.
   - In het torenpaneel zie je het pad: welke levels je al hebt, wat het volgende level doet en de twee daarna. Sneltoets E, Upgrade alles, Auto-upgrade, bots en online werken allemaal met de nieuwe levels.

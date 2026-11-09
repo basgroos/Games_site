@@ -26,6 +26,15 @@
     for (var k in f) if (d[k] === undefined) d[k] = f[k];
     for (var sk in f.settings) if (d.settings[sk] === undefined) d.settings[sk] = f.settings[sk];
     ['kills', 'upgrades', 'evolves', 'killMoney', 'flawless', 'duoWins', 'missions', 'bestMoney', 'bestDoor'].forEach(function (k) { if (d.stats[k] == null) d.stats[k] = 0; });
+    // towers that were taken out of the game: remove them and give coins back
+    var REFUND = { common: 60, rare: 200, epic: 500, legendary: 1500 }, back = 0, gone = [];
+    Object.keys(d.inv).forEach(function (id) {
+      if (G.ITEM[id]) return;
+      var rr = (G.REMOVED_ITEMS || {})[id]; back += (REFUND[rr] || 100) * (1 + (d.inv[id].stars || 0)); gone.push(id);
+      delete d.inv[id]; delete (d.mastery || {})[id]; delete (d.cos || {})[id];
+    });
+    if (gone.length) { d.coins += back; var NM = { doublebarrel: 'Double Barrel', barricade: 'Basic Barricade', minifarm: 'Mini Farm', radartower: 'Radar Tower', sprayer: 'Poison Sprayer', teslacoil: 'Tesla Coil', dronefactory: 'Drone Factory', jackpot: 'Jackpot Machine', timetower: 'Time Tower' };
+      P.removedMsg = gone.length + ' tower(s) zijn uit het spel gehaald (' + gone.map(function (id) { return NM[id] || id; }).join(', ') + '). Je kreeg 🪙' + back + ' terug.'; }
     // sanitize loadout
     d.loadout = (d.loadout || []).filter(function (id, i, a) { return G.ITEM[id] && d.inv[id] && a.indexOf(id) === i; });
     P.d = d; P.fixLoadout(); return d;
@@ -166,6 +175,7 @@
       case 'mapsWon': return ['city', 'frozen', 'volcano'].filter(function (m) { return d.mapWins[m]; }).length;
       case 'owned': return P.ownedCount();
       case 'secrets': return Object.keys(d.inv).filter(function (id) { return G.ITEM[id] && G.ITEM[id].rarity === 'secret'; }).length;
+      case 'godlies': return Object.keys(d.inv).filter(function (id) { return G.ITEM[id] && G.ITEM[id].rarity === 'godly'; }).length;
       case 'bestMastery': return Object.keys(d.mastery).reduce(function (m, id) { return Math.max(m, d.mastery[id].lvl); }, 0);
       default: return s[a.stat] || 0;
     }

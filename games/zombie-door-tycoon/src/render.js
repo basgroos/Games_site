@@ -197,6 +197,12 @@
     var bob = o.anim ? Math.sin(t * 3 + x) * 1.5 : 0, hx = x, hy = y - 7 + bob;
     c.save();
     if (it.place === 'path') { drawTrap(c, it, x, y, o); c.restore(); return; }
+    // godly: rotating rays of light behind the tower
+    if (rar.id === 'godly') {
+      c.save(); c.translate(x, y - 4); c.rotate(t * 0.4);
+      for (var gr = 0; gr < 10; gr++) { c.rotate(TAU / 10); var gg = c.createLinearGradient(0, 0, 0, -36); gg.addColorStop(0, 'rgba(255,240,160,.55)'); gg.addColorStop(1, 'rgba(255,240,160,0)'); c.fillStyle = gg; c.beginPath(); c.moveTo(-3, 0); c.lineTo(0, -38); c.lineTo(3, 0); c.fill(); }
+      c.restore();
+    }
     // rarity aura for high rarities (and every evolved tower)
     if (rar.index >= 3 || evo) {
       var gl = 0.25 + 0.15 * Math.sin(t * 3 + x), ac = evo === 2 ? '#ffd23f' : rar.color;
@@ -236,8 +242,25 @@
     box(c, x - 15, y - 9, 30, 20, 6, top, side, 6);
     if (skin === 'camo') { c.fillStyle = '#3e4a26'; ell(c, x - 6, y - 3, 6, 3); c.fill(); c.fillStyle = '#7a6a3a'; ell(c, x + 7, y + 2, 5, 3); c.fill(); }
     if (skin === 'neon') { c.strokeStyle = 'rgba(0,255,230,' + (0.6 + 0.3 * Math.sin(t * 5)) + ')'; c.lineWidth = 2; rr(c, x - 14, y - 8, 28, 18, 5); c.stroke(); }
+    if (rar.id === 'godly' && !skin) { box(c, x - 15, y - 9, 30, 20, 6, '#f6f1e4', '#b8a77a', 6); c.fillStyle = '#ffd23f'; c.fillRect(x - 15, y - 1, 30, 2); }
     c.strokeStyle = rar.color; c.lineWidth = 2; rr(c, x - 15, y - 9, 30, 20, 6); c.stroke();
+    rarityTrim(c, x, y, rar, t);
     if (rar.id === 'secret') { c.strokeStyle = 'hsl(' + (t * 120 % 360) + ',100%,65%)'; c.lineWidth = 1.5; rr(c, x - 17, y - 11, 34, 24, 7); c.stroke(); }
+  }
+  // every rarity has its own trim on the base, so you see the rarity at a glance
+  function rarityTrim(c, x, y, rar, t) {
+    var i = rar.index;
+    if (i === 1) { c.fillStyle = rar.color; c.fillRect(x - 13, y + 7, 26, 2); }
+    if (i === 2) { [[-13, -7], [13, -7], [-13, 9], [13, 9]].forEach(function (p) { c.fillStyle = rar.color; c.beginPath(); c.moveTo(x + p[0], y + p[1] - 2.5); c.lineTo(x + p[0] + 2.5, y + p[1]); c.lineTo(x + p[0], y + p[1] + 2.5); c.lineTo(x + p[0] - 2.5, y + p[1]); c.fill(); }); }
+    if (i === 3) { [-13, 13].forEach(function (dx) { circ(c, x + dx, y - 7, 2.6, '#ffd23f'); circ(c, x + dx, y + 9, 2.6, '#ffd23f'); }); c.fillStyle = '#ffd23f'; c.fillRect(x - 6, y + 9.5, 12, 1.5); }
+    if (i === 4) { c.fillStyle = '#ff3d6e'; [-15, 15].forEach(function (dx) { var sg = dx < 0 ? -1 : 1; c.beginPath(); c.moveTo(x + dx, y - 6); c.lineTo(x + dx + sg * 6, y - 13); c.lineTo(x + dx, y - 1); c.fill(); }); }
+    if (i === 5) { for (var k = 0; k < 6; k++) circ(c, x - 12.5 + k * 5, y + 10, 1.4, 'hsl(' + ((t * 120 + k * 60) % 360) + ',100%,65%)'); }
+    if (i === 6) {
+      // golden wings + floating sparks
+      c.fillStyle = 'rgba(255,248,210,.9)';
+      [-1, 1].forEach(function (sg) { c.beginPath(); c.moveTo(x + sg * 14, y - 4); c.quadraticCurveTo(x + sg * 27, y - 16 + Math.sin(t * 3) * 2, x + sg * 24, y + 4); c.quadraticCurveTo(x + sg * 20, y, x + sg * 14, y + 4); c.fill(); });
+      for (var q = 0; q < 5; q++) { var a = t * 1.3 + q * 1.26; circ(c, x + Math.cos(a) * 20, y - 10 - ((t * 14 + q * 9) % 26), 1.3, q % 2 ? '#fff' : '#ffd23f'); }
+    }
   }
   // Each upgrade adds real parts to the model: gears, plates, neon, core, ring, sparks, crown
   function tierBase(c, x, y, tier, rar, t) {
@@ -360,6 +383,38 @@
       case 'storm': var act = o.storm; c.fillStyle = '#556'; c.fillRect(x - 2, y - 10, 4, 11); for (i = 0; i < 4; i++) circ(c, x - 9 + i * 6, y - 17 + Math.sin(t * 2 + i) * 1.2, 5 + (i % 2), act ? '#4a5060' : '#9aa4b4'); if (act && Math.random() < 0.4) { c.strokeStyle = '#eef'; c.lineWidth = 1.2; c.beginPath(); var bx = x + (Math.random() - 0.5) * 14; c.moveTo(bx, y - 14); c.lineTo(bx + 3, y - 8); c.lineTo(bx - 1, y - 6); c.lineTo(bx + 2, y); c.stroke(); } break;
       case 'worldender': var wc = o.charge || 0; c.fillStyle = '#1a0606'; c.beginPath(); c.moveTo(x - 10, y + 2); c.lineTo(x - 6, y - 18); c.lineTo(x + 6, y - 18); c.lineTo(x + 10, y + 2); c.fill(); c.strokeStyle = '#f33'; c.lineWidth = 1; c.stroke(); circ(c, x, y - 10, 4 + wc * 3, rgba('#ff3030', 0.5 + wc * 0.5)); for (i = 0; i < 5; i++) { c.fillStyle = i / 5 < wc ? '#ff5050' : '#400'; c.fillRect(x - 7 + i * 3, y - 2, 2, 2); } if (wc > 0.9) { c.strokeStyle = 'rgba(255,60,60,.4)'; c.beginPath(); c.arc(x, y - 10, 14 + Math.sin(t * 20) * 2, 0, TAU); c.stroke(); } break;
       case 'eternal': for (i = 0; i < 5; i++) { var ea = t * 1.3 + i * TAU / 5; circ(c, x + Math.cos(ea) * 11, y - 8 + Math.sin(ea) * 4, 2.3, ['#ff6a6a', '#6aff8a', '#6ab0ff', '#ffd23f', '#e08bff'][i]); } circ(c, x, y - 8, 6, '#fff'); circ(c, x, y - 8, 3.5, 'hsl(' + (t * 90 % 360) + ',100%,70%)'); break;
+      // ---------------- GODLY ----------------
+      case 'archangel':
+        var wf = Math.sin(t * 3) * 3;
+        c.fillStyle = 'rgba(255,250,225,.95)';
+        [-1, 1].forEach(function (sg) { c.beginPath(); c.moveTo(x + sg * 3, y - 12); c.quadraticCurveTo(x + sg * 22, y - 30 - wf, x + sg * 20, y - 4); c.quadraticCurveTo(x + sg * 14, y - 8, x + sg * 3, y - 4); c.fill(); for (var fw = 0; fw < 3; fw++) { c.strokeStyle = 'rgba(220,200,140,.6)'; c.lineWidth = 0.8; c.beginPath(); c.moveTo(x + sg * 6, y - 9 + fw * 2); c.lineTo(x + sg * (16 + fw * 2), y - 22 + fw * 5 - wf * 0.5); c.stroke(); } });
+        c.fillStyle = '#f2ead2'; rr(c, x - 4.5, y - 16, 9, 15, 3); c.fill();
+        circ(c, x, y - 20, 4.5, '#ffe2b8');
+        c.strokeStyle = '#ffd23f'; c.lineWidth = 1.5; ell(c, x, y - 27, 6, 1.8); c.stroke();
+        c.save(); c.translate(x + 6, y - 10); c.rotate(a * 0.3 - 0.6 + (fire > 0 ? 0.8 : 0)); c.fillStyle = '#fffbe0'; c.fillRect(0, -1, 16, 2); c.fillStyle = '#ffd23f'; c.fillRect(-1, -3, 2, 6); c.restore();
+        if (fire > 0) circ(c, x, y - 20, 9, 'rgba(255,240,160,.35)');
+        break;
+      case 'singularity':
+        c.fillStyle = '#2a2140'; c.beginPath(); c.moveTo(x - 11, y + 2); c.lineTo(x - 7, y - 12); c.lineTo(x + 7, y - 12); c.lineTo(x + 11, y + 2); c.fill();
+        for (i = 0; i < 4; i++) { c.save(); c.translate(x, y - 16); c.rotate(t * (1.2 + i * 0.5) + i); c.strokeStyle = ['#e0b0ff', '#8bf0ff', '#ffd23f', '#ff7ad8'][i]; c.lineWidth = 1.4; ell(c, 0, 0, 15 - i * 2, 4 + i); c.stroke(); c.restore(); }
+        var sg2 = c.createRadialGradient(x, y - 16, 1, x, y - 16, 9); sg2.addColorStop(0, '#000'); sg2.addColorStop(0.7, '#1a0030'); sg2.addColorStop(1, 'rgba(200,140,255,.9)');
+        c.fillStyle = sg2; c.beginPath(); c.arc(x, y - 16, 8 + Math.sin(t * 4) * 0.8, 0, TAU); c.fill();
+        break;
+      case 'omegatitan':
+        c.fillStyle = '#3a3f4a'; c.fillRect(x - 9, y - 4, 7, 8); c.fillRect(x + 2, y - 4, 7, 8);
+        box(c, x - 11, y - 20, 22, 17, 4, '#d8b04a', '#8a6a1a', 3);
+        c.fillStyle = '#1a1a1a'; c.fillRect(x - 6, y - 17, 12, 4); c.fillStyle = fire > 0 ? '#fff' : '#ff3030'; c.fillRect(x - 5, y - 16, 10, 2);
+        [-1, 1].forEach(function (sg) { c.save(); c.translate(x + sg * 12, y - 13); c.rotate(a); c.fillStyle = '#5a5f6a'; rr(c, -3, -3.5, 18 * BS, 7, 2); c.fill(); c.fillStyle = '#ffd23f'; c.fillRect(14 * BS, -3.5, 3, 7); c.restore(); circ(c, x + sg * 12, y - 13, 4, '#8a6a1a'); });
+        for (i = 0; i < 3; i++) { c.fillStyle = '#eee'; c.fillRect(x - 5 + i * 4, y - 26, 2.4, 6); c.fillStyle = '#e33'; c.fillRect(x - 5 + i * 4, y - 27, 2.4, 1.5); }
+        break;
+      case 'midas':
+        c.fillStyle = '#b8860b'; c.fillRect(x - 11, y - 2, 22, 5);
+        c.fillStyle = '#ffd23f'; rr(c, x - 9, y - 22, 18, 21, 4); c.fill();
+        c.fillStyle = '#c0392b'; rr(c, x - 6, y - 12, 12, 10, 2); c.fill();
+        c.fillStyle = '#fff2a0'; c.beginPath(); c.moveTo(x - 9, y - 22); c.lineTo(x - 5, y - 28); c.lineTo(x, y - 24); c.lineTo(x + 5, y - 28); c.lineTo(x + 9, y - 22); c.fill();
+        circ(c, x, y - 25, 1.6, '#3af'); circ(c, x - 11, y - 8, 2.5, '#ffd23f'); circ(c, x + 11, y - 8, 2.5, '#ffd23f');
+        for (i = 0; i < 4; i++) { var ca2 = t * 2 + i * 1.57; c.fillStyle = '#ffd23f'; ell(c, x + Math.cos(ca2) * 15, y + 4 + Math.sin(ca2) * 4, 3, 1.3); c.fill(); }
+        break;
       default: circ(c, x, y, 8, '#888');
     }
     towerParts(c, it, x, y, a, lv, t);

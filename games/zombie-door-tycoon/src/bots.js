@@ -49,6 +49,9 @@
       case 'meteor': v = d / cd * 3; cov = 1; break;
       case 'blackhole': v = d * it.hold / cd * 3 + 40 * match.wave; break;
       case 'drones': v = d * it.drones / cd; break;
+      case 'archangel': v = d * it.beams / cd * 1.1; break;
+      case 'titan': v = d * 2 / cd * 2.4; break;
+      case 'singularity': v = d * (it.hold + it.burst) / cd * 3; break;
       case 'timeslow': v = 60 * match.wave; cov = 1; break;
       case 'spike': v = d / cd * 1.5; cov = 1; break;
       case 'mine': v = d / it.rearm * 2; cov = 1; break;

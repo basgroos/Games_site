@@ -76,6 +76,7 @@
     $('bMis').onclick = function () { click(); UI.openMissions(); };
     $('bSet').onclick = function () { click(); UI.openSettings(); };
     UI.flushAch();
+    if (P.removedMsg) { UI.toast('🔁 ' + esc(P.removedMsg), '#ffd23f'); P.removedMsg = null; P.save(); }
   };
   function renderSlots(el, size) {
     el.innerHTML = '';
@@ -274,14 +275,14 @@
       G.Audio.sfx('reveal');
       fx.style.setProperty('--rc', br.color);
       var h = '<div class="rays"></div>';
-      if (br.index >= 4) h += '<div class="bigrar ' + (br.id === 'secret' ? 'secretglow' : '') + '" style="color:' + br.color + ';position:relative">' + br.name.toUpperCase() + '!</div>';
+      if (br.index >= 4) h += '<div class="bigrar ' + (br.id === 'secret' ? 'secretglow' : br.id === 'godly' ? 'godlyglow' : '') + '" style="color:' + br.color + ';position:relative">' + br.name.toUpperCase() + '!</div>';
       h += '<div class="rgrid ' + (one ? 'one' : '') + '" id="rgrid"></div><div style="position:relative;display:flex;gap:10px"><button class="btn" id="rSkip">Alles tonen</button><button class="btn yellow" id="rDone">Verder</button></div>';
       fx.innerHTML = h;
       results.forEach(function (r, i) {
         var it = r.item, rar = G.RAR[it.rarity], card = document.createElement('div'); card.className = 'rcard';
         card.style.setProperty('--rc', rar.color); card.style.setProperty('--rc2', rar.dark);
         var tag = r.isNew ? '<div class="tag" style="color:#7dff7d">NIEUW!</div>' : r.starUp ? '<div class="tag" style="color:#ffd23f">+1★ (' + r.starUp + '/5)</div>' : '<div class="tag">+🪙' + r.coins + '</div>';
-        card.innerHTML = '<div class="rin"><div class="rf">?</div><div class="rb ' + (rar.id === 'secret' ? 'secretglow' : '') + '"><div class="rn">' + rar.name + '</div><div class="ic"></div><b>' + esc(it.name) + '</b>' + tag + '</div></div>';
+        card.innerHTML = '<div class="rin"><div class="rf">?</div><div class="rb ' + (rar.id === 'secret' ? 'secretglow' : rar.id === 'godly' ? 'godlyglow' : '') + '"><div class="rn">' + rar.name + '</div><div class="ic"></div><b>' + esc(it.name) + '</b>' + tag + '</div></div>';
         card.querySelector('.ic').appendChild(UI.icon(it, one ? 120 : 76));
         $('rgrid').appendChild(card);
         setTimeout(function () { card.classList.add('flip'); if (rar.index >= 3) G.Audio.sfx('upgrade'); }, 250 + i * (one ? 0 : 180));
@@ -297,14 +298,16 @@
   //  COLLECTION + LOADOUT
   // ---------------------------------------------------------------------
   UI.itemStats = function (it, stars) {
-    var m = 1 + 0.05 * (stars || 0), rows = [];
-    rows.push(['Rarity', '<span style="color:' + G.RAR[it.rarity].color + '">' + G.RAR[it.rarity].name + '</span>']);
+    var rr = G.RAR[it.rarity], m = 1 + 0.05 * (stars || 0), mi = m * rr.incPower, rows = [];
+    m *= rr.power;
+    rows.push(['Rarity', '<span style="color:' + rr.color + '">' + rr.name + '</span>']);
+    rows.push(['Rarity-kracht', '<span style="color:' + rr.color + '">×' + rr.power.toFixed(2) + ' damage' + (it.income ? ', ×' + rr.incPower.toFixed(2) + ' inkomen' : '') + '</span>']);
     rows.push(['Type', G.CATS[it.cat].icon + ' ' + G.CATS[it.cat].name + (it.place === 'path' ? ' (op pad)' : '')]);
     rows.push(['Damage', it.dmg ? fmt(it.dmg * m) + (it.kind === 'spread' ? ' × ' + it.pellets : '') + (it.kind === 'aura' ? '/s' : '') : '—']);
     rows.push(['Attack Speed', it.cd && it.dmg ? (it.cd >= 4 && !it.dmg ? '-' : (1 / it.cd).toFixed(2) + '/s') : it.cd ? 'iedere ' + it.cd + 's' : '—']);
     rows.push(['Range', it.global ? 'Hele kamer' : it.range ? it.range.toFixed(1) + ' vakjes' : '—']);
     rows.push(['Special Ability', it.ability || '—']);
-    rows.push(['Inkomen', it.income ? '$' + fmt(it.income * m) + (it.kind === 'mine_farm' ? ' / 20s' : ' / 5s') + ' (' + (it.income * m / (it.every || 5)).toFixed(1) + '/s)' : '—']);
+    rows.push(['Inkomen', it.income ? '$' + fmt(it.income * mi) + (it.kind === 'mine_farm' ? ' / 20s' : ' / 5s') + ' (' + (it.income * mi / (it.every || 5)).toFixed(1) + '/s)' : '—']);
     rows.push(['Plaatsprijs', '$' + fmt(it.cost)]);
     rows.push(['Max per kamer', it.limit]);
     rows.push(['Upgrades', G.UPGRADE_LEVELS + ' levels, elk een mix van ' + it.tracks.map(function (t) { return G.TRACKS[t].name.toLowerCase(); }).join(', ')]);

@@ -14,8 +14,12 @@ G.RARITIES = [
   { id: 'epic',      name: 'Epic',      color: '#b65cff', dark: '#5a1f8f', weight: 10,  limit: 5, dupeCoins: 60,   stars: 5 },
   { id: 'legendary', name: 'Legendary', color: '#ffb526', dark: '#8f5a00', weight: 3.2, limit: 3, dupeCoins: 150,  stars: 5 },
   { id: 'mythic',    name: 'Mythic',    color: '#ff3d6e', dark: '#8f1030', weight: 0.7, limit: 2, dupeCoins: 400,  stars: 5 },
-  { id: 'secret',    name: 'Secret',    color: '#28ffd5', dark: '#0b6f63', weight: 0.1, limit: 1, dupeCoins: 1500, stars: 5 }
+  { id: 'secret',    name: 'Secret',    color: '#28ffd5', dark: '#0b6f63', weight: 0.1, limit: 1, dupeCoins: 1500, stars: 5 },
+  { id: 'godly',     name: 'Godly',     color: '#fff09a', dark: '#8a6d00', weight: 0.02, limit: 1, dupeCoins: 4000, stars: 5 }
 ];
+// Rarity power: every tower hits harder (and farms earn more) the rarer it is.
+G.RARITY_POWER = { common: 1, rare: 1.15, epic: 1.35, legendary: 1.6, mythic: 1.9, secret: 2.25, godly: 2.75 };
+G.RARITIES.forEach(function (r) { r.power = G.RARITY_POWER[r.id]; r.incPower = 1 + (r.power - 1) * 0.5; });
 G.RAR = {}; G.RARITIES.forEach(function (r, i) { r.index = i; G.RAR[r.id] = r; });
 
 // Summon banners. Premium = 10x price, 3x luck (luck multiplies Epic and higher).
@@ -182,34 +186,20 @@ G.ITEMS = [
     desc: 'Wordt sterker naarmate je deur minder HP heeft: tot 5x damage en 2x attack speed.', ability: 'Desperation scaling' },
   // =================== EXPANSION: 30 NEW TOWERS ===================
   // ---------------- COMMON ----------------
-  { id: 'doublebarrel', name: 'Double Barrel', rarity: 'common', cat: 'turret', cost: 220, kind: 'bullet', shots: 2,
-    dmg: 4, cd: 0.6, range: 4.5, tracks: ['dmg', 'spd', 'rng'], desc: 'Vuurt twee kogels tegelijk af.', ability: '2 kogels per schot' },
   { id: 'revolver', name: 'Revolver Tower', rarity: 'common', cat: 'turret', cost: 260, kind: 'revolver',
-    dmg: 20, cd: 0.32, clip: 6, reload: 2.4, range: 5, tracks: ['dmg', 'spd', 'rng'], desc: 'Zes krachtige schoten achter elkaar, daarna herladen.', ability: '6 schoten, dan herladen' },
+    dmg: 9, cd: 0.32, clip: 6, reload: 2.4, range: 5, tracks: ['dmg', 'spd', 'rng'], desc: 'Zes krachtige schoten achter elkaar, daarna herladen.', ability: '6 schoten, dan herladen' },
   { id: 'slingshot', name: 'Slingshot Tower', rarity: 'common', cat: 'turret', cost: 120, kind: 'bounce',
     dmg: 4, cd: 0.9, range: 4.2, bounces: 2, tracks: ['dmg', 'spd', 'spc'], desc: 'Goedkope stenen die doorstuiteren naar 2 andere zombies.', ability: 'Stuitert 2x (+1 per SPC)' },
-  { id: 'barricade', name: 'Basic Barricade', rarity: 'common', cat: 'trap', cost: 130, kind: 'wall', place: 'path',
-    hp: 160, thorns: 6, rebuild: 10, tracks: ['spc'], desc: 'Prikkeldraad-barricade vóór je deur. Zombies die erop slaan, prikken zichzelf.', ability: 'Blokkeert + terugprikken' },
-  { id: 'minifarm', name: 'Mini Farm', rarity: 'common', cat: 'farm', cost: 140, kind: 'harvest',
-    income: 10, growth: 3, tracks: ['inc'], desc: 'Een moestuintje: levert elke wave $3 per 5s meer op.', ability: 'Groeit elke wave' },
   // ---------------- RARE ----------------
   { id: 'minigun', name: 'Minigun', rarity: 'rare', cat: 'turret', cost: 550, kind: 'minigun',
     dmg: 3, cd: 0.3, spin: 3, range: 4.5, tracks: ['dmg', 'spd', 'rng'], desc: 'Draait op en schiet steeds sneller zolang hij blijft vuren.', ability: 'Spin-up tot 5x sneller' },
-  { id: 'radartower', name: 'Radar Tower', rarity: 'rare', cat: 'support', cost: 450, kind: 'revealer',
-    range: 4.5, buffRange: 0.15, tracks: ['rng', 'spc'], desc: 'Maakt onzichtbare zombies in zijn bereik zichtbaar voor iedereen en geeft towers in de buurt +15% range.', ability: 'Onthult gebied + range' },
   { id: 'boomerang', name: 'Boomerang Tower', rarity: 'rare', cat: 'turret', cost: 480, kind: 'boomerang',
     dmg: 14, cd: 1.4, range: 5, tracks: ['dmg', 'spd', 'rng'], desc: 'Een boemerang die alles op zijn pad raakt, heen én terug.', ability: 'Raakt 2x in een lijn' },
-  { id: 'sprayer', name: 'Poison Sprayer', rarity: 'rare', cat: 'turret', cost: 500, kind: 'spray', groundOnly: true,
-    dmg: 1, cd: 0.6, range: 3.3, pdps: 4, pdur: 3, stacks: 3, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Sproeit een gifwolk in een kegel: iedereen erin krijgt poison.', ability: 'Gif-kegel' },
   { id: 'magnet', name: 'Magnetic Cannon', rarity: 'rare', cat: 'turret', cost: 600, kind: 'magnet',
     dmg: 18, cd: 1.6, range: 4.8, shred: 4, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Trekt het pantser van zombies af (permanent), doet 2x damage tegen gepantserden en duwt ze terug.', ability: 'Armor strip + knockback' },
   // ---------------- EPIC ----------------
   { id: 'mortar', name: 'Mortar Tower', rarity: 'epic', cat: 'turret', cost: 900, kind: 'mortar', groundOnly: true,
     dmg: 60, cd: 3.2, range: 10, minRange: 2.5, splash: 1.5, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Granaten met enorm bereik en splash, maar kan niet dichtbij schieten.', ability: 'Lange afstand splash' },
-  { id: 'dronefactory', name: 'Drone Factory', rarity: 'epic', cat: 'special', cost: 1100, kind: 'kamikaze',
-    dmg: 70, cd: 3.5, range: 8, splash: 1.0, drones: 3, tracks: ['dmg', 'spd', 'spc'], desc: 'Bouwt kamikaze-drones die op zombies afvliegen en ontploffen.', ability: 'Zelfzoekende drones' },
-  { id: 'teslacoil', name: 'Tesla Coil', rarity: 'epic', cat: 'special', cost: 950, kind: 'overload',
-    dmg: 26, cd: 2.4, range: 4.2, jump: 1.8, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Laadt statische stroom op en ontlaadt die in een kettingbliksem die van zombie naar zombie springt — zonder limiet, zolang ze dicht genoeg bij elkaar lopen.', ability: 'Onbeperkte keten' },
   { id: 'sonic', name: 'Sonic Tower', rarity: 'epic', cat: 'special', cost: 850, kind: 'sonic',
     dmg: 6, cd: 3, range: 3.6, slow: 0.5, slowDur: 2, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Geluidsgolven vertragen alles in de buurt en onderbreken healers.', ability: 'Pulse-slow' },
   { id: 'repairbot', name: 'Repair Bot Factory', rarity: 'epic', cat: 'support', cost: 1000, kind: 'repairbot',
@@ -221,14 +211,10 @@ G.ITEMS = [
     dmg: 900, cd: 6, radius: 1.0, tracks: ['dmg', 'spd', 'spc'], desc: 'Richt een satelliet op de sterkste zombie die naar jouw kamer komt: na 1s een orbitale inslag.', ability: 'Orbital strike' },
   { id: 'assassin', name: 'Shadow Assassin', rarity: 'legendary', cat: 'turret', cost: 1600, kind: 'assassin', detect: true, target: 'strongest',
     dmg: 120, cd: 1.1, range: 6, execute: 0.15, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Valt altijd de sterkste zombie aan en executeert zombies onder 15% HP (geen bosses).', ability: 'Execute' },
-  { id: 'timetower', name: 'Time Tower', rarity: 'legendary', cat: 'boost', cost: 1500, kind: 'timetower',
-    cd: 10, range: 3, tracks: ['spd', 'rng', 'spc'], desc: 'Geeft towers in de buurt elke 10s 3s lang dubbele vuursnelheid en vertraagt zombies in zijn bereik.', ability: 'Haste-burst' },
   { id: 'emptower', name: 'EMP Tower', rarity: 'legendary', cat: 'special', cost: 1400, kind: 'emp',
     cd: 7, range: 4.2, tracks: ['spd', 'rng', 'spc'], desc: 'Schakelt speciale vaardigheden uit: geen healing, regeneratie, onzichtbaarheid, schilden of boss-abilities.', ability: 'Ability-blokker' },
   { id: 'bloodbank', name: 'Blood Bank', rarity: 'legendary', cat: 'farm', cost: 1500, kind: 'bloodbank',
     income: 0, bounty: 0.6, range: 4.5, limit: 2, tracks: ['inc', 'rng'], desc: 'Zombies die in zijn bereik sterven leveren 60% meer geld op.', ability: '+60% kill-geld' },
-  { id: 'jackpot', name: 'Jackpot Machine', rarity: 'legendary', cat: 'farm', cost: 1300, kind: 'jackpot',
-    income: 200, tracks: ['inc'], desc: 'Gokkast: elke 5s een spin. Vaak niets, soms veel, heel soms de jackpot (15x).', ability: 'Random uitbetaling' },
   // ---------------- MYTHIC ----------------
   { id: 'nuke', name: 'Nuclear Reactor', rarity: 'mythic', cat: 'special', cost: 4200, kind: 'nuke',
     dmg: 1500, cd: 12, range: 7, radius: 3.5, tracks: ['dmg', 'spd', 'spc'], desc: 'Laadt op en lanceert een kernexplosie op de grootste groep, met een stralingsveld erna.', ability: 'Nuke + straling' },
@@ -246,9 +232,21 @@ G.ITEMS = [
   { id: 'worldender', name: 'World Ender', rarity: 'secret', cat: 'special', cost: 9500, kind: 'worldender',
     cd: 40, range: 7, limit: 1, tracks: ['spd', 'rng', 'spc'], desc: 'Eens per 40s: vaagt álle gewone zombies in bereik weg en haalt 25% van de HP van bosses af.', ability: 'Totale vernietiging' },
   { id: 'eternal', name: 'Eternal Machine', rarity: 'secret', cat: 'special', cost: 9000, kind: 'eternal', detect: true,
-    dmg: 180, cd: 0.5, range: 6.5, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Elk schot is kogel, bliksem, vuur, ijs én gif tegelijk.', ability: 'Alles-in-één' }
+    dmg: 180, cd: 0.5, range: 6.5, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Elk schot is kogel, bliksem, vuur, ijs én gif tegelijk.', ability: 'Alles-in-één' },
+  // ---------------- GODLY (rarest) ----------------
+  { id: 'archangel', name: 'Archangel', rarity: 'godly', cat: 'turret', cost: 15000, upCost: 26000, kind: 'archangel', detect: true,
+    dmg: 260, cd: 0.7, range: 7.5, beams: 4, novaEvery: 6, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Een engel met zwaard en vleugels van licht. Raakt 4 zombies tegelijk met heilige stralen; elke 6e aanval een heilige nova die alles in bereik raakt, verdooft en je deur heelt.', ability: '4 stralen + heilige nova' },
+  { id: 'singularity', name: 'Singularity Engine', rarity: 'godly', cat: 'special', cost: 16000, upCost: 27000, kind: 'singularity',
+    dmg: 240, cd: 7, range: 7, radius: 2.3, hold: 4, burst: 9, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Opent een singulariteit die zombies 4 seconden naar binnen zuigt en vermorzelt, en daarna ontploft voor 9x damage.', ability: 'Zwart gat + supernova' },
+  { id: 'omegatitan', name: 'Omega Titan', rarity: 'godly', cat: 'turret', cost: 17000, upCost: 28000, kind: 'titan', detect: true,
+    dmg: 650, cd: 1.2, range: 8, splash: 1.6, salvo: 6, salvoEvery: 4, tracks: ['dmg', 'spd', 'rng', 'spc'], desc: 'Een reusachtige mech met twee kanonnen die 2 doelen tegelijk beschiet. Elke 4e aanval vuurt hij een salvo van 6 raketten af.', ability: 'Dubbel kanon + raketsalvo' },
+  { id: 'midas', name: 'Midas Throne', rarity: 'godly', cat: 'farm', cost: 18000, upCost: 30000, kind: 'midas',
+    income: 2400, range: 5, bounty: 1.5, touchEvery: 15, tracks: ['inc', 'rng', 'spc'], desc: 'Een gouden troon: groot inkomen, kills in bereik leveren +150% geld op en elke 15s verandert hij een zombie in goud (5x beloning).', ability: 'Gouden aanraking' }
 
 ];
+var CAT_ORDER = { turret: 0, special: 1, support: 2, boost: 3, farm: 4, trap: 5 };
+G.ITEMS.sort(function (a, b) { return G.RAR[a.rarity].index - G.RAR[b.rarity].index || CAT_ORDER[a.cat] - CAT_ORDER[b.cat] || a.cost - b.cost; });
+G.REMOVED_ITEMS = { doublebarrel: 'common', barricade: 'common', minifarm: 'common', radartower: 'rare', sprayer: 'rare', teslacoil: 'epic', dronefactory: 'epic', jackpot: 'legendary', timetower: 'legendary' };
 G.ITEM = {}; G.ITEMS.forEach(function (it, i) {
   it.index = i; it.place = it.place || 'slot'; G.ITEM[it.id] = it;
   it.isFarm = it.cat === 'farm';
@@ -654,6 +652,7 @@ G.ACHIEVEMENTS = [
   { id: 'collect25', icon: '🗃️', name: 'Tower Collector',    desc: 'Bezit 25 verschillende towers.',           stat: 'owned',       goal: 25,      reward: 1200 },
   { id: 'collect30', icon: '🏛️', name: 'Museumdirecteur',    desc: 'Bezit 30 verschillende towers.',           stat: 'owned',       goal: 30,      reward: 2000 },
   { id: 'secret',    icon: '❓', name: 'Secret Hunter',      desc: 'Summon een Secret tower.',                 stat: 'secrets',     goal: 1,       reward: 3000 },
+  { id: 'godly',     icon: '🌟', name: 'Godlike',            desc: 'Summon een Godly tower.',                  stat: 'godlies',     goal: 1,       reward: 8000 },
   { id: 'rich',      icon: '💰', name: 'Millionaire',        desc: 'Verdien $1.000.000 in één potje.',         stat: 'bestMoney',   goal: 1000000, reward: 1000 },
   { id: 'door15',    icon: '🚪', name: 'Poortwachter',       desc: 'Upgrade je deur naar level 15.',           stat: 'bestDoor',    goal: 15,      reward: 700 },
   { id: 'build100',  icon: '🔨', name: 'Master Builder',     desc: 'Doe in totaal 100 tower-upgrades.',        stat: 'upgrades',    goal: 100,     reward: 800 },

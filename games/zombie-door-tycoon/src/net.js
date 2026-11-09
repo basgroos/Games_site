@@ -14,7 +14,7 @@
   var BUILD = G.BUILD = Object.assign({ env: 'live', version: 'dev', home: '' }, W.HW_BUILD || {});
   var T = G.T;
   var SNAP_EVERY = 0.2, TOWERS_EVERY = 1.0, START_EVERY = 3, ROSTER_EVERY = 1.5, POS_EVERY = 0.12;
-  var MAX_PLAYERS = 8, PROTO = 2;
+  var MAX_PLAYERS = 8, PROTO = 3;
 
   function rid(n) { var s = '', a = 'abcdefghijklmnopqrstuvwxyz0123456789'; for (var i = 0; i < n; i++) s += a[(Math.random() * a.length) | 0]; return s; }
   function code5() { var s = '', a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; for (var i = 0; i < 5; i++) s += a[(Math.random() * a.length) | 0]; return s; }

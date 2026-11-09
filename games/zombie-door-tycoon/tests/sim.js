@@ -33,8 +33,28 @@ const winners = m.players.filter((p) => p.finished && p.alive).length;
 ok(winners >= 4, winners + '/8 bots survived Easy with starter towers');
 ok(m.players.every((p) => p.room >= 0), 'every bot claimed a room');
 
+// ---- 2.2: rarity power, Godly, removed towers, sorted index ----
+ok(G.RARITIES.length === 7 && G.RARITIES[6].id === 'godly' && G.itemsByRarity('godly').length >= 4, 'Godly rarity with ' + G.itemsByRarity('godly').length + ' towers');
+ok(G.RARITIES.every((r, i) => !i || r.power > G.RARITIES[i - 1].power), 'every rarity is clearly stronger (' + G.RARITIES.map((r) => r.power).join(' < ') + ')');
+['normal', 'premium'].forEach((b) => { const o = G.summonOdds(b); ok(o.godly > 0 && o.godly < o.secret, b + ': Godly ' + o.godly.toFixed(2) + '% (rarer than Secret)'); });
+ok(Object.keys(G.REMOVED_ITEMS).every((id) => !G.ITEM[id]), Object.keys(G.REMOVED_ITEMS).length + ' non-unique towers removed');
+ok(G.ITEMS.every((it, i) => !i || G.RAR[it.rarity].index >= G.RAR[G.ITEMS[i - 1].rarity].index), 'index sorted by rarity');
+(function () {
+  const pl = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => ({ name: 'g' + i, isBot: true, loadout: ['pistol', 'archangel', 'omegatitan', 'singularity', 'midas'] }));
+  const g = new G.Match({ mapId: 'city', diffId: 'easy', players: pl, seed: 5 });
+  g.claim(g.players[0], 1); const r = g.rooms[1]; g.phase = 'prep'; g.players[0].cash = 1e6; g.players.forEach((p) => { p.isBot = false; });
+  const s2 = r.def.slots.filter((q) => !r.tile[q.x + ',' + q.y]);
+  ['pistol', 'archangel', 'omegatitan', 'singularity', 'midas'].forEach((id, k) => g.addTower(r, G.ITEM[id], s2[k].x, s2[k].y, 0));
+  const pist = r.towers.filter((t) => t.item.id === 'pistol')[0], ang = r.towers.filter((t) => t.item.id === 'archangel')[0];
+  ok(g.stats(ang, r).dmg / G.ITEM.archangel.dmg > g.stats(pist, r).dmg / G.ITEM.pistol.dmg * 2.5, 'Godly towers get x' + G.RAR.godly.power + ' damage from their rarity');
+  g.players.slice(1).forEach((p) => { p.alive = false; });
+  g.claimTimer = 0; g.prepTimer = 0.01;
+  while (g.wave < 4 && g.elapsed < 300) g.update(G.TICK);
+  ['archangel', 'omegatitan', 'singularity'].forEach((id) => { const t = r.towers.filter((q) => q.item.id === id)[0]; ok(t.dmgDealt > 0, id + ' deals damage (' + Math.round(t.dmgDealt) + ')'); });
+  ok(r.towers.filter((q) => q.item.id === 'midas')[0].earned > 0, 'Midas Throne earns money');
+})();
 // ---- 2.0: new towers, evolutions, quick upgrades, kill money, rewards, mastery, missions, duo ----
-ok(G.ITEMS.length >= 72, G.ITEMS.length + ' towers (30 new)');
+ok(G.ITEMS.length >= 60, G.ITEMS.length + ' towers');
 ok(Object.keys(G.EVO).length >= 10 && Object.keys(G.EVO).every((id) => G.EVO[id].length === 2), 'evolution lines with 2 stages');
 ok(G.ZOMBIES.normal.reward === 5 && G.ZOMBIES.fast.reward === 7 && G.ZOMBIES.armored.reward === 15 && G.ZOMBIES.poisonz.reward === 12 && G.ZOMBIES.giant.reward === 50, 'kill money per zombie type');
 (function () {

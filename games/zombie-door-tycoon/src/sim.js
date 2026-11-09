@@ -278,13 +278,13 @@
   // Effective stats of a tower (levels, stars, buffs)
   M.stats = function (t, room) {
     var it = t.item, L = t.lvl, stars = this.ownerStars(room, it, t.by), s = {}, ev = this.evoOf(t), em = (ev && ev.mul) || {};
-    var starMul = 1 + 0.05 * stars;
+    var starMul = 1 + 0.05 * stars, rar = G.RAR[it.rarity];
     var bless = room.blessUntil > room.time ? 1.5 : 1;
-    s.dmg = (it.dmg || 0) * (1 + G.TRACKS.dmg.per * L.dmg) * starMul * t.buff.dmg * bless;
+    s.dmg = (it.dmg || 0) * (1 + G.TRACKS.dmg.per * L.dmg) * starMul * t.buff.dmg * bless * rar.power;
     s.cd = (it.cd || 1) / ((1 + G.TRACKS.spd.per * L.spd) * t.buff.spd * bless);
     s.range = (it.range || 0) * (1 + G.TRACKS.rng.per * L.rng) * t.buff.rng * T;
     s.spc = 1 + G.TRACKS.spc.per * L.spc;
-    s.income = (it.income || 0) * (1 + G.TRACKS.inc.per * L.inc) * starMul;
+    s.income = (it.income || 0) * (1 + G.TRACKS.inc.per * L.inc) * starMul * rar.incPower;
     s.detect = !!it.detect || t.buff.detect || !!(ev && ev.detect);
     if (em.dmg) s.dmg *= em.dmg; if (em.cd) s.cd *= em.cd; if (em.rng) s.range *= em.rng; if (em.inc) s.income *= em.inc;
     if (t.hasteUntil > room.time) s.cd /= 2;
@@ -609,7 +609,7 @@
   M.bloodBonus = function (room, z) {
     var best = null;
     room.towers.forEach(function (t) {
-      if (t.item.kind !== 'bloodbank' || Math.hypot(t.px - z.x, t.py - z.y) > t.item.range * T * (1 + G.TRACKS.rng.per * t.lvl.rng)) return;
+      if ((t.item.kind !== 'bloodbank' && t.item.kind !== 'midas') || Math.hypot(t.px - z.x, t.py - z.y) > t.item.range * T * (1 + G.TRACKS.rng.per * t.lvl.rng)) return;
       var b = t.item.bounty * (1 + G.TRACKS.inc.per * t.lvl.inc); if (!best || b > best.b) best = { b: b, t: t };
     });
     return best;
@@ -770,7 +770,7 @@
           got = inc;
           if (self.rnd() < it.chance) { got += it.jackpot; self.fx.text(room, t.px, t.py - 30, '💎 DIAMOND! +$' + it.jackpot, '#a8f0ff', true); }
           break;
-        case 'goldengod': got = inc; break;
+        case 'goldengod': case 'midas': got = inc; break;
         case 'harvest': got = (inc + it.growth * Math.max(0, self.wave - 1) * (1 + G.TRACKS.inc.per * t.lvl.inc)) * t.buff.farm; break;
         case 'jackpot':
           var r = self.rnd();
@@ -993,7 +993,7 @@
     var self = this, now = room.time, door = room.door;
     for (var i = 0; i < room.towers.length; i++) {
       var t = room.towers[i], it = t.item;
-      if (it.place === 'path' || it.isFarm && it.kind !== 'goldengod' && it.kind !== 'mine_farm') continue;
+      if (it.place === 'path' || it.isFarm && it.kind !== 'goldengod' && it.kind !== 'mine_farm' && it.kind !== 'midas') continue;
       t.fire = Math.max(0, t.fire - dt);
       if (t.stunUntil > now) continue;
       var st = this.stats(t, room);
@@ -1006,6 +1006,32 @@
             var g = Math.round(st.income * t.buff.farm), pl = this.players[room.owner];
             pl.cash += g; pl.stats.moneyEarned += g; t.earned += g; t.fire = 0.5;
             this.fx.cash(room, t.px, t.py - 14, g, true);
+          }
+          break;
+        case 'midas':   // golden touch: turns a zombie into gold
+          t.data.touchT = (t.data.touchT == null ? it.touchEvery : t.data.touchT) - dt * st.spc;
+          if (t.data.touchT <= 0) {
+            var rM = it.range * T * (1 + G.TRACKS.rng.per * t.lvl.rng), gz = this.inRadius(room, t.px, t.py, rM, function (z) { return !z.isBoss; }).sort(function (a, b) { return b.hp - a.hp; })[0];
+            t.data.touchT = gz ? it.touchEvery : 1;
+            if (gz) { gz.reward *= 5; this.fx.text(room, gz.x, gz.y - 26, '✨ GOUD!', '#ffd23f', true); this.fx.nova(room, gz, 1.2 * T, '#ffd23f'); this.kill(room, gz, t); t.fire = 0.6; }
+          }
+          break;
+        case 'singularity':
+          if (t.cd <= 0) {
+            var sf = this.findTarget(room, t.px, t.py, st.range, 'strongest', true, false);
+            if (sf) {
+              t.cd = st.cd;
+              var sR = it.radius * T * (1 + 0.08 * t.lvl.spc), sHold = it.hold, sx0 = sf.x, sy0 = sf.y;
+              room.vortices.push({ room: room.index, x: sx0, y: sy0, r: sR, until: now + sHold, dps: st.dmg, src: t, start: now, big: true });
+              t.fire = 0.8; t.angle = Math.atan2(sy0 - t.py, sx0 - t.px);
+              this.fx.vortex(room, sx0, sy0);
+              (function (x0, y0, d0, R0) {
+                room.pending.push({ at: now + sHold, fn: function () {
+                  self.inRadius(room, x0, y0, R0 * 1.3).forEach(function (z) { self.damage(room, z, d0, t, { aoe: true, pierce: true, color: '#e0b0ff' }); });
+                  self.fx.explosion(room, x0, y0, R0 * 1.3, '#d9a0ff', true); self.fx.text(room, x0, y0 - 30, 'SUPERNOVA', '#f0d0ff', true);
+                } });
+              })(sx0, sy0, st.dmg * it.burst * st.spc, sR);
+            } else t.cd = 0.3;
           }
           break;
         case 'goldengod':
@@ -1432,6 +1458,39 @@
           var ang = Math.atan2(bz.y - t.py, bz.x - t.px);
           self.lineHit(room, t, st.range, dmg, '#ff3d6e', 5, ang, function (z) { z.shred = Math.min(z.armor, z.shred + it.shred * st.spc); if (ev.burnHit) self.burn(room, z, ev.burnHit, 2); });
         });
+        break;
+      case 'archangel':
+        var aT = this.findTargets(room, t.px, t.py, st.range, 'strongest', true, false, Math.round(it.beams + Math.floor(t.lvl.spc / 3)));
+        aT.forEach(function (z) { self.damage(room, z, dmg, t, { color: '#fff4b0' }); self.fx.beam(room, t.px, t.py - 26, z.x, z.y, '#fff1a0', 5); });
+        t.data.n = (t.data.n || 0) + 1;
+        if (t.data.n >= it.novaEvery) {
+          t.data.n = 0;
+          this.inRadius(room, t.px, t.py, st.range).forEach(function (z) { self.damage(room, z, dmg * 2, t, { aoe: true, color: '#fff4b0' }); if (!z.isBoss) z.stunUntil = Math.max(z.stunUntil, now + 0.6 * st.spc); });
+          room.door.hp = Math.min(room.door.max, room.door.hp + room.door.max * 0.02 * st.spc);
+          this.fx.nova(room, { x: t.px, y: t.py }, st.range, '#fff1a0'); this.fx.text(room, t.px, t.py - 40, 'HEILIGE NOVA', '#fff1a0', true);
+        }
+        break;
+      case 'titan':
+        var tT = this.findTargets(room, t.px, t.py, st.range, mode, true, false, 2), Rt = it.splash * T * (1 + 0.1 * t.lvl.spc);
+        if (!tT.length) tT = [tgt];
+        tT.forEach(function (tz) {
+          self.fx.shot(room, t, tz.x, tz.y, 'kaiju', 0.35);
+          (function (z0) { room.pending.push({ at: now + 0.35, fn: function () {
+            self.inRadius(room, z0.x, z0.y, Rt).forEach(function (z) { self.damage(room, z, dmg, t, { aoe: true }); });
+            self.fx.explosion(room, z0.x, z0.y, Rt, '#ffcf5a', true);
+          } }); })({ x: tz.x, y: tz.y });
+        });
+        t.data.n = (t.data.n || 0) + 1;
+        if (t.data.n >= it.salvoEvery) {
+          t.data.n = 0;
+          this.findTargets(room, t.px, t.py, st.range * 1.2, 'strongest', true, false, it.salvo + Math.floor(t.lvl.spc / 3)).forEach(function (tz, k) {
+            self.fx.shot(room, t, tz.x, tz.y, 'rocket', 0.5 + k * 0.06);
+            (function (z0) { room.pending.push({ at: now + 0.5 + k * 0.06, fn: function () {
+              self.inRadius(room, z0.x, z0.y, Rt * 0.7).forEach(function (z) { self.damage(room, z, dmg * 0.7, t, { aoe: true }); });
+              self.fx.explosion(room, z0.x, z0.y, Rt * 0.7, '#ff8c1a');
+            } }); })({ x: tz.x, y: tz.y });
+          });
+        }
         break;
       case 'boomerang':
         this.lineHit(room, t, st.range, dmg, '#c9a24a', 3);
