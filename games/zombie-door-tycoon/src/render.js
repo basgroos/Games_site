@@ -216,8 +216,8 @@
     c.globalAlpha = 1;
     tierAbove(c, x, y + bob, tier, rar, t, evo);
     if (lvl > 0) {
-      var stars = lvl >= 20 ? 4 : lvl >= 12 ? 3 : lvl >= 6 ? 2 : 1;
-      for (var i = 0; i < stars; i++) star(c, x - (stars - 1) * 4.5 + i * 9, y + 13, 3.5, lvl >= 20 ? '#ff5ad8' : '#ffd23f');
+      var stars = lvl >= 10 ? 4 : lvl >= 7 ? 3 : lvl >= 4 ? 2 : 1;
+      for (var i = 0; i < stars; i++) star(c, x - (stars - 1) * 4.5 + i * 9, y + 13, 3.5, lvl >= 10 ? '#ff5ad8' : '#ffd23f');
     }
     if (evo) { c.fillStyle = evo === 2 ? '#ffd23f' : '#fff'; c.font = 'bold 8px Fredoka, sans-serif'; c.textAlign = 'center'; c.fillText(evo === 2 ? '★★' : '★', x + 13, y - 10); }
     if (o.auto) { c.fillStyle = '#7dff9a'; c.font = 'bold 9px sans-serif'; c.textAlign = 'center'; c.fillText('⟳', x - 13, y - 10); }

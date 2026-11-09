@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## Zombie Door Tycoon 2.1.0 (2026-11-09)
+- **Nieuw upgradesysteem:** elke tower heeft nu één upgrade-pad van 10 levels in plaats van losse knoppen per stat. Elk level verbetert een mix van stats, bijvoorbeeld Lv 1: +44% damage en +10% attack speed, Lv 2: +16% range en +10% attack speed. Op level 10 is alles volledig geüpgraded, net als vroeger. Een level kost samen ongeveer wat de losse upgrades kostten.
+  - In het torenpaneel zie je het pad: welke levels je al hebt, wat het volgende level doet en de twee daarna. Sneltoets E, Upgrade alles, Auto-upgrade, bots en online werken allemaal met de nieuwe levels.
+  - Elk level verandert het model (10 stappen). Evolueren kan vanaf level 4 en 8 (farms vanaf 3 en 7).
+- **Deur-HP bovenin beeld:** een balk onder de wavebalk met de HP van je deur (groen, onder 50% geel, onder 25% rood en knipperend) en je schild. Klik erop om te repareren.
+- **Waarschuwing als je deur laag staat:** onder 50% en onder 25% verschijnt een melding met een alarmgeluid en een tip (repareren met B, upgraden met Q). Onder 25% kleurt ook de rand van je scherm rood. Na een reparatie boven 60% kun je opnieuw gewaarschuwd worden.
+- Meldingen staan nu onder de deurbalk, zodat ze hem niet bedekken. Hints noemen nu de juiste toets om naar je kamer te lopen (H).
+
 ## Zombie Door Tycoon 2.0.0 (2026-11-09)
 Grote update. Alles wat er al was blijft; dit komt erbij.
 - **Sneltoetsen** (allemaal aan te passen in ⚙️ Instellingen, met een knop om ze uit te zetten en een knop voor de hints): 1–5 item kiezen, **E** upgrade geselecteerde tower (of de dichtstbijzijnde), **U** upgrade-menu, **R** verkopen, **Q** deur upgraden, **F** dichtstbijzijnde farm upgraden, **X** alles upgraden, **C** alle farms, **T** auto-upgrade, **P** prioriteit, **V** evolueren, **B** deur repareren, **Tab** (vasthouden) scorebord, **Esc** sluiten, **Spatie** bouwmodus, **H** naar je kamer, **G** snelheid. Werkt niet terwijl je typt, laat bij elke toets kort zien wat er gebeurde en werkt ook online. Let op: Spatie is nu de bouwmodus (snelheid zit op G) en R is verkopen (terug naar je kamer is H).

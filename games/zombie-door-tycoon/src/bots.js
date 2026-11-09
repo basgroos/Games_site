@@ -146,9 +146,10 @@
         } });
       });
       room.towers.forEach(function (t) {
-        if (!t.item.isFarm || t.lvl.inc >= G.MAX_TRACK_LEVEL || t.item.tracks.indexOf('inc') < 0) return;
-        var c = m.upgradeCost(t, 'inc');
-        acts.push({ v: (t.item.income || 50) * G.TRACKS.inc.per / c * (t.item.kind === 'mine_farm' ? 0.25 : 1), cost: c, run: function () { return m.command(self.pid, { type: 'upgrade', tower: t.id, track: 'inc' }).ok; } });
+        var nx = m.nextLevel(t);
+        if (!t.item.isFarm || !nx || !nx.inc) return;
+        var c = m.upgradeCost(t);
+        acts.push({ v: (t.item.income || 50) * G.TRACKS.inc.per * nx.inc / c * (t.item.kind === 'mine_farm' ? 0.25 : 1), cost: c, run: function () { return m.command(self.pid, { type: 'upgradeTower', tower: t.id }).ok; } });
       });
     } else {
       loadout.forEach(function (it) {
@@ -165,13 +166,14 @@
       });
       room.towers.forEach(function (t) {
         if (t.item.isFarm) return;
-        t.item.tracks.forEach(function (tr) {
-          if (t.lvl[tr] >= G.MAX_TRACK_LEVEL || (tr === 'rng' && t.lvl.rng >= 3)) return;
-          var before = G.estimateDps(m, room, t); t.lvl[tr]++; var after = G.estimateDps(m, room, t); t.lvl[tr]--;
-          var c = m.upgradeCost(t, tr), g = after - before;
-          if (g <= 0) g = Math.max(before, 5) * 0.08;
-          acts.push({ v: g / c * st.upgrade * 2, cost: c, run: function () { return m.command(self.pid, { type: 'upgrade', tower: t.id, track: tr }).ok; } });
-        });
+        var nx = m.nextLevel(t); if (!nx) return;
+        var tr, before = G.estimateDps(m, room, t);
+        for (tr in nx) t.lvl[tr] += nx[tr];
+        var after = G.estimateDps(m, room, t);
+        for (tr in nx) t.lvl[tr] -= nx[tr];
+        var c = m.upgradeCost(t), g = after - before;
+        if (g <= 0) g = Math.max(before, 5) * 0.08 * Object.keys(nx).length;
+        acts.push({ v: g / c * st.upgrade * 2, cost: c, run: function () { return m.command(self.pid, { type: 'upgradeTower', tower: t.id }).ok; } });
       });
       room.towers.forEach(function (t) {
         var nx = t.item.evo && t.item.evo[t.evo];

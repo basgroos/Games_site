@@ -309,6 +309,7 @@
       case 'win': [523, 659, 784, 1046, 784, 1046, 1318].forEach(function (f, i) { tone('square', f, 0, 0.2, 0.05 * vol, null, A.ctx.currentTime + i * 0.12); }); break;
       case 'lose': [392, 349, 311, 262].forEach(function (f, i) { tone('sawtooth', f, 0, 0.35, 0.06 * vol, null, A.ctx.currentTime + i * 0.25); }); break;
       case 'error': tone('square', 200, 150, 0.12, 0.05 * vol); break;
+      case 'alarm': var t0 = A.ctx.currentTime; for (var ai = 0; ai < 3; ai++) { tone('square', 880, 660, 0.16, 0.06 * vol, null, t0 + ai * 0.22); } break;
     }
   };
   // music: scale + tempo + timbre per map

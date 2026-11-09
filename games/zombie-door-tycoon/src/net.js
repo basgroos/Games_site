@@ -165,7 +165,7 @@
           var L = t.lvl, b = t.buff;
           return [t.id, t.item.index, t.x, t.y, [L.dmg, L.spd, L.rng, L.spc, L.inc], t.target, t.hp != null ? Math.round(t.hp) : -1, t.maxHp || 0, r1(t.downUntil || 0), r1(t.placedAt),
             t.kills, Math.round(t.dmgDealt), Math.round(t.earned), t.spent, t.starter ? 1 : 0, [r1(b.dmg), r1(b.spd), r1(b.rng), b.detect ? 1 : 0, r1(b.farm || 1)],
-            t.evo || 0, (t.auto ? 1 : 0) | (t.prio ? 2 : 0), t.by != null ? t.by : -1];
+            t.evo || 0, (t.auto ? 1 : 0) | (t.prio ? 2 : 0), t.by != null ? t.by : -1, t.ul || 0];
         });
       });
     }
@@ -204,7 +204,7 @@
         t.target = a[5]; if (a[6] >= 0) t.hp = a[6]; t.maxHp = a[7]; t.downUntil = a[8]; t.placedAt = a[9];
         t.kills = a[10]; t.dmgDealt = a[11]; t.earned = a[12]; t.spent = a[13]; t.starter = !!a[14];
         t.buff = { dmg: a[15][0], spd: a[15][1], rng: a[15][2], detect: !!a[15][3], farm: a[15][4] };
-        t.evo = a[16] || 0; t.auto = !!(a[17] & 1); t.prio = !!(a[17] & 2); t.by = a[18] >= 0 ? a[18] : r.owner; t.roomIdx = ri;
+        t.evo = a[16] || 0; t.ul = a[19] || 0; t.auto = !!(a[17] & 1); t.prio = !!(a[17] & 2); t.by = a[18] >= 0 ? a[18] : r.owner; t.roomIdx = ri;
         var bp = m.players[t.by]; t.cos = (bp && bp.cos && bp.cos[it.id]) || null;
         r.towers.push(t); r.tile[t.x + ',' + t.y] = t; if (it.kind === 'wall') r.walls.push(t);
       });
@@ -456,15 +456,14 @@
     if (cmd.type === 'place') err = m.canPlace(me, cmd.item, cmd.x, cmd.y);
     else if (cmd.type === 'upgrade') {
       t = room && room.towers.filter(function (q) { return q.id === cmd.tower; })[0];
-      if (!t) err = 'Geen tower'; else if (!m.canBuild(me)) err = 'Loop naar je kamer om te upgraden'; else if (t.lvl[cmd.track] >= G.MAX_TRACK_LEVEL) err = 'Max level'; else if (me.cash < m.upgradeCost(t, cmd.track)) err = 'Niet genoeg geld';
+      if (!t) err = 'Geen tower'; else if (!m.canBuild(me)) err = 'Loop naar je kamer om te upgraden'; else if (!m.nextLevel(t)) err = 'Max level'; else if (me.cash < m.upgradeCost(t)) err = 'Niet genoeg geld';
     } else if ((cmd.type === 'sell' || cmd.type === 'door' || cmd.type === 'repair') && !m.canBuild(me)) err = 'Loop naar je kamer';
     else if (cmd.type === 'door' && me.cash < G.doorUpgradeCost(room.door.lvl)) err = 'Niet genoeg geld';
     else if (cmd.type === 'vote' && !m.canVote(me)) err = 'Skippen kan pas als jouw wave volledig gespawned is.';
     else if ((cmd.type === 'upgradeTower' || cmd.type === 'upgradeAll' || cmd.type === 'evolve') && !m.canBuild(me)) err = 'Loop naar je kamer om te upgraden';
     else if (cmd.type === 'upgradeTower') {
       t = room && room.towers.filter(function (q) { return q.id === cmd.tower; })[0];
-      var tr = t && m.cheapestTrack(t);
-      if (!t) err = 'Geen tower'; else if (!tr) err = 'Deze tower is volledig geüpgraded'; else if (me.cash < m.upgradeCost(t, tr)) err = 'Niet genoeg geld ($' + m.upgradeCost(t, tr) + ')';
+      if (!t) err = 'Geen tower'; else if (!m.nextLevel(t)) err = 'Deze tower is al max level'; else if (me.cash < m.upgradeCost(t)) err = 'Niet genoeg geld ($' + m.upgradeCost(t) + ')';
     } else if (cmd.type === 'evolve') {
       t = room && room.towers.filter(function (q) { return q.id === cmd.tower; })[0];
       var nx = t && t.item.evo && t.item.evo[t.evo || 0];

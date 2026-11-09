@@ -307,7 +307,8 @@
     rows.push(['Inkomen', it.income ? '$' + fmt(it.income * m) + (it.kind === 'mine_farm' ? ' / 20s' : ' / 5s') + ' (' + (it.income * m / (it.every || 5)).toFixed(1) + '/s)' : '—']);
     rows.push(['Plaatsprijs', '$' + fmt(it.cost)]);
     rows.push(['Max per kamer', it.limit]);
-    rows.push(['Upgrades', it.tracks.map(function (t) { return G.TRACKS[t].name; }).join(', ')]);
+    rows.push(['Upgrades', G.UPGRADE_LEVELS + ' levels, elk een mix van ' + it.tracks.map(function (t) { return G.TRACKS[t].name.toLowerCase(); }).join(', ')]);
+    if (it.path) rows.push(['Lv 1 / Lv 2', G.pathText(it, it.path[0]) + ' / ' + G.pathText(it, it.path[1])]);
     rows.push(['Upgrade Level', '<span style="color:#ffd23f">' + starStr(stars || 0) + '</span>']);
     return rows;
   };
@@ -521,7 +522,7 @@
       rb.className = 'repair ' + st;
     } else rb.classList.add('hidden');
     // location + minimap
-    var loc = here ? (here === room ? '🏠 Jouw kamer' + (me.alive ? ' — hier kun je bouwen' : '') : here.owner >= 0 ? '👁 Kamer van ' + esc(m.players[here.owner].name) : '🚪 ' + here.def.name + ' (vrij)') : room && m.canBuild(me) ? '🏠 Bij je deur' : '🗺 Onderweg' + (room && me.alive ? ' — druk R om terug te lopen' : '');
+    var loc = here ? (here === room ? '🏠 Jouw kamer' + (me.alive ? ' — hier kun je bouwen' : '') : here.owner >= 0 ? '👁 Kamer van ' + esc(m.players[here.owner].name) : '🚪 ' + here.def.name + ' (vrij)') : room && m.canBuild(me) ? '🏠 Bij je deur' : '🗺 Onderweg' + (room && me.alive ? ' — druk ' + UI.keyName(UI.hk('home')) + ' om terug te lopen' : '');
     if (!me.alive) loc = '👻 Uitgeschakeld — je kunt nog rondlopen en kijken';
     if ($('hLoc').innerHTML !== loc) $('hLoc').innerHTML = loc;
     UI._miniT -= dt;
@@ -535,8 +536,8 @@
     // hint
     var hint = $('hHint');
     if (m.phase === 'prep' && room && m.canBuild(me)) { hint.classList.remove('hidden'); hint.innerHTML = 'Kies een item onderin (1–5) en klik op een <b style="color:#7dff9a">groen vakje</b>. Klik op een tower of je deur om te upgraden. Eerste wave over ' + Math.ceil(m.prepTimer) + 's.'; }
-    else if (m.phase === 'prep' && room) { hint.classList.remove('hidden'); hint.innerHTML = 'Loop naar <b>jouw kamer</b> (' + room.def.name + ') om te bouwen — druk op <b>R</b> of klik op de minimap.'; }
-    else if (g.ui.placing && !m.canBuild(me)) { hint.classList.remove('hidden'); hint.innerHTML = 'Je bent niet in je kamer. Druk op <b>R</b> om terug te lopen en te bouwen.'; }
+    else if (m.phase === 'prep' && room) { hint.classList.remove('hidden'); hint.innerHTML = 'Loop naar <b>jouw kamer</b> (' + room.def.name + ') om te bouwen — druk op <b>' + UI.keyName(UI.hk('home')) + '</b> of klik op de minimap.'; }
+    else if (g.ui.placing && !m.canBuild(me)) { hint.classList.remove('hidden'); hint.innerHTML = 'Je bent niet in je kamer. Druk op <b>' + UI.keyName(UI.hk('home')) + '</b> om terug te lopen en te bouwen.'; }
     else if (g.ui.placing) { hint.classList.remove('hidden'); var pi = G.ITEM[g.ui.placing]; hint.innerHTML = 'Plaats <b>' + esc(pi.name) + '</b> ' + (pi.place === 'path' ? 'op de <b>gele tegels vóór jouw deur</b>' : 'op een <b>tegel in je kamer</b>') + ' • Esc/rechtsklik om te annuleren'; }
     else hint.classList.add('hidden');
     // player list (throttled)
@@ -570,7 +571,7 @@
     var g = G.Game, m = g.match, me = m.players[g.me], room = m.roomOf(me), pan = $('hPanel');
     if (!room || (!g.ui.selTower && !g.ui.selDoor) || !me.alive) { pan.classList.add('hidden'); return; }
     pan.classList.remove('hidden');
-    var key, h, near = m.canBuild(me), far = near ? '' : '<p class="tip" style="color:#ff9f1c">Je bent niet in je kamer — loop terug (R) om te upgraden.</p>';
+    var key, h, near = m.canBuild(me), far = near ? '' : '<p class="tip" style="color:#ff9f1c">Je bent niet in je kamer — loop terug (' + UI.keyName(UI.hk('home')) + ') om te upgraden.</p>';
     if (g.ui.selDoor) {
       var d = room.door, tier = G.doorTier(d.lvl), cost = G.doorUpgradeCost(d.lvl), next = G.doorTier(d.lvl + 1);
       key = 'door' + d.lvl + '|' + (me.cash >= cost) + '|' + Math.round(d.hp) + '|' + Math.round(d.shield) + '|' + near;

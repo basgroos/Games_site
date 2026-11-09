@@ -53,6 +53,10 @@ ok(G.ZOMBIES.normal.reward === 5 && G.ZOMBIES.fast.reward === 7 && G.ZOMBIES.arm
   const b = d.command(1, { type: 'place', item: 'scout', x: s[1].x, y: s[1].y }).tower;
   ok(a && b && a.by === 0 && b.by === 1, 'duo: both players place their own towers');
   ok(d.command(1, { type: 'upgradeTower', tower: a.id }).ok && d.towerLevel(a) === 1, 'duo: partner upgrades your tower');
+  const lv0 = Object.assign({}, a.lvl), lc = d.upgradeCost(a);
+  ok(d.command(0, { type: 'upgradeTower', tower: a.id }).ok && d.towerLevel(a) === 2 && Object.keys(a.lvl).filter((k) => a.lvl[k] > lv0[k]).length >= 2, 'one upgrade level improves several stats (' + G.pathText(a.item, a.item.path[1]) + ', $' + lc + ')');
+  ok(G.ITEMS.every((it) => it.path.length === G.UPGRADE_LEVELS && it.tracks.every((t) => it.path.reduce((s, p) => s + (p[t] || 0), 0) === G.MAX_TRACK_LEVEL)), 'every tower: ' + G.UPGRADE_LEVELS + ' levels, all stats maxed at the end');
+  ok(G.ITEMS.filter((it) => it.tracks.length >= 2).every((it) => it.path.every((p) => Object.keys(p).length >= 2)), 'towers with several stats upgrade a mix every level');
   ok(d.command(0, { type: 'upgradeAll' }).ok, 'upgrade all');
   d.command(0, { type: 'auto', tower: a.id, on: true }); d.command(0, { type: 'prio', tower: a.id, on: true });
   ok(a.auto && a.prio, 'auto + priority toggles');

@@ -104,12 +104,13 @@
       case 'farm':
         t = nearestTower(function (q) { return q.item.isFarm && m.cheapestTrack(q); });
         if (!t) { res('farm', { ok: false, msg: 'Geen farm om te upgraden' }); return; }
-        r = g.net.send({ type: 'upgradeTower', tower: t.id }); res('farm', r, t.item.name + ' +' + (r.track ? TR_NAME(r.track) : '')); return;
+        var fl = m.towerLevel(t) + 1; r = g.net.send({ type: 'upgradeTower', tower: t.id }); res('farm', r, t.item.name + ' → Lv ' + fl); return;
       case 'upgrade':
         t = selTower() || nearestTower();
         if (!t) { res('upgrade', { ok: false, msg: 'Geen tower geselecteerd' }); return; }
         if (!g.ui.selTower) { g.ui.selTower = t.id; g.ui.selDoor = false; }
-        r = g.net.send({ type: 'upgradeTower', tower: t.id }); res('upgrade', r, t.item.name + ' → ' + (r.track ? TR_NAME(r.track) : '')); UI.panelDirty(); return;
+        var nxl = m.nextLevel(t), nl = m.towerLevel(t) + 1;
+        r = g.net.send({ type: 'upgradeTower', tower: t.id }); res('upgrade', r, t.item.name + ' Lv ' + nl + (nxl ? ': ' + G.pathText(t.item, nxl) : '')); UI.panelDirty(); return;
       case 'sell':
         t = selTower(); if (!t) { res('sell', { ok: false, msg: 'Selecteer eerst een tower' }); return; }
         r = g.net.send({ type: 'sell', tower: t.id }); if (res('sell', r, 'Verkocht voor $' + fmt(r.value || 0))) g.ui.selTower = null; UI.panelDirty(); return;
@@ -183,11 +184,14 @@
       '<button class="btn small" data-a="menu" title="Overzicht van al je towers">📋 Upgrade-menu</button>' +
       '<button class="btn small" data-a="build" title="Bouwmodus: alle vrije vakjes en ranges">🧱 Bouwmodus</button></div>' +
       '<div class="keyfx" id="hKeyFx"></div>' +
+      '<div class="doorbar hidden" id="hDoor" title="Jouw deur — klik om te repareren"><span class="dl">🚪</span><div class="db"><i class="dsh" id="hDoorSh"></i><i class="dhp" id="hDoorHp"></i><b id="hDoorTxt"></b></div></div>' +
+      '<div class="lowwarn hidden" id="hLow"></div><div class="danger hidden" id="hDanger"></div>' +
       '<div class="upmenu hidden" id="hUp"></div>' +
       '<div class="score hidden" id="hScore"></div>' +
       '<div class="bpick hidden" id="hPick"></div>');
     Array.prototype.forEach.call($('hQ').children, function (b) { b.onclick = function () { click(); UI.doAction(b.dataset.a); }; });
-    UI._upOpen = false; UI._score = false; UI._upT = 0; UI._scoreT = 0;
+    $('hDoor').onclick = function () { UI.doAction('repair'); };
+    UI._upOpen = false; UI._score = false; UI._upT = 0; UI._scoreT = 0; UI._doorWarn = 0; UI._doorHpLast = null;
     g.ui.build = false; g.ui.buildPick = null;
     UI.renderKeys();
   };
@@ -210,10 +214,45 @@
     var kt = '🧟 ' + fmt(me.stats.kills) + ' • $' + fmt(me.stats.killMoney);
     if ($('hKills') && $('hKills').textContent !== kt) $('hKills').textContent = kt;
     var q = $('hQ'); if (q) q.classList.toggle('hidden', !room || !me.alive || m.phase === 'claim');
+    UI.updateDoorBar(m, me, room);
     // hint for building mode
     if (g.ui.build && !g.ui.placing && room) { var hint = $('hHint'); hint.classList.remove('hidden'); hint.innerHTML = '🧱 <b>Bouwmodus</b> — klik op een vrij vakje om te bouwen, op een tower om te upgraden • ' + UI.keyName(UI.hk('build')) + ' om te sluiten'; }
     if (UI._upOpen) { UI._upT -= dt; if (UI._upT <= 0) { UI._upT = 0.3; UI.renderUpMenu(); } }
     if (UI._score) { UI._scoreT -= dt; if (UI._scoreT <= 0) { UI._scoreT = 0.4; UI.renderScore(); } }
+  };
+
+  // ---------------------------------------------------------------------
+  //  DOOR HP BAR (top) + low-HP warning
+  // ---------------------------------------------------------------------
+  UI.updateDoorBar = function (m, me, room) {
+    var bar = $('hDoor'); if (!bar) return;
+    var show = room && me.alive && m.phase !== 'claim';
+    bar.classList.toggle('hidden', !show);
+    $('hBoss').classList.toggle('below', !!show);
+    if (!show) { $('hLow').classList.add('hidden'); $('hDanger').classList.add('hidden'); return; }
+    var d = room.door, f = Math.max(0, d.hp / d.max), sh = d.shieldUntil > room.time ? Math.min(1, d.shield / d.max) : 0;
+    var lvl = f <= 0.25 ? 2 : f <= 0.5 ? 1 : 0, repairing = d.repairUntil > room.time;
+    $('hDoorHp').style.width = (f * 100) + '%';
+    $('hDoorSh').style.width = (sh * 100) + '%';
+    var hit = UI._doorHpLast != null && d.hp < UI._doorHpLast - 0.5; UI._doorHpLast = d.hp;
+    var txt = 'Deur ' + G.FX.fmt(Math.max(0, d.hp)) + ' / ' + G.FX.fmt(d.max) + ' (' + Math.ceil(f * 100) + '%)' + (sh ? ' • 🛡 ' + G.FX.fmt(d.shield) : '') + (repairing ? ' • 🔧 repareren…' : '');
+    if ($('hDoorTxt').textContent !== txt) $('hDoorTxt').textContent = txt;
+    bar.className = 'doorbar lv' + lvl + (hit ? ' hit' : bar.classList.contains('hit') && R.time - (UI._hitT || 0) < 0.25 ? ' hit' : '');
+    if (hit) UI._hitT = R.time;
+    // warnings: once when it drops below 50% and below 25%, again after it was repaired above 60%
+    if (f > 0.6) UI._doorWarn = 0;
+    var low = $('hLow');
+    if (lvl > UI._doorWarn) {
+      UI._doorWarn = lvl;
+      G.Audio.sfx(lvl === 2 ? 'alarm' : 'error');
+      UI._lowUntil = R.time + 4;
+      low.innerHTML = (lvl === 2 ? '🚨 <b>JE DEUR IS BIJNA KAPOT!</b>' : '⚠️ <b>Je deur is onder de 50%</b>') +
+        '<small>' + (d.repairReady <= room.time && !repairing ? 'Druk op <kbd>' + esc(UI.keyName(UI.hk('repair'))) + '</kbd> om te repareren of <kbd>' + esc(UI.keyName(UI.hk('door'))) + '</kbd> om te upgraden' : 'Upgrade je deur (<kbd>' + esc(UI.keyName(UI.hk('door'))) + '</kbd>) of zet meer towers neer') + (m.canBuild(me) ? '' : ' — loop eerst terug (<kbd>' + esc(UI.keyName(UI.hk('home'))) + '</kbd>)') + '</small>';
+      low.className = 'lowwarn lv' + lvl;
+    }
+    low.style.top = $('hBoss').classList.contains('hidden') ? '' : (window.innerWidth > 900 ? '140px' : '172px');
+    if (UI._lowUntil && R.time > UI._lowUntil) { low.classList.add('hidden'); UI._lowUntil = 0; }
+    $('hDanger').classList.toggle('hidden', lvl < 2);
   };
 
   // ---------------------------------------------------------------------
@@ -266,10 +305,10 @@
       '<div class="umq"><button class="btn small yellow" data-u="upall">⬆ Upgrade alles <kbd>' + UI.keyName(UI.hk('upall')) + '</kbd></button><button class="btn small green" data-u="upfarms">🌾 Alle farms <kbd>' + UI.keyName(UI.hk('upfarms')) + '</kbd></button><button class="btn small" data-u="door">🚪 Deur $' + fmt(G.doorUpgradeCost(room.door.lvl)) + ' <kbd>' + UI.keyName(UI.hk('door')) + '</kbd></button><button class="btn small" data-u="autoall">⟳ Auto alles</button></div>' +
       (near ? '' : '<p class="tip" style="color:#ff9f1c">Loop naar je kamer om te upgraden.</p>') + '<div class="umlist">';
     list.forEach(function (q) {
-      var tr = m.cheapestTrack(q), c = tr ? m.upgradeCost(q, tr) : 0, nx = q.item.evo && q.item.evo[q.evo];
-      h += '<div class="umrow' + (q.prio ? ' prio' : '') + '" data-t="' + q.id + '"><span class="ic" data-ic="' + q.item.id + '"></span><div class="un"><b style="color:' + G.RAR[q.item.rarity].color + '">' + esc(q.evo ? q.item.evo[q.evo - 1].name : q.item.name) + '</b><small>Lv ' + m.towerLevel(q) + (q.item.isFarm ? ' • $' + fmt(q.earned) + ' verdiend' : ' • ' + q.kills + ' kills') + (nx && m.towerLevel(q) >= nx.lvl ? ' • <span style="color:#ffd23f">🧬 kan evolueren</span>' : '') + '</small></div>' +
+      var nl = m.nextLevel(q), tr = !!nl, c = tr ? m.upgradeCost(q) : 0, nx = q.item.evo && q.item.evo[q.evo];
+      h += '<div class="umrow' + (q.prio ? ' prio' : '') + '" data-t="' + q.id + '"><span class="ic" data-ic="' + q.item.id + '"></span><div class="un"><b style="color:' + G.RAR[q.item.rarity].color + '">' + esc(q.evo ? q.item.evo[q.evo - 1].name : q.item.name) + '</b><small>Lv ' + m.towerLevel(q) + '/' + G.UPGRADE_LEVELS + (nl ? ' • volgende: ' + G.pathText(q.item, nl) : '') + (q.item.isFarm ? ' • $' + fmt(q.earned) + ' verdiend' : ' • ' + q.kills + ' kills') + (nx && m.towerLevel(q) >= nx.lvl ? ' • <span style="color:#ffd23f">🧬 kan evolueren</span>' : '') + '</small></div>' +
         '<button class="tg ' + (q.auto ? 'on' : '') + '" data-a="auto" title="Auto-upgrade">⟳</button><button class="tg ' + (q.prio ? 'on' : '') + '" data-a="prio" title="Prioriteit">!</button>' +
-        '<button class="btn small ' + (tr ? 'yellow' : '') + '" data-a="up" ' + (!tr || me.cash < c || !near ? 'disabled' : '') + '>' + (tr ? TR_NAME(tr) + ' $' + fmt(c) : 'MAX') + '</button></div>';
+        '<button class="btn small ' + (tr ? 'yellow' : '') + '" data-a="up" ' + (!tr || me.cash < c || !near ? 'disabled' : '') + '>' + (tr ? 'Lv ' + (m.towerLevel(q) + 1) + ' $' + fmt(c) : 'MAX') + '</button></div>';
     });
     el.innerHTML = h + (list.length ? '' : '<p class="tip">Nog geen towers geplaatst.</p>') + '</div><p class="tip">⟳ Auto: koopt automatisch upgrades zodra je geld hebt • ! Prioriteit: deze tower eerst (auto spaart ervoor).</p>';
     Array.prototype.forEach.call(el.querySelectorAll('[data-ic]'), function (s) { s.appendChild(UI.icon(G.ITEM[s.dataset.ic], 30)); });
@@ -363,23 +402,28 @@
     pan.insertAdjacentHTML('beforeend', grid + '<div class="srow"><span>Special</span><b>' + esc(ev ? ev.ability : it.ability) + '</b></div>' + (buffs ? '<div class="srow"><span>Buffs</span><b style="color:#7dff9a">' + buffs + '</b></div>' : '') +
       (near ? '' : '<p class="tip" style="color:#ff9f1c">Je bent niet in je kamer — loop terug (' + UI.keyName(UI.hk('home')) + ') om te upgraden.</p>'));
     // quick actions
-    var cheap = m.cheapestTrack(t), cc = cheap ? m.upgradeCost(t, cheap) : 0;
+    var cheap = m.nextLevel(t), cc = cheap ? m.upgradeCost(t) : 0;
     var qa = document.createElement('div'); qa.className = 'tquick';
-    qa.innerHTML = '<button class="btn small yellow" data-q="upgrade" ' + (!cheap || me.cash < cc || !near ? 'disabled' : '') + '>⬆ ' + (cheap ? TR_NAME(cheap) + ' $' + fmt(cc) : 'MAX') + kbd('upgrade') + '</button>' +
+    qa.innerHTML = '<button class="btn small yellow" data-q="upgrade" ' + (!cheap || me.cash < cc || !near ? 'disabled' : '') + '>⬆ ' + (cheap ? 'Lv ' + (lvl + 1) + ' • $' + fmt(cc) : 'MAX LEVEL') + kbd('upgrade') + '</button>' +
       '<button class="tg ' + (t.auto ? 'on' : '') + '" data-q="auto" title="Auto-upgrade: koopt automatisch upgrades voor deze tower">⟳ Auto' + kbd('auto') + '</button>' +
       '<button class="tg ' + (t.prio ? 'on' : '') + '" data-q="prio" title="Prioriteit: wordt als eerste geüpgraded">! Prio' + kbd('prio') + '</button>';
     pan.appendChild(qa);
     Array.prototype.forEach.call(qa.querySelectorAll('[data-q]'), function (b) { b.onclick = function () { click(); UI.doAction(b.dataset.q); }; });
-    // upgrade tracks + preview of the next look
-    it.tracks.forEach(function (tr) {
-      var L = t.lvl[tr], max = L >= G.MAX_TRACK_LEVEL, cost = max ? 0 : m.upgradeCost(t, tr), pips = '';
-      for (var i = 0; i < G.MAX_TRACK_LEVEL; i++) pips += '<i class="' + (i < L ? 'on' : '') + '"></i>';
-      var eff = tr === 'dmg' ? '+22% damage' : tr === 'spd' ? '+10% snelheid' : tr === 'rng' ? '+8% range' : tr === 'inc' ? '+28% inkomen' : '+15% effect';
-      var row = document.createElement('div'); row.className = 'upg';
-      row.innerHTML = '<div class="ul"><b>' + G.TRACKS[tr].name + '</b> <span class="tip">Lv ' + L + '</span><small>' + eff + '</small><div class="pips">' + pips + '</div></div><button class="btn small ' + (max ? '' : 'yellow') + '" ' + (max || me.cash < cost || !near ? 'disabled' : '') + '>' + (max ? 'MAX' : '$' + fmt(cost)) + '</button>';
-      row.querySelector('button').onclick = function () { var r = g.net.send({ type: 'upgrade', tower: t.id, track: tr }); if (!r.ok) UI.toast(r.msg, '#ff4d4d'); UI.panelDirty(); UI.renderPanel(); };
-      pan.appendChild(row);
+    // upgrade path: every level improves a mix of stats
+    var pathEl = document.createElement('div'); pathEl.className = 'upath';
+    var ph = '<div class="uph"><b>Upgrade-pad</b><span class="tip">Lv ' + lvl + ' / ' + G.UPGRADE_LEVELS + '</span></div><div class="ulv">';
+    for (var li = 0; li < G.UPGRADE_LEVELS; li++) ph += '<i class="' + (li < lvl ? 'on' : li === lvl ? 'nx' : '') + '"></i>';
+    ph += '</div>';
+    it.path.forEach(function (inc, li) {
+      if (li < lvl - 1 || li > lvl + 2) return;   // last bought level + the next three
+      ph += '<div class="ustep ' + (li < lvl ? 'done' : li === lvl ? 'next' : '') + '"><span class="un">' + (li < lvl ? '✓' : 'Lv ' + (li + 1)) + '</span><span class="ut">' + esc(G.pathText(it, inc)) + '</span>' +
+        (li === lvl ? '<button class="btn small yellow" ' + (me.cash < cc || !near ? 'disabled' : '') + '>$' + fmt(cc) + '</button>' : '') + '</div>';
     });
+    if (!cheap) ph += '<div class="ustep done"><span class="ut">Maximaal level bereikt — alle stats zijn volledig geüpgraded</span></div>';
+    pathEl.innerHTML = ph;
+    var ub = pathEl.querySelector('.ustep.next button');
+    if (ub) ub.onclick = function () { click(); UI.doAction('upgrade'); };
+    pan.appendChild(pathEl);
     if (tier < 10) {
       var pv = document.createElement('div'); pv.className = 'tprev';
       pv.innerHTML = '<small>Volgende upgrade verandert het model:</small><div class="pvr"></div><small class="tip">' + tierText(tier + 1, it) + '</small>';

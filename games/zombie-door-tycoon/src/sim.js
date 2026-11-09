@@ -248,7 +248,7 @@
     if (by == null) by = room.owner;
     var bp = this.players[by];
     var t = { id: room.nextTid++, roomIdx: room.index, by: by, auto: false, prio: false, evo: 0, cos: (bp && bp.cos && bp.cos[item.id]) || null, item: item, x: x, y: y, px: x * T + T / 2, py: y * T + T / 2,
-      lvl: { dmg: 0, spd: 0, rng: 0, spc: 0, inc: 0 }, spent: item.cost, cd: 0.3, angle: -Math.PI / 2,
+      lvl: { dmg: 0, spd: 0, rng: 0, spc: 0, inc: 0 }, ul: 0, spent: item.cost, cd: 0.3, angle: -Math.PI / 2,
       target: item.target || 'first', stunUntil: 0, placedAt: room.time, kills: 0, dmgDealt: 0, earned: 0,
       buff: { dmg: 1, spd: 1, rng: 1, detect: false }, fire: 0, data: {} };
     if (item.place === 'path') {
@@ -299,21 +299,26 @@
   };
   M.wallHp = function (t, room) { return Math.round(t.item.hp * (1 + 0.4 * t.lvl.spc) * (1 + 0.05 * this.ownerStars(room, t.item)) * (1 + 0.12 * Math.max(0, this.wave - 1))); };
 
-  M.upgradeCost = function (t, track) {
-    var lvl = t.lvl[track], mul = { dmg: 1, spd: 1.1, rng: 0.8, spc: 1, inc: 0.85 }[track];
+  // cost of one stat point on a track (internal); a level costs the sum of its points
+  M.trackCost = function (t, track, lvl) {
+    if (lvl == null) lvl = t.lvl[track];
+    var mul = { dmg: 1, spd: 1.1, rng: 0.8, spc: 1, inc: 0.85 }[track];
     return Math.round((t.item.upCost || t.item.cost) * 0.55 * mul * Math.pow(1.5, lvl) / 5) * 5;
   };
-  M.towerLevel = function (t) { var s = 0; for (var k in t.lvl) s += t.lvl[k]; return s; };
-  // visual tier 0..10 for the model (each upgrade changes the look)
-  G.towerTier = function (t) { var s = 0; for (var k in t.lvl) s += t.lvl[k]; return Math.min(10, s); };
-  M.cheapestTrack = function (t) {
-    var best = null, bc = Infinity, self = this;
-    t.item.tracks.forEach(function (tr) { if (t.lvl[tr] >= G.MAX_TRACK_LEVEL) return; var c = self.upgradeCost(t, tr) * (tr === 'dmg' || tr === 'inc' ? 0.9 : tr === 'rng' && t.lvl.rng >= 4 ? 1.6 : 1); if (c < bc) { bc = c; best = tr; } });
-    return best;
+  // one upgrade path per tower: every level raises a mix of stats (see G.buildPath)
+  M.nextLevel = function (t) { return t.item.path[t.ul || 0] || null; };
+  M.upgradeCost = function (t) {
+    var nx = this.nextLevel(t); if (!nx) return 0;
+    var c = 0; for (var tr in nx) for (var k = 0; k < nx[tr]; k++) c += this.trackCost(t, tr, t.lvl[tr] + k);
+    return c;
   };
-  M.doUpgrade = function (p, room, t, track) {
-    var cost = this.upgradeCost(t, track);
-    p.cash -= cost; t.spent += cost; t.lvl[track]++; p.stats.upgrades++;
+  M.towerLevel = function (t) { return t.ul || 0; };
+  // visual tier 0..10 for the model (each upgrade level changes the look)
+  G.towerTier = function (t) { return Math.min(10, t.ul || 0); };
+  M.cheapestTrack = function (t) { return this.nextLevel(t) ? 'lvl' : null; };   // kept for older callers
+  M.doUpgrade = function (p, room, t) {
+    var cost = this.upgradeCost(t), nx = this.nextLevel(t);
+    p.cash -= cost; t.spent += cost; for (var tr in nx) t.lvl[tr] += nx[tr]; t.ul = (t.ul || 0) + 1; p.stats.upgrades++;
     if (t.item.kind === 'wall') { var nm = this.wallHp(t, room); t.hp += nm - t.maxHp; t.maxHp = nm; }
     room.buffT = 0;
     this.fx.upgrade(room, t);
@@ -365,21 +370,13 @@
         t = this.addTower(room, G.ITEM[cmd.item], cmd.x, cmd.y, pid);
         this.fx.place(room, t);
         return { ok: true, tower: t };
-      case 'upgrade':
-        t = room && room.towers.filter(function (q) { return q.id === cmd.tower; })[0];
-        if (!t || !p.alive) return { ok: false, msg: 'Geen tower' };
-        if (!this.canBuild(p)) return { ok: false, msg: 'Loop naar je kamer om te upgraden' };
-        if (t.item.tracks.indexOf(cmd.track) < 0) return { ok: false, msg: 'Kan niet' };
-        if (t.lvl[cmd.track] >= G.MAX_TRACK_LEVEL) return { ok: false, msg: 'Max level' };
-        if (p.cash < this.upgradeCost(t, cmd.track)) return { ok: false, msg: 'Niet genoeg geld' };
-        this.doUpgrade(p, room, t, cmd.track);
-        return { ok: true };
-      case 'upgradeTower':   // hotkey E: cheapest affordable track of one tower
+      case 'upgrade':        // (older clients send a track; every upgrade now buys the next level)
+      case 'upgradeTower':   // hotkey E: next level of one tower
         t = room && room.towers.filter(function (q) { return q.id === cmd.tower; })[0];
         if (!t || !p.alive) return { ok: false, msg: 'Geen tower' };
         if (!this.canBuild(p)) return { ok: false, msg: 'Loop naar je kamer om te upgraden' };
         var tr0 = this.cheapestTrack(t);
-        if (!tr0) return { ok: false, msg: 'Deze tower is volledig geüpgraded' };
+        if (!tr0) return { ok: false, msg: 'Deze tower is al max level' };
         if (p.cash < this.upgradeCost(t, tr0)) return { ok: false, msg: 'Niet genoeg geld ($' + this.upgradeCost(t, tr0) + ')' };
         this.doUpgrade(p, room, t, tr0);
         return { ok: true, track: tr0 };

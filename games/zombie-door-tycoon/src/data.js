@@ -290,7 +290,42 @@ G.EVO = {
     { name: 'Golden Register', lvl: 4, cost: 600, mul: { inc: 1.8 }, ability: '1.8x inkomen' },
     { name: 'Bank Vault', lvl: 9, cost: 2500, mul: { inc: 3.6 }, ability: '3.6x inkomen' }]
 };
-Object.keys(G.EVO).forEach(function (id) { G.ITEM[id].evo = G.EVO[id]; });
+Object.keys(G.EVO).forEach(function (id) { G.ITEM[id].evo = G.EVO[id]; G.EVO[id][0].lvl = G.ITEM[id].isFarm ? 3 : 4; G.EVO[id][1].lvl = G.ITEM[id].isFarm ? 7 : 8; });
+
+// ---------------------------------------------------------------------
+//  UPGRADE PATH — one upgrade button per tower; every level improves a
+//  mix of stats (e.g. Lv1: +44% damage +8% range, Lv2: +20% attack speed
+//  +15% special). 10 levels; at max level every stat track is maxed.
+// ---------------------------------------------------------------------
+G.UPGRADE_LEVELS = 10;
+G.buildPath = function (it) {
+  var tr = it.tracks, n = tr.length, L = G.UPGRADE_LEVELS, MAX = G.MAX_TRACK_LEVEL, cum = {}, path = [];
+  var per = n * MAX / L, width = n <= 1 ? 1 : n <= 3 ? 2 : 3;
+  tr.forEach(function (t) { cum[t] = 0; });
+  for (var i = 0; i < L; i++) {
+    var pts = Math.round(per * (i + 1)) - Math.round(per * i), ideal = MAX * (i + 1) / L;
+    var rot = function (t) { return (tr.indexOf(t) - i % n + n) % n; };
+    var order = tr.filter(function (t) { return cum[t] < MAX; }).sort(function (a, b) { return ((ideal - cum[b]) - (ideal - cum[a])) || (rot(a) - rot(b)); });
+    var pick = order.slice(0, Math.min(width, pts)), inc = {};
+    for (var k = 0; k < pts; k++) {
+      var best = null, bd = -1e9;
+      pick.forEach(function (t) { var d = ideal - cum[t] - (inc[t] || 0); if (cum[t] + (inc[t] || 0) < MAX && d > bd) { bd = d; best = t; } });
+      if (!best) break;
+      inc[best] = (inc[best] || 0) + 1;
+    }
+    for (var t in inc) cum[t] += inc[t];
+    path.push(inc);
+  }
+  return path;
+};
+G.ITEMS.forEach(function (it) { it.path = G.buildPath(it); });
+G.pathText = function (it, inc) {
+  return it.tracks.filter(function (t) { return inc[t]; }).map(function (t) {
+    var pct = Math.round(inc[t] * G.TRACKS[t].per * 100);
+    var extra = t === 'spc' ? (it.kind === 'spread' ? ' (+' + inc[t] + ' pellet)' : it.kind === 'chain' ? ' (+' + inc[t] + ' sprong)' : '') : '';
+    return '+' + pct + '% ' + G.TRACKS[t].name.toLowerCase() + extra;
+  }).join(', ');
+};
 G.itemsByRarity = function (rid) { return G.ITEMS.filter(function (i) { return i.rarity === rid; }); };
 
 // ---------------------------------------------------------------------
