@@ -415,10 +415,12 @@ addEventListener('resize',resize);
    Een verborgen tabblad krijgt geen animatieframes. In co-op mag het spel dan niet stilvallen
    (de host simuleert voor iedereen, gasten moeten invoer blijven sturen), dus een kleine worker
    tikt door zolang het tabblad verborgen is. Solo pauzeert het spel gewoon. */
-let bgLast=0;
+let bgLast=0,frameAt=0;
 function bgStep(){
- if(!document.hidden||!(G.net||NET.inRoom()))return;
- const now=performance.now(),dt=Math.min(1,(now-(bgLast||now))/1000);bgLast=now;if(dt<=0)return;
+ const now=performance.now();
+ /* ook als de browser geen frames meer tekent terwijl de pagina 'zichtbaar' heet (bijv. een bedekt venster) */
+ if(!(document.hidden||now-frameAt>300)||!(G.net||NET.inRoom())){bgLast=now;return}
+ const dt=Math.min(1,(now-(bgLast||now))/1000);bgLast=now;last=now;if(dt<=0)return;
  try{
   if(G.state==='play'){
    if(G.net==='guest')clientTick(dt);
@@ -433,6 +435,7 @@ try{if(window.Worker&&window.Blob&&window.URL&&URL.createObjectURL){const wk=new
 /* ================= LOOP ================= */
 let last=performance.now(),fpsN=0,fpsT=0;
 function frame(now){
+ frameAt=performance.now();
  const dt=Math.min(.05,(now-last)/1000);last=now;
  try{
   if(G.state==='play'){if(G.net==='guest')clientTick(dt);else{const n=+S.set.speed||1;for(let i=0;i<n&&G.state==='play'&&!G.paused;i++)update(dt)}}
