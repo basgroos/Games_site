@@ -411,6 +411,25 @@ function resize(){VW=innerWidth;VH=innerHeight;DPR=Math.min(2,devicePixelRatio||
  const ow=W,oh=H;W=VW;H=VH;if(ow)for(const pl of PLAYERS){pl.P.x=pl.P.x/ow*W;pl.P.y=pl.P.y/oh*H}}
 addEventListener('resize',resize);
 
+/* ================= ACHTERGROND (co-op) =================
+   Een verborgen tabblad krijgt geen animatieframes. In co-op mag het spel dan niet stilvallen
+   (de host simuleert voor iedereen, gasten moeten invoer blijven sturen), dus een kleine worker
+   tikt door zolang het tabblad verborgen is. Solo pauzeert het spel gewoon. */
+let bgLast=0;
+function bgStep(){
+ if(!document.hidden||!(G.net||NET.inRoom()))return;
+ const now=performance.now(),dt=Math.min(1,(now-(bgLast||now))/1000);bgLast=now;if(dt<=0)return;
+ try{
+  if(G.state==='play'){
+   if(G.net==='guest')clientTick(dt);
+   else if(G.net==='host'){const n=+S.set.speed||1,steps=Math.ceil(dt*30);for(let i=0;i<steps&&G.state==='play';i++)for(let k=0;k<n&&G.state==='play';k++)update(dt/steps)}
+  }
+  NET.tick(dt);
+ }catch(e){console.error(e)}
+}
+document.addEventListener('visibilitychange',()=>{bgLast=performance.now();last=performance.now()});
+try{if(window.Worker&&window.Blob&&window.URL&&URL.createObjectURL){const wk=new Worker(URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),100)'],{type:'text/javascript'})));wk.onmessage=bgStep}}catch(e){}
+
 /* ================= LOOP ================= */
 let last=performance.now(),fpsN=0,fpsT=0;
 function frame(now){

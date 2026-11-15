@@ -6,6 +6,7 @@
 - De host simuleert de wereld en stuurt ~10 snapshots per seconde; gasten bewegen direct op hun eigen scherm en sturen hun invoer (richting, auto attack, special, ability en bouwen als Builder). Het speelveld van de host wordt bij gasten passend geschaald.
 - **Gedeelde beloningen:** iedereen krijgt de 20 burgers per wave, gevonden burgers (50) en boss-beloningen, plus XP en mastery voor de eigen loadout. Beloningen worden herhaald verstuurd, dus een gemist bericht kost niets.
 - Wie neergaat staat na de wave weer op met 50% HP; als iedereen neer is, is het game over voor de hele groep. Na het potje blijft de kamer open voor een volgende ronde.
+- Een verborgen tabblad (host of gast) blijft in co-op gewoon doorspelen.
 - Gasten die weggaan of de verbinding verliezen worden na 10 seconden uit het potje gehaald; verdwijnt de host, dan krijgen gasten een melding.
 - Nieuwe test `tests/online.js`: kamer, roster met loadouts, starten, snapshots, bewegen en specials als gast, beloningen, vertrekken, game over en terug naar de kamer — met en zonder 20% berichtverlies.
 
