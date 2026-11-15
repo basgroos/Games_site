@@ -339,7 +339,7 @@ function screenToWorld(x,y){return{x:(x-VIEW.ox)/VIEW.s,y:(y-VIEW.oy)/VIEW.s}}
 function render(){
  ctx.setTransform(DPR,0,0,DPR,0,0);
  if(G.state==='lobby'){ctx.fillStyle='#07060d';ctx.fillRect(0,0,VW,VH);return}
- if(G.net==='guest'){VIEW.s=Math.min(VW/W,VH/H);VIEW.ox=(VW-W*VIEW.s)/2;VIEW.oy=(VH-H*VIEW.s)/2;ctx.fillStyle='#05040a';ctx.fillRect(0,0,VW,VH)}else{VIEW.s=1;VIEW.ox=VIEW.oy=0}
+ if(G.net==='guest'||W>VW||H>VH){VIEW.s=Math.max(.01,Math.min(VW/W,VH/H));VIEW.ox=(VW-W*VIEW.s)/2;VIEW.oy=(VH-H*VIEW.s)/2;ctx.fillStyle='#05040a';ctx.fillRect(0,0,VW,VH)}else{VIEW.s=1;VIEW.ox=VIEW.oy=0}
  ctx.setTransform(DPR*VIEW.s,0,0,DPR*VIEW.s,VIEW.ox*DPR,VIEW.oy*DPR);
  if(!BG)buildBg();
  /* camera (zoom tijdens boss intro) */

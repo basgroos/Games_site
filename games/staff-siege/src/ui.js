@@ -408,7 +408,8 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){commitTime
 addEventListener('beforeunload',()=>{commitTime();save()});
 function resize(){VW=innerWidth;VH=innerHeight;DPR=Math.min(2,devicePixelRatio||1);cv.width=Math.round(VW*DPR);cv.height=Math.round(VH*DPR);BG=null;
  if(G.net==='guest'&&G.state==='play')return;
- const ow=W,oh=H;W=VW;H=VH;if(ow)for(const pl of PLAYERS){pl.P.x=pl.P.x/ow*W;pl.P.y=pl.P.y/oh*H}}
+ /* minimale wereldgrootte: een verborgen of piepklein venster mag geen arena van 0 pixels geven */
+ const ow=W,oh=H;W=Math.max(360,VW);H=Math.max(360,VH);if(ow)for(const pl of PLAYERS){pl.P.x=pl.P.x/ow*W;pl.P.y=pl.P.y/oh*H}}
 addEventListener('resize',resize);
 
 /* ================= ACHTERGROND (co-op) =================
