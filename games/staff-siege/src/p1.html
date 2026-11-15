@@ -1,0 +1,523 @@
+<meta charset="utf-8">
+<title>Staff Siege</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: arcade-indie, snel en luid maar altijd leesbaar — een nachtelijke neon-arena
+   IDEA: een arcadehal; de lobby is een kamer met stations rond jouw held op een podium
+   PICTURE: de held op het verlichte podium in het midden; in-game de arena zelf
+   COLOUR and TYPE: inktzwart-paars, neon per rarity, burger-goud; Chakra Petch + Rubik
+   LAYOUT: lobby = stations links/rechts, held midden, start onderaan; game = HUD rond de arena */
+:root{--bg:#07060d;--panel:#12101f;--panel2:#1a1730;--panel3:#221e3d;--line:#2c2846;--ink:#efedf8;--mut:#a29ec0;--acc:#3dffa6;--hot:#ff3b8d;--gold:#ffc83d;color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font:15px/1.45 'Rubik',system-ui,sans-serif;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.hd{font-family:'Chakra Petch','Rubik',sans-serif}
+#cv{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.ic{width:18px;height:18px;flex:none;vertical-align:-3px}
+.glass{background:rgba(18,16,31,.8);border:1px solid var(--line);border-radius:12px;backdrop-filter:blur(6px)}
+.sec-t{background:linear-gradient(90deg,#ff5ea8,#ffd84a,#5dffb0,#5ec8ff,#c58bff,#ff5ea8);background-size:200%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:rb 3s linear infinite}
+@keyframes rb{to{background-position:200%}}
+@keyframes spin{to{transform:rotate(1turn)}}
+@keyframes float{50%{transform:translateY(-6px)}}
+@keyframes popin{from{opacity:0;transform:scale(.94) translateY(10px)}}
+
+/* ---------- knoppen ---------- */
+.big{position:relative;padding:12px 22px;border-radius:12px;background:linear-gradient(180deg,#5cffbb,#2bd98a);color:#04130c;font:700 17px 'Chakra Petch';box-shadow:0 0 22px rgba(61,255,166,.45),inset 0 -3px 0 rgba(0,0,0,.18);min-height:46px;transition:transform .12s,filter .12s,box-shadow .12s;overflow:hidden}
+.big::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.45) 50%,transparent 70%);transform:translateX(-120%);transition:transform .5s}
+.big:hover::after{transform:translateX(120%)}
+.big:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.big:active{transform:translateY(1px) scale(.98)}
+.big.alt{background:var(--panel2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.big.gold{background:linear-gradient(180deg,#ffd970,#ffb51f);color:#2a1a00;box-shadow:0 0 22px rgba(255,200,61,.45),inset 0 -3px 0 rgba(0,0,0,.15)}
+.big.hot{background:linear-gradient(180deg,#ff6aa8,#ff2d7a);color:#fff;box-shadow:0 0 22px rgba(255,59,141,.45)}
+.big:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.7);transform:none}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font:700 15px 'Chakra Petch';white-space:nowrap}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{padding:9px 16px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);font:500 15px 'Chakra Petch';min-height:44px;color:var(--mut);transition:color .15s,border-color .15s}
+.tabs button.on{color:var(--ink);border-color:var(--acc);box-shadow:0 0 12px rgba(61,255,166,.25)}
+.x{width:44px;height:44px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);font-size:22px;line-height:1}
+.badge{position:absolute;top:-5px;right:-5px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--hot);color:#fff;font:700 12px/20px 'Chakra Petch';box-shadow:0 0 10px var(--hot);display:none}
+.has .badge{display:block}
+
+/* ---------- schermen ---------- */
+.screen{position:fixed;inset:0;display:none}
+.screen.on{display:block}
+#lobby{z-index:5;background:radial-gradient(ellipse at 50% 55%,#1d1438 0,#0b0918 55%,#05040a 100%);overflow:auto}
+#lobby::before{content:"";position:fixed;inset:0;background-image:linear-gradient(rgba(120,90,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(120,90,255,.06) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse at 50% 60%,#000 20%,transparent 75%);pointer-events:none}
+.lwrap{position:relative;min-height:100%;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:14px;padding:14px max(2vw,12px) 16px;max-width:1500px;margin:0 auto}
+.lh{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font:700 28px/1 'Chakra Petch';letter-spacing:.02em;color:#f4fff9;text-shadow:0 0 18px rgba(61,255,166,.6);margin-right:auto}
+.brand small{display:block;font-size:12px;letter-spacing:.32em;color:var(--gold);text-shadow:0 0 10px rgba(255,200,61,.6);margin-top:4px}
+.lvl{display:flex;align-items:center;gap:10px;padding:6px 14px 6px 6px}
+.lvl b{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,#7c5cff,#3dffa6);color:#05040a;font:700 17px 'Chakra Petch'}
+.lvl .xb{width:140px}
+.lvl small{display:block;font-size:12px;color:var(--mut)}
+.bar{height:7px;border-radius:9px;background:#1d1a31;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--acc);box-shadow:0 0 10px var(--acc);transition:width .3s}
+.ib{position:relative;width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:var(--panel2);border:1px solid var(--line);transition:border-color .15s,transform .12s}
+.ib:hover{border-color:#5b54a0;transform:translateY(-1px)}
+.ib svg{width:22px;height:22px}
+.lgrid{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr) minmax(220px,300px);gap:16px;align-items:stretch}
+.col{display:grid;gap:12px;align-content:start}
+.sta{position:relative;display:grid;grid-template-columns:52px minmax(0,1fr);gap:12px;align-items:center;text-align:left;padding:14px;border-radius:16px;background:linear-gradient(135deg,color-mix(in srgb,var(--sc) 16%,#141127),#100e1d);border:1px solid color-mix(in srgb,var(--sc) 35%,transparent);transition:transform .15s,box-shadow .15s,border-color .15s;animation:popin .4s both}
+.sta:hover{transform:translateY(-3px);box-shadow:0 10px 30px color-mix(in srgb,var(--sc) 25%,transparent);border-color:var(--sc)}
+.sta .sic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:color-mix(in srgb,var(--sc) 22%,#0c0a18);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sc) 40%,transparent)}
+.sta .sic svg{width:30px;height:30px;color:var(--sc)}
+.sta b{display:block;font:700 17px/1.15 'Chakra Petch'}
+.sta small{display:block;color:var(--mut);font-size:13px;margin-top:2px}
+.sta .bar{margin-top:7px;height:5px}
+.sta .bar i{background:var(--sc);box-shadow:0 0 8px var(--sc)}
+.center{position:relative;display:grid;grid-template-rows:minmax(260px,1fr) auto;border-radius:22px;overflow:hidden;background:radial-gradient(ellipse at 50% 70%,rgba(80,50,160,.35),transparent 65%);border:1px solid rgba(124,92,255,.18)}
+#stage{width:100%;height:100%;display:block;min-height:260px}
+.ldo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;padding:0 14px 14px}
+.ldo .eq{padding:10px 12px;display:flex;gap:10px;align-items:center}
+.eq .art{width:44px;height:44px;flex:none}
+.eq{display:flex;gap:10px;align-items:center}
+.eq small{display:block;font-size:13px;color:var(--mut)}
+.eq b{display:block;font:700 16px/1.15 'Chakra Petch';white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.synrow{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;min-height:28px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font:700 13px 'Chakra Petch';background:rgba(255,200,61,.12);color:var(--gold);border:1px solid rgba(255,200,61,.4)}
+.chip.off{background:var(--panel2);color:var(--mut);border-color:var(--line)}
+.startA{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 16px;border-radius:18px;background:linear-gradient(90deg,rgba(61,255,166,.08),rgba(124,92,255,.08));border:1px solid rgba(61,255,166,.25)}
+.startA h3{margin:0;font:700 20px 'Chakra Petch'}
+.startA p{margin:2px 0 0;color:var(--mut);font-size:14px}
+.sbtns{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.startbig{font-size:20px;padding:14px 30px}
+
+/* ---------- HUD ---------- */
+#game{z-index:2;pointer-events:none}
+#game .p{pointer-events:auto}
+#tl{position:absolute;left:12px;top:12px;width:240px;display:grid;gap:8px}
+.hp{position:relative;height:26px;border-radius:8px;background:#2a0f1c;border:1px solid #5a1d38;overflow:hidden}
+.hp i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#ff2e6e,#ff7a59);box-shadow:0 0 14px #ff2e6e;transition:width .12s}
+.hp span{position:relative;display:block;text-align:center;font:700 13px/26px 'Chakra Petch';text-shadow:0 1px 2px #000}
+.pills{display:flex;gap:8px;flex-wrap:wrap}
+#tc{position:absolute;left:50%;top:10px;transform:translateX(-50%);width:min(480px,52vw);text-align:center}
+#wv{font-size:30px;line-height:1;letter-spacing:.04em;text-shadow:0 0 18px rgba(61,255,166,.6);color:#eafff5}
+#wv.boss{color:#ffd0e0;text-shadow:0 0 18px rgba(255,59,141,.9)}
+#zl{font-size:13px;color:var(--mut);margin:3px 0 5px}
+#arenaN{font-size:12px;color:var(--mut);letter-spacing:.08em}
+#bossbar{display:none;margin-top:10px;padding:10px 12px;border-color:color-mix(in srgb,var(--b2) 50%,transparent);box-shadow:0 0 30px color-mix(in srgb,var(--b2) 25%,transparent)}
+#bossbar.on{display:block;animation:popin .4s}
+#bossbar.hit{animation:bshake .15s}
+@keyframes bshake{50%{transform:translateX(3px)}}
+.bnr{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+#bn{font-size:18px;color:var(--b2);text-shadow:0 0 10px var(--b2)}
+#bph{font:700 12px 'Chakra Petch';color:#fff;background:color-mix(in srgb,var(--b2) 40%,#000);padding:2px 8px;border-radius:6px}
+#btl{font-size:12px;color:var(--mut);text-align:left}
+.bb{position:relative;height:16px;border-radius:8px;background:#1a0b14;border:1px solid color-mix(in srgb,var(--b2) 50%,#000);overflow:hidden;margin:6px 0 3px}
+.bb i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--b1),var(--b2));box-shadow:0 0 14px var(--b2);transition:width .1s}
+.bb em{position:absolute;inset:0 auto 0 0;background:rgba(255,255,255,.35);transition:width .6s .2s}
+.bb s{position:absolute;top:0;bottom:0;width:2px;background:rgba(0,0,0,.7)}
+#bt{font:500 13px 'Chakra Petch';color:#ffe4ef}
+#tr{position:absolute;right:10px;top:10px;display:grid;gap:6px}
+.hb{position:relative;width:76px;min-height:52px;padding:6px 4px;display:grid;place-items:center;gap:2px;border-radius:12px;background:rgba(18,16,31,.82);border:1px solid var(--line);font-size:13px;line-height:1.1;color:var(--mut);transition:border-color .15s,color .15s,transform .1s}
+.hb svg{width:22px;height:22px;color:var(--ink)}
+.hb:hover{border-color:#5b54a0;color:var(--ink)}
+.hb.on{border-color:var(--acc);color:var(--acc)}
+#bl{position:absolute;left:12px;bottom:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;max-width:calc(100vw - 120px)}
+#bl .eq{padding:8px 12px 8px 8px}
+#bl .eq b{max-width:150px}
+.ab{position:relative;width:54px;height:54px;border-radius:50%;flex:none;display:grid;place-items:center;background:conic-gradient(rgba(0,0,0,.7) calc(var(--p,0)*1turn),transparent 0),var(--c,#333);box-shadow:0 0 0 2px rgba(255,255,255,.12) inset;font:700 13px 'Chakra Petch';color:#07060d;transition:box-shadow .2s}
+.ab.rdy{box-shadow:0 0 0 2px #fff inset,0 0 18px var(--c);animation:rdy 1.4s ease-in-out infinite}
+@keyframes rdy{50%{box-shadow:0 0 0 2px #fff inset,0 0 28px var(--c)}}
+.ab span{background:rgba(255,255,255,.88);border-radius:5px;padding:0 4px}
+#synHud{display:flex;gap:6px;flex-wrap:wrap}
+#bc{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:grid;gap:8px;justify-items:center}
+#nextW{display:none;align-items:center;gap:10px;padding:8px 10px}
+#nextW.on{display:flex;animation:popin .3s}
+#cd{font:700 15px 'Chakra Petch';color:var(--acc);white-space:nowrap}
+#build{display:none;gap:6px;padding:6px}
+#build.on{display:flex}
+#build button{padding:8px 10px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);font:500 13px 'Chakra Petch';min-height:44px;white-space:nowrap}
+#ann{position:absolute;left:0;right:0;top:28%;text-align:center;pointer-events:none;opacity:0}
+#ann b{display:block;font-size:clamp(34px,7vw,72px);line-height:1;letter-spacing:.03em;color:#fff;text-shadow:0 0 30px var(--ac,#3dffa6),0 0 8px var(--ac,#3dffa6)}
+#ann span{display:block;font-size:17px;color:#d8d4f0;margin-top:8px;text-shadow:0 1px 4px #000}
+#ann.go{animation:ann 2s ease-out}
+@keyframes ann{0%{opacity:0;transform:scale(1.4);filter:blur(6px)}12%{opacity:1;transform:scale(1);filter:none}75%{opacity:1}100%{opacity:0;transform:translateY(-20px)}}
+#bossIntro{position:absolute;left:0;right:0;bottom:16%;text-align:center;pointer-events:none;opacity:0}
+#bossIntro.on{animation:bi 3.2s ease-out forwards}
+#bossIntro .w{font:700 15px 'Chakra Petch';letter-spacing:.4em;color:#ff8ab5}
+#bossIntro .n{font:700 clamp(38px,8vw,84px)/1 'Chakra Petch';color:#fff;text-shadow:0 0 30px var(--b2),0 0 6px var(--b2);margin:6px 0}
+#bossIntro .t{font-size:18px;color:var(--b2);letter-spacing:.1em}
+@keyframes bi{0%{opacity:0;letter-spacing:.4em}15%{opacity:1;letter-spacing:.02em}85%{opacity:1}100%{opacity:0}}
+#toasts{position:fixed;left:50%;top:130px;transform:translateX(-50%);display:grid;gap:6px;justify-items:center;z-index:30;pointer-events:none}
+.toast{padding:9px 16px;border-radius:12px;background:rgba(18,16,31,.94);border:1px solid var(--line);font:500 14px 'Chakra Petch';animation:tin .3s ease-out;display:flex;gap:8px;align-items:center}
+.toast.ach{border-color:var(--gold);color:var(--gold);box-shadow:0 0 20px rgba(255,200,61,.3)}
+.toast.lvl{border-color:var(--acc);color:var(--acc)}
+.toast.mast{border-color:#c084fc;color:#e9d5ff}
+@keyframes tin{from{opacity:0;transform:translateY(-10px) scale(.95)}}
+
+/* ---------- overlays ---------- */
+.ov{position:fixed;inset:0;z-index:10;display:none;place-items:center;background:rgba(5,4,12,.8);backdrop-filter:blur(5px);padding:14px}
+.ov.on{display:grid}
+.ov.on .win{animation:popin .25s ease-out}
+.win{width:min(1080px,100%);max-height:calc(100vh - 28px);overflow:auto;background:linear-gradient(180deg,#15122a,#100e1d);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.whead{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.whead h2{margin:0;font:700 28px/1.05 'Chakra Petch';flex:1}
+.sub{color:var(--mut);font-size:14px}
+/* cards met rarity-effecten */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(122px,1fr));gap:10px;align-content:start}
+.card{position:relative;padding:12px 8px 10px;border-radius:14px;background:linear-gradient(180deg,color-mix(in srgb,var(--rc) 18%,#151327),#13111f);border:1px solid color-mix(in srgb,var(--rc) 45%,transparent);text-align:center;display:grid;gap:4px;justify-items:center;transition:transform .12s,box-shadow .12s;overflow:hidden}
+.card:hover{transform:translateY(-3px);box-shadow:0 8px 22px color-mix(in srgb,var(--rc) 35%,transparent)}
+.card.sel{box-shadow:0 0 0 2px var(--rc),0 0 22px color-mix(in srgb,var(--rc) 45%,transparent)}
+.card.lock{filter:grayscale(.9) brightness(.5)}
+.card .art{width:60px;height:60px}
+.card b{font:700 14px/1.15 'Chakra Petch'}
+.card small{font-size:13px;color:var(--mut)}
+.card.r4::before,.card.r5::before,.card.r6::before,.rc.r4::before,.rc.r5::before,.rc.r6::before{content:"";position:absolute;inset:-50%;background:conic-gradient(from 0deg,transparent 0 70%,color-mix(in srgb,var(--rc) 55%,transparent) 85%,transparent 100%);animation:spin 4s linear infinite;z-index:0;opacity:.6}
+.card.r6::before,.rc.r6::before{background:conic-gradient(#ff5ea8,#ffd84a,#5dffb0,#5ec8ff,#c58bff,#ff5ea8);opacity:.35}
+.card.r5{box-shadow:0 0 16px rgba(255,59,92,.25)}
+.card>*,.rc>*{position:relative;z-index:1}
+.card.lock::before{display:none}
+.card::after{content:"";position:absolute;inset:1px;border-radius:13px;background:linear-gradient(180deg,color-mix(in srgb,var(--rc) 14%,#151327),#13111f);z-index:0}
+.card.lock::after{background:#13111f}
+.stars{display:flex;gap:2px}
+.stars i{width:9px;height:4px;border-radius:2px;background:#2d2948}
+.stars i.f{background:var(--rc)}
+.tag{position:absolute;top:6px;font:700 11px/1 'Chakra Petch';padding:3px 5px;border-radius:5px;z-index:2!important}
+.tag.new{left:6px;background:var(--hot);color:#fff;box-shadow:0 0 10px var(--hot)}
+.tag.eqd{right:6px;background:var(--acc);color:#04130c}
+.tag.syn{right:6px;top:24px;background:var(--gold);color:#2a1a00}
+.cw{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px}
+.fil{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.fil button{padding:6px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);font:500 13px 'Chakra Petch';min-height:36px;color:var(--mut)}
+.fil button.on{color:var(--ink);border-color:var(--rc,var(--acc))}
+.det{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:16px;align-self:start;position:sticky;top:0}
+.det .art{width:100px;height:100px;margin:0 auto 4px;display:block;animation:float 3s ease-in-out infinite}
+.det h3{margin:0;font:700 22px/1.1 'Chakra Petch';text-align:center}
+.det .rr{text-align:center;font:700 14px 'Chakra Petch';margin:4px 0 8px}
+.det p{margin:0 0 10px;color:var(--mut);font-size:14px}
+.st{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line);font-size:14px}
+.st b{font-family:'Chakra Petch';text-align:right;white-space:nowrap}
+.up{color:var(--acc)}.dn{color:#ff6b8a}
+.det .big{width:100%;margin-top:12px}
+.mbar{margin:8px 0 4px}
+.mbar small{display:flex;justify-content:space-between;font-size:12px;color:var(--mut)}
+.mbar .bar i{background:#c084fc;box-shadow:0 0 8px #c084fc}
+.slist{display:grid;gap:6px;margin-top:8px}
+.si{padding:8px 10px;border-radius:10px;background:#141127;border:1px solid var(--line);font-size:13px}
+.si b{font:700 14px 'Chakra Petch';color:var(--gold)}
+.si.act{border-color:var(--gold);box-shadow:0 0 12px rgba(255,200,61,.2)}
+.si.lk{opacity:.6}
+.si.lk b{color:var(--mut)}
+.si small{display:block;color:var(--mut)}
+/* synergieën */
+.syng{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.sy{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;padding:10px;border-radius:12px;background:var(--panel2);border:1px solid var(--line)}
+.sy.act{border-color:var(--gold);box-shadow:0 0 16px rgba(255,200,61,.2)}
+.sy.own{border-color:#4b4380}
+.sy.lk{opacity:.55}
+.sy .pr{display:flex;align-items:center}
+.sy .pr svg{width:36px;height:36px}
+.sy .pr i{font:700 14px 'Chakra Petch';color:var(--mut);margin:0 2px}
+.sy b{font:700 15px 'Chakra Petch';display:block}
+.sy small{display:block;color:var(--mut);font-size:13px}
+.sy em{font-style:normal;font-size:12px;font-family:'Chakra Petch'}
+/* gacha */
+.gban{position:relative;border-radius:18px;padding:22px;overflow:hidden;background:radial-gradient(circle at 78% 50%,color-mix(in srgb,var(--bc) 40%,transparent),transparent 55%),linear-gradient(120deg,#151230,#0d0b1a);border:1px solid var(--line);display:grid;grid-template-columns:minmax(0,1fr) 180px;gap:16px;align-items:center}
+.gban h3{margin:0 0 6px;font:700 32px/1.05 'Chakra Petch'}
+.gban p{margin:0 0 14px;color:var(--mut);max-width:56ch}
+.orb{width:160px;height:160px;border-radius:50%;position:relative;background:radial-gradient(circle at 40% 35%,#fff,var(--bc) 30%,color-mix(in srgb,var(--bc) 40%,#000) 70%);box-shadow:0 0 60px var(--bc);animation:float 3s ease-in-out infinite}
+.orb::after{content:"";position:absolute;inset:-14px;border-radius:50%;border:2px dashed color-mix(in srgb,var(--bc) 70%,transparent);animation:spin 9s linear infinite}
+.gbtn{display:flex;gap:10px;flex-wrap:wrap}
+.pity{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:14px}
+.pity div{padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.25);font-size:13px;color:var(--mut)}
+.pity b{display:block;font:700 16px 'Chakra Petch';color:var(--ink)}
+.pity .bar{margin-top:5px;height:5px}
+.rates{margin-top:16px;display:grid;gap:6px}
+.rate{display:grid;grid-template-columns:110px 70px minmax(0,1fr) 60px;gap:10px;align-items:center;padding:8px 12px;border-radius:10px;background:var(--panel2);border-left:3px solid var(--rc)}
+.rate b{font:700 14px 'Chakra Petch'}
+.rate .pc{font:700 15px 'Chakra Petch';text-align:right}
+.rate small{color:var(--mut);font-size:13px}
+.rate small em{font-style:normal;color:var(--acc)}
+.rate .own{font:700 13px 'Chakra Petch';text-align:right;color:var(--mut)}
+/* summon */
+#sum{z-index:20;background:radial-gradient(circle,rgba(20,10,40,.94),rgba(3,2,8,.98));overflow:auto}
+#sum .stage{display:grid;justify-items:center;gap:18px;width:min(1000px,100%);padding:20px 0}
+#sum .portal{width:200px;height:200px;border-radius:50%;position:relative;background:radial-gradient(circle,#fff 0,var(--c) 22%,transparent 62%)}
+#sum .portal::before,#sum .portal::after{content:"";position:absolute;border-radius:50%;border:3px dashed var(--c);inset:-20px;animation:spin 2s linear infinite;box-shadow:0 0 30px var(--c)}
+#sum .portal::after{inset:-48px;border-width:2px;animation-duration:3.4s;animation-direction:reverse;opacity:.6}
+#sum .rays{position:fixed;inset:-50%;background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--c) 30%,transparent) 0 6deg,transparent 6deg 18deg);animation:spin 6s linear infinite;opacity:0;pointer-events:none}
+#sum.t4.charge .rays,#sum.t5.charge .rays,#sum.t6.charge .rays{opacity:1;transition:opacity 1s}
+#sum.t6 .rays{background:repeating-conic-gradient(from 0deg,#ff5ea880 0 6deg,#ffd84a80 6deg 12deg,#5dffb080 12deg 18deg,#5ec8ff80 18deg 24deg,transparent 24deg 36deg)}
+#sum.charge .portal{animation:charge 1.6s ease-in forwards}
+#sum.t5.charge .portal,#sum.t6.charge .portal{animation:charge 2.4s ease-in forwards,shake .1s linear infinite}
+#sum.t6.charge .portal{filter:hue-rotate(0deg);animation:charge 2.8s ease-in forwards,shake .1s linear infinite,hue 1s linear infinite}
+@keyframes hue{to{filter:hue-rotate(360deg)}}
+#sum.burst .portal,#sum.burst .stxt{display:none}
+@keyframes charge{0%{transform:scale(.5);filter:brightness(.8)}80%{transform:scale(1.15) rotate(40deg)}100%{transform:scale(1.4);filter:brightness(2.6)}}
+@keyframes shake{25%{translate:3px -2px}75%{translate:-3px 2px}}
+#sum .stxt{font:700 20px 'Chakra Petch';color:var(--mut);letter-spacing:.08em;text-align:center}
+#sum.t4 .stxt{color:#fbbf24}#sum.t5 .stxt{color:#ff3b5c}
+.flash{position:fixed;inset:0;background:var(--c);opacity:0;pointer-events:none}
+#sum.burst .flash{animation:fl .8s ease-out}
+@keyframes fl{0%{opacity:.95}100%{opacity:0}}
+#sumCards{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
+.rc{position:relative;width:152px;padding:14px 10px;border-radius:14px;text-align:center;display:grid;gap:4px;justify-items:center;background:linear-gradient(180deg,color-mix(in srgb,var(--rc) 28%,#16132a),#110f1d);border:1px solid var(--rc);box-shadow:0 0 26px color-mix(in srgb,var(--rc) 45%,transparent);animation:flip .55s both;animation-delay:calc(var(--i)*.13s);overflow:hidden}
+.rc::after{content:"";position:absolute;inset:1px;border-radius:13px;background:linear-gradient(180deg,color-mix(in srgb,var(--rc) 22%,#16132a),#110f1d);z-index:0}
+.rc .art{width:74px;height:74px}
+.rc b{font:700 16px/1.15 'Chakra Petch'}
+.rc small{font:700 13px 'Chakra Petch'}
+.rc em{font-style:normal;font-size:13px;color:var(--mut)}
+.rc em.n{color:var(--hot);font-weight:700}
+@keyframes flip{from{opacity:0;transform:perspective(600px) rotateY(90deg) scale(.7)}to{opacity:1;transform:none}}
+#sumSum{color:var(--mut);font:500 15px 'Chakra Petch';text-align:center}
+/* upgrades */
+.upg{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.uc{padding:14px;border-radius:14px;background:var(--panel2);border:1px solid var(--line);display:grid;gap:6px}
+.uc b{font:700 17px 'Chakra Petch'}
+.uc small{color:var(--mut);font-size:13px}
+.uc .lvb{display:flex;gap:2px}
+.uc .lvb i{flex:1;height:5px;border-radius:2px;background:#2d2948}
+.uc .lvb i.f{background:var(--acc);box-shadow:0 0 6px var(--acc)}
+.uc .big{padding:9px 12px;font-size:15px;min-height:42px}
+/* stats */
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.sbox{padding:14px;border-radius:14px;background:var(--panel2);border:1px solid var(--line)}
+.sbox b{display:block;font:700 26px 'Chakra Petch'}
+.sbox small{color:var(--mut);font-size:13px}
+.achl{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.ac{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--panel2);border:1px solid var(--line)}
+.ac.done{border-color:rgba(61,255,166,.45)}
+.ac.claim{border-color:var(--gold);box-shadow:0 0 14px rgba(255,200,61,.25)}
+.ac.lk{opacity:.55}
+.ac b{font:700 15px 'Chakra Petch';display:block}
+.ac small{color:var(--mut);font-size:13px}
+.ac .big{padding:8px 12px;font-size:14px;min-height:40px}
+.ac .rw{font:700 13px 'Chakra Petch';color:var(--gold);white-space:nowrap}
+table.bt{width:100%;border-collapse:collapse;font-size:14px}
+table.bt th,table.bt td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left}
+table.bt td.n{text-align:right;font-family:'Chakra Petch'}
+table.bt th{color:var(--mut);font-weight:500;font-size:13px}
+.zi{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.zc{display:grid;grid-template-columns:54px minmax(0,1fr);gap:10px;align-items:center;padding:10px;border-radius:12px;background:var(--panel2);border:1px solid var(--line)}
+.zc canvas{width:54px;height:54px}
+.zc.lk{opacity:.45}
+.zc b{font:700 14px 'Chakra Petch';display:block}
+.zc small{display:block;color:var(--mut);font-size:12px}
+/* daily */
+.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.day{padding:14px 6px;border-radius:14px;background:var(--panel2);border:1px solid var(--line);text-align:center;display:grid;gap:6px;justify-items:center}
+.day b{font:700 13px 'Chakra Petch';color:var(--mut)}
+.day span{font:700 15px 'Chakra Petch'}
+.day.done{border-color:rgba(61,255,166,.4);opacity:.7}
+.day.now{border-color:var(--gold);box-shadow:0 0 20px rgba(255,200,61,.35);animation:float 2s ease-in-out infinite}
+/* settings */
+.sets{display:grid;gap:8px}
+.srow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 14px;border-radius:12px;background:var(--panel2);border:1px solid var(--line)}
+.srow small{display:block;color:var(--mut);font-size:13px}
+.tg{width:58px;height:32px;border-radius:999px;background:#2d2948;position:relative;flex:none;transition:background .15s}
+.tg::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .15s}
+.tg.on{background:var(--acc)}
+.tg.on::after{left:30px}
+input[type=range]{width:180px;accent-color:var(--acc);height:32px}
+.seg{display:flex;gap:4px}
+.seg button{padding:7px 12px;border-radius:8px;background:#2d2948;font-size:14px;min-height:40px}
+.seg button.on{background:var(--acc);color:#04130c;font-weight:700}
+.danger{background:#3a1022;border:1px solid #7a2346;color:#ffb3cd;padding:10px 16px;border-radius:10px;min-height:44px}
+/* resultaten */
+#res .win,#pause .win{width:min(640px,100%);text-align:center}
+#res h2{font:700 44px/1 'Chakra Petch';margin:4px 0 6px}
+#res h2.dead{color:#ff8ab5;text-shadow:0 0 20px #ff3b8d}
+.rstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:14px 0}
+.rgain{display:grid;gap:8px;text-align:left;margin:10px 0 16px}
+.lbtns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+#wipe{position:fixed;inset:0;z-index:50;pointer-events:none;background:linear-gradient(115deg,#3dffa6 0 8%,#0b0918 8% 92%,#7c5cff 92%);transform:translateX(-110%)}
+#wipe.go{animation:wipe .9s cubic-bezier(.7,0,.3,1)}
+@keyframes wipe{0%{transform:translateX(-110%)}45%,55%{transform:translateX(0)}100%{transform:translateX(110%)}}
+@media(max-width:1000px){
+ .lgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ .center{grid-column:1/-1;grid-row:1}
+ .cw{grid-template-columns:minmax(0,1fr)}.det{position:static}
+}
+@media(max-width:640px){
+ .lgrid{grid-template-columns:minmax(0,1fr)}
+ .brand{font-size:22px}
+ .lvl .xb{width:90px}
+ .startA{grid-template-columns:minmax(0,1fr)}.sbtns{justify-content:stretch}.sbtns .big{flex:1}
+ .ldo{grid-template-columns:minmax(0,1fr)}
+ .gban{grid-template-columns:minmax(0,1fr)}.gban .orb{display:none}
+ .rate{grid-template-columns:90px 56px minmax(0,1fr)}.rate .own{display:none}
+ .days{grid-template-columns:repeat(4,minmax(0,1fr))}
+ #tl{width:170px;top:auto;bottom:84px}
+ #tc{width:auto;left:calc(50% - 40px);top:8px}
+ #wv{font-size:24px}
+ .hb{width:64px;min-height:48px;font-size:12px}
+ #bl .eq>div:last-child,#bl .eq .art{display:none}
+ #bl .eq{padding:6px}
+ #bc{bottom:172px}
+ #synHud{display:none}
+}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01s!important}}
+
+.home-link{color:var(--mut);text-decoration:none;font:700 14px 'Chakra Petch';padding:8px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);white-space:nowrap}
+.home-link:hover{color:var(--ink)}
+.ver{color:var(--mut);font-size:12px;text-align:center;margin-top:6px}
+</style>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+ <symbol id="i-burger" viewBox="0 0 24 24"><path d="M3 11.2C3 7 7 4 12 4s9 3 9 7.2z" fill="#f4a73b"/><circle cx="9" cy="7.5" r=".7" fill="#fff6d6"/><circle cx="13" cy="6.6" r=".7" fill="#fff6d6"/><circle cx="15.5" cy="8.6" r=".7" fill="#fff6d6"/><path d="M2.5 12h19l-2 2.2-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4z" fill="#5fd35f"/><rect x="3" y="14" width="18" height="3.2" rx="1.6" fill="#7a3b1e"/><path d="M3.5 17.8h17c0 1.6-1.3 2.4-3 2.4h-11c-1.7 0-3-.8-3-2.4z" fill="#e8952f"/></symbol>
+ <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 0 0 5V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2.5 2.5 0 0 0 0-5z" fill="#c084fc"/><path d="M12 8.5l1 2.1 2.3.3-1.7 1.6.4 2.3-2-1.1-2 1.1.4-2.3-1.7-1.6 2.3-.3z" fill="#fff"/></symbol>
+ <symbol id="i-gear" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zM19.4 13.5l1.6 1.2-2 3.4-1.9-.7a7 7 0 0 1-2 1.2l-.3 2h-4l-.3-2a7 7 0 0 1-2-1.2l-1.9.7-2-3.4 1.6-1.2a7 7 0 0 1 0-3L4.6 9.3l2-3.4 1.9.7a7 7 0 0 1 2-1.2l.3-2h4l.3 2a7 7 0 0 1 2 1.2l1.9-.7 2 3.4-1.6 1.2a7 7 0 0 1 0 3z"/></symbol>
+ <symbol id="i-wand" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 20 15 9"/><circle cx="17" cy="7" r="3" fill="currentColor" stroke="none"/><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M21 3l-1 1M17 1.5V3M22.5 7H21"/></symbol>
+ <symbol id="i-crest" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 2.5 20 5.5v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10v-6z"/><path d="M12 7l1.4 3 3.1.3-2.4 2 .8 3.1L12 13.8l-2.9 1.6.8-3.1-2.4-2 3.1-.3z" fill="currentColor"/></symbol>
+ <symbol id="i-link" viewBox="0 0 24 24"><circle cx="7" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 12h4" stroke="currentColor" stroke-width="2"/></symbol>
+ <symbol id="i-orb" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+ <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 3l7 8h-4v9H9v-9H5z" fill="currentColor"/></symbol>
+ <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></symbol>
+ <symbol id="i-gift" viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 13h18M12 9v12M12 9C9 9 7 4 9.5 4S12 9 12 9s.5-5 2.5-5S15 9 12 9z" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+ <symbol id="i-skip" viewBox="0 0 24 24"><path fill="currentColor" d="M4 5l8 7-8 7zM12 5l8 7-8 7z"/></symbol>
+ <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></symbol>
+ <symbol id="i-speed" viewBox="0 0 24 24"><path d="M3 15a9 9 0 0 1 18 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 15l5-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="15" r="2" fill="currentColor"/></symbol>
+ <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z" fill="currentColor"/></symbol>
+</svg>
+
+<canvas id="cv"></canvas>
+
+<!-- ============ LOBBY ============ -->
+<div id="lobby" class="screen on">
+ <div class="lwrap">
+  <header class="lh">
+   <a class="home-link" id="homeLink" hidden>← Bas Games</a>
+   <div class="brand">STAFF SIEGE<small>ZOMBIE SURVIVAL</small></div>
+   <div class="lvl glass" title="Player level"><b id="lvN">1</b><div class="xb"><small id="lvT">Level 1</small><div class="bar"><i id="xpF" style="width:0"></i></div></div></div>
+   <span class="pill glass" style="color:var(--gold)"><svg class="ic"><use href="#i-burger"/></svg><b id="lBur">0</b></span>
+   <span class="pill glass" style="color:#d8b4fe" title="Summon tickets"><svg class="ic"><use href="#i-ticket"/></svg><b id="lTix">0</b></span>
+   <button class="ib" data-go="daily" id="dailyB" title="Daily reward" aria-label="Daily reward"><svg style="color:var(--gold)"><use href="#i-gift"/></svg><i class="badge">!</i></button>
+   <button class="ib" data-go="set" title="Settings" aria-label="Settings"><svg><use href="#i-gear"/></svg></button>
+  </header>
+  <main class="lgrid">
+   <div class="col">
+    <button class="sta" data-go="staffs" style="--sc:#a855f7"><span class="sic"><svg><use href="#i-wand"/></svg></span><span><b>Staff Collectie</b><small id="sStaff"></small><span class="bar"><i id="sStaffB"></i></span></span><i class="badge" id="nbS">!</i></button>
+    <button class="sta" data-go="classes" style="--sc:#22d3ee"><span class="sic"><svg><use href="#i-crest"/></svg></span><span><b>Class Collectie</b><small id="sClass"></small><span class="bar"><i id="sClassB"></i></span></span><i class="badge" id="nbC">!</i></button>
+    <button class="sta" data-go="syn" style="--sc:#ffc83d"><span class="sic"><svg><use href="#i-link"/></svg></span><span><b>Synergieën</b><small id="sSyn"></small><span class="bar"><i id="sSynB"></i></span></span></button>
+   </div>
+   <div class="center">
+    <canvas id="stage"></canvas>
+    <div class="ldo">
+     <div class="eq glass" id="lEqS"></div>
+     <div class="eq glass" id="lEqC"></div>
+     <div class="synrow" id="lSyn"></div>
+    </div>
+   </div>
+   <div class="col">
+    <button class="sta" data-go="gacha" style="--sc:#ff3b8d"><span class="sic"><svg><use href="#i-orb"/></svg></span><span><b>Gacha</b><small id="sGacha"></small></span><i class="badge" id="nbG">!</i></button>
+    <button class="sta" data-go="upg" style="--sc:#3dffa6"><span class="sic"><svg><use href="#i-up"/></svg></span><span><b>Upgrades</b><small id="sUpg"></small></span></button>
+    <button class="sta" data-go="stats" style="--sc:#60a5fa"><span class="sic"><svg><use href="#i-chart"/></svg></span><span><b>Stats &amp; Achievements</b><small id="sStats"></small></span><i class="badge" id="nbA">!</i></button>
+   </div>
+  </main>
+  <footer class="startA">
+   <div><h3 id="runH">Klaar voor de strijd?</h3><p id="runP"></p></div>
+   <div class="sbtns" id="runBtns"></div>
+  </footer>
+ </div>
+</div>
+
+<!-- ============ GAME HUD ============ -->
+<div id="game" class="screen">
+ <div id="tl" class="p">
+  <div class="hp"><i id="hpf" style="width:100%"></i><span id="hpt">100 / 100</span></div>
+  <div class="pills">
+   <span class="pill glass" style="color:var(--gold)"><svg class="ic"><use href="#i-burger"/></svg><b id="bur">0</b></span>
+   <span class="pill glass" id="scrapP" hidden><svg class="ic" style="color:#facc15"><use href="#i-gear"/></svg><b id="scrap">0</b></span>
+  </div>
+ </div>
+ <div id="tc">
+  <div id="wv" class="hd">WAVE 1</div>
+  <div id="zl"></div>
+  <div class="bar"><i id="wpf" style="width:0"></i></div>
+  <div id="arenaN"></div>
+  <div id="bossbar" class="glass">
+   <div class="bnr"><span id="bn" class="hd">Boss</span><span id="bph">FASE 1</span></div>
+   <div id="btl"></div>
+   <div class="bb"><em id="bbg" style="width:100%"></em><i id="bbf" style="width:100%"></i><s style="left:33%"></s><s style="left:66%"></s></div>
+   <div id="bt">0</div>
+  </div>
+ </div>
+ <div id="tr" class="p">
+  <button class="hb" id="spdB" title="Game speed (F)"><svg><use href="#i-speed"/></svg><span>Speed <b id="spdS">1x</b></span></button>
+  <button class="hb" id="skipB"><svg><use href="#i-skip"/></svg><span>Auto Skip <b id="skipS">AAN</b></span></button>
+  <button class="hb" data-go="set"><svg><use href="#i-gear"/></svg><span>Settings</span></button>
+  <button class="hb" id="pauseB"><svg><use href="#i-pause"/></svg><span>Pauze</span></button>
+ </div>
+ <div id="bl" class="p">
+  <div class="eq glass" id="eqS"></div>
+  <div class="eq glass" id="eqC"></div>
+  <div id="synHud"></div>
+ </div>
+ <div id="bc" class="p">
+  <div id="build" class="glass">
+   <button data-b="tower">Tower <small>(T)</small> · 25</button>
+   <button data-b="wall">Muur <small>(G)</small> · 6</button>
+   <button data-b="up">Upgrade <small>(U)</small></button>
+  </div>
+  <div id="nextW" class="glass"><span id="cd"></span><button class="big" id="nextB">Volgende wave</button></div>
+ </div>
+ <div id="ann" class="hd"><b id="annB"></b><span id="annS"></span></div>
+ <div id="bossIntro"><div class="w" id="biW"></div><div class="n" id="biN"></div><div class="t" id="biT"></div></div>
+</div>
+<div id="toasts"></div>
+
+<!-- ============ LOBBY PANELEN ============ -->
+<div class="ov" id="coll"><div class="win">
+ <div class="whead"><h2 id="collH">Collectie</h2><div class="tabs" id="collTabs"><button data-t="staff">Staffen</button><button data-t="class">Classes</button></div><button class="x" data-close aria-label="Sluiten">×</button></div>
+ <div class="cw"><div><div class="sub" id="collSub"></div><div class="fil" id="collFil" style="margin-top:8px"></div><div class="grid" id="collGrid"></div></div><div class="det" id="collDet"></div></div>
+</div></div>
+
+<div class="ov" id="syn"><div class="win">
+ <div class="whead"><h2>Synergieën</h2><div class="tabs" id="synTabs"><button data-t="all">Alle</button><button data-t="own">Beschikbaar</button><button data-t="lk">Vergrendeld</button></div><button class="x" data-close aria-label="Sluiten">×</button></div>
+ <p class="sub" style="margin-top:-6px">Combineer een staff met een class voor een bonus. Goud = actief met je huidige loadout. Een synergie telt als ontdekt zodra je er een potje mee speelt.</p>
+ <div class="syng" id="synGrid"></div>
+</div></div>
+
+<div class="ov" id="gacha"><div class="win">
+ <div class="whead"><h2>Gacha</h2><div class="tabs" id="gTabs"><button data-t="staff">Staff Gacha</button><button data-t="class">Class Gacha</button></div><button class="x" data-close aria-label="Sluiten">×</button></div>
+ <div id="gBody"></div>
+</div></div>
+
+<div class="ov" id="upg"><div class="win">
+ <div class="whead"><h2>Upgrades</h2><span class="pill glass" style="color:var(--gold)"><svg class="ic"><use href="#i-burger"/></svg><b id="uBur">0</b></span><button class="x" data-close aria-label="Sluiten">×</button></div>
+ <p class="sub" style="margin-top:-6px">Permanente bonussen voor iedere staff en class. Prijzen stijgen per level.</p>
+ <div class="upg" id="upgGrid"></div>
+</div></div>
+
+<div class="ov" id="stats"><div class="win">
+ <div class="whead"><h2>Stats &amp; Achievements</h2><div class="tabs" id="stTabs"><button data-t="ov">Overzicht</button><button data-t="ach">Achievements</button><button data-t="coll">Collectie</button><button data-t="boss">Bosses</button><button data-t="zi">Zombie Index</button></div><button class="x" data-close aria-label="Sluiten">×</button></div>
+ <div id="stBody"></div>
+</div></div>
+
+<div class="ov" id="daily"><div class="win" style="width:min(760px,100%)">
+ <div class="whead"><h2>Daily Reward</h2><button class="x" data-close aria-label="Sluiten">×</button></div>
+ <p class="sub" style="margin-top:-6px">Kom iedere dag terug. Mis je een dag, dan begint de reeks opnieuw.</p>
+ <div class="days" id="days"></div>
+ <div style="text-align:center;margin-top:16px"><button class="big gold" id="claimDaily">Claim</button></div>
+</div></div>
+
+<div class="ov" id="set"><div class="win" style="width:min(640px,100%)">
+ <div class="whead"><h2>Settings</h2><button class="x" data-close aria-label="Sluiten">×</button></div>
+ <div class="sets" id="sets"></div>
+</div></div>
+
+<div class="ov" id="pause"><div class="win">
+ <h2 class="hd" style="margin:0 0 6px;font-size:34px">Gepauzeerd</h2>
+ <p class="sub" id="pauseInfo" style="margin:0 0 6px"></p>
+ <p class="sub" style="margin:0 0 16px">Je loadout ligt vast tot het potje voorbij is.</p>
+ <div class="lbtns"><button class="big" id="resB">Verder spelen</button><button class="big alt" id="quitB">Potje beëindigen</button></div>
+</div></div>
+
+<div class="ov" id="res"><div class="win">
+ <div class="sub hd" id="resK">GAME OVER</div>
+ <h2 id="resT">Wave 1</h2>
+ <div class="rstats" id="resStats"></div>
+ <div class="rgain" id="resGain"></div>
+ <div class="lbtns"><button class="big" id="toLobby">Terug naar lobby</button><button class="big alt" id="again">Opnieuw (zelfde loadout)</button></div>
+</div></div>
+
+<div class="ov" id="sum"><div class="rays"></div><div class="flash"></div>
+ <div class="stage"><div class="portal"></div><div class="stxt" id="sumTxt">SUMMONING…</div><div id="sumCards"></div><div id="sumSum"></div><button class="big" id="sumDone" hidden>Verder</button></div>
+</div>
+<div id="wipe"></div>

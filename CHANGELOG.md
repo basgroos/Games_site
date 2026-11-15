@@ -1,5 +1,15 @@
 # Wijzigingen
 
+## Staff Siege 1.1.0 (2026-11-15) — nieuw spel
+- **Nieuw op Bas Games:** Staff Siege, een zombie survival met gacha. Je valt automatisch aan, waves komen snel achter elkaar en iedere 25 waves komt een boss.
+- **Lobby en potje gescheiden:** in de lobby kies je je staff en class, gebruik je de gacha, koop je upgrades en bekijk je collectie, synergieën, stats en achievements. Tijdens een potje ligt je loadout vast; gacha en collectie zijn dan op slot.
+- **42 staffen en 32 classes** in 7 rarities (Common t/m Secret), elk met een eigen aanval, special of ability. **44 synergieën** tussen staff en class.
+- **Burgers:** 20 per voltooide wave en 5% kans per zombie op een burger van 50. De gacha kost 100 burgers (10x: 1000) en heeft pity: Rare+ binnen 10, Legendary+ binnen 60 en Mythic+ binnen 150 summons. Duplicates geven +1 level.
+- **8 bosses** met intro, drie fases en eigen healthbar; 8 arena's die iedere 25 waves wisselen; 16 zombietypes.
+- **Progressie:** player level, mastery per staff en class, permanente upgrades, 41 achievements, daily rewards, collectiebeloningen en checkpoints na iedere boss.
+- **Snelheid 1x, 2x en 3x** (knop rechtsboven, toets F of Settings).
+- Staging heeft een eigen save. Tests: `tests/smoke.js` (lobby, gacha, loadout-lock, snelheid, opslaan) en `tests/sim.js` (alle staffen, classes, synergieën en bosses).
+
 ## Age Clash 1.2.0 (2026-11-09)
 - **IJzerinkomen gehalveerd, zodat je keuzes meer uitmaken:** 10 ijzer per seconde in plaats van 20, +2,5 per tijdperk in plaats van +5, en +3 per inkomen-upgrade in plaats van +6. Het startijzer (500), het kill-inkomen en alle prijzen zijn gelijk gebleven.
 - **Een tijdperk ontgrendelen geeft meteen de eerste 3 units gratis** (melee, ranged en anti-armor); de armored unit koop je los. Spelers die tijdperk 6–8 al hadden, krijgen ze er ook bij.
