@@ -1,5 +1,14 @@
 # Wijzigingen
 
+## Staff Siege 1.2.0 (2026-11-15) — co-op multiplayer
+- **Co-op met maximaal 4 spelers** via de nieuwe lobby-knop *Co-op Multiplayer*: maak een kamer (code van 4 letters) of doe mee met de code van een vriend. Werkt ook met twee tabbladen op één computer.
+- Iedereen speelt met zijn **eigen staff en class** (met eigen levels, mastery en upgrades) uit de eigen lobby; de loadout ligt vast zodra de host start.
+- De host simuleert de wereld en stuurt ~10 snapshots per seconde; gasten bewegen direct op hun eigen scherm en sturen hun invoer (richting, auto attack, special, ability en bouwen als Builder). Het speelveld van de host wordt bij gasten passend geschaald.
+- **Gedeelde beloningen:** iedereen krijgt de 20 burgers per wave, gevonden burgers (50) en boss-beloningen, plus XP en mastery voor de eigen loadout. Beloningen worden herhaald verstuurd, dus een gemist bericht kost niets.
+- Wie neergaat staat na de wave weer op met 50% HP; als iedereen neer is, is het game over voor de hele groep. Na het potje blijft de kamer open voor een volgende ronde.
+- Gasten die weggaan of de verbinding verliezen worden na 10 seconden uit het potje gehaald; verdwijnt de host, dan krijgen gasten een melding.
+- Nieuwe test `tests/online.js`: kamer, roster met loadouts, starten, snapshots, bewegen en specials als gast, beloningen, vertrekken, game over en terug naar de kamer — met en zonder 20% berichtverlies.
+
 ## Staff Siege 1.1.0 (2026-11-15) — nieuw spel
 - **Nieuw op Bas Games:** Staff Siege, een zombie survival met gacha. Je valt automatisch aan, waves komen snel achter elkaar en iedere 25 waves komt een boss.
 - **Lobby en potje gescheiden:** in de lobby kies je je staff en class, gebruik je de gacha, koop je upgrades en bekijk je collectie, synergieën, stats en achievements. Tijdens een potje ligt je loadout vast; gacha en collectie zijn dan op slot.

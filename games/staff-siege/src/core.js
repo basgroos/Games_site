@@ -4,7 +4,7 @@ const rnd=(a,b)=>a+Math.random()*(b-a), clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const d2=(a,b)=>{const x=a.x-b.x,y=a.y-b.y;return x*x+y*y};
 const pick=a=>a[Math.random()*a.length|0];
 const TAU=Math.PI*2;
-let W=800,H=600,DPR=1;
+let W=800,H=600,DPR=1,VW=800,VH=600;
 const fmt=n=>{n=Math.max(0,n);return n>=1e9?(n/1e9).toFixed(2)+'B':n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e4?(n/1e3).toFixed(1)+'K':String(Math.round(n))};
 const fmtTime=s=>{s=Math.floor(s);const h=s/3600|0,m=(s%3600)/60|0;return h?`${h}u ${m}m`:`${m}m ${s%60}s`};
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
@@ -131,7 +131,8 @@ const SFX={
  potion:t=>{osc('sine',500,900,.2,.08,t);nz(.2,.05,3000,t)},
 };
 const lastS={};
-function sfx(n,p){if(!AU.c||!S.set.sfx)return;const t=AU.c.currentTime;if(lastS[n]&&t-lastS[n]<.045)return;lastS[n]=t;const f=SFX[n];if(f)f(t+.005,p||1)}
+const NETSFX=[];
+function sfx(n,p,remote){if(!remote&&typeof G!=='undefined'&&G.net==='host'&&NETSFX.length<16&&!/^(click|no|lvl|ach|coin|summon|reveal)/.test(n))NETSFX.push(p&&p!==1?[n,+p.toFixed(2)]:[n]);if(!AU.c||!S.set.sfx)return;const t=AU.c.currentTime;if(lastS[n]&&t-lastS[n]<.045)return;lastS[n]=t;const f=SFX[n];if(f)f(t+.005,p||1)}
 
 /* Muziek: 3 procedurele tracks (lobby, game, boss) */
 const MUS={next:0,step:0,mode:'lobby'};

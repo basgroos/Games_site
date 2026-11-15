@@ -2,18 +2,20 @@
   "id": "staff-siege",
   "name": "Staff Siege",
   "tagline": "Zombie survival met gacha",
-  "description": "Overleef eindeloze zombie-waves met 42 staffen en 32 classes uit de gacha. Ontdek 44 synergieën, versla iedere 25 waves een boss met drie fases, verdien burgers en speel op 1x, 2x of 3x snelheid.",
-  "version": "1.1.0",
+  "description": "Overleef eindeloze zombie-waves met 42 staffen en 32 classes uit de gacha, alleen of in co-op met maximaal 4 vrienden. Ontdek 44 synergieën, versla iedere 25 waves een boss met drie fases, verdien burgers en speel op 1x, 2x of 3x snelheid.",
+  "version": "1.2.0",
   "status": "live",
   "color": "#3dffa6",
   "tags": [
     "Gacha",
     "Survival",
-    "Actie"
+    "Actie",
+    "Samen spelen"
   ],
   "order": 10,
   "tests": [
     "tests/smoke.js",
-    "tests/sim.js"
+    "tests/sim.js",
+    "tests/online.js"
   ]
 }

@@ -354,6 +354,19 @@ input[type=range]{width:180px;accent-color:var(--acc);height:32px}
 }
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01s!important}}
 
+.tin{font:500 16px Rubik,sans-serif;color:var(--ink);background:#0d0b19;border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px;width:200px}
+.tin:focus{outline:2px solid var(--acc);outline-offset:1px}
+.tin.code{width:110px;text-transform:uppercase;letter-spacing:.3em;font:700 18px 'Chakra Petch';text-align:center}
+.mpgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:12px 0}
+.mpc{display:grid;gap:8px;align-content:start;padding:16px;border-radius:14px;background:var(--panel2);border:1px solid var(--line)}
+.mpc b{font:700 18px 'Chakra Petch'}.mpc small{color:var(--mut)}
+.mpj{display:flex;gap:8px;flex-wrap:wrap}
+.mpcode{display:grid;justify-items:center;gap:2px;margin:12px 0;padding:14px;border-radius:14px;background:linear-gradient(135deg,rgba(244,114,182,.15),rgba(124,92,255,.12));border:1px solid rgba(244,114,182,.4)}
+.mpcode small{color:var(--mut)}.mpcode b{font:700 44px/1 'Chakra Petch';letter-spacing:.25em;color:#fff;text-shadow:0 0 18px #f472b6}
+.mplist{display:grid;gap:8px;margin:10px 0}
+.mpp{display:grid;grid-template-columns:40px 40px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 12px;border-radius:12px;background:var(--panel2);border:1px solid var(--line)}
+.mpp .art{width:40px;height:40px}.mpp b{font:700 15px 'Chakra Petch';display:block}.mpp small{font-size:13px;color:var(--mut)}
+.mpmsg{padding:10px 12px;border-radius:10px;background:rgba(255,59,141,.12);border:1px solid rgba(255,59,141,.4);color:#ffc2d9;margin:10px 0}
 .home-link{color:var(--mut);text-decoration:none;font:700 14px 'Chakra Petch';padding:8px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);white-space:nowrap}
 .home-link:hover{color:var(--ink)}
 .ver{color:var(--mut);font-size:12px;text-align:center;margin-top:6px}
@@ -373,6 +386,7 @@ input[type=range]{width:180px;accent-color:var(--acc);height:32px}
  <symbol id="i-skip" viewBox="0 0 24 24"><path fill="currentColor" d="M4 5l8 7-8 7zM12 5l8 7-8 7z"/></symbol>
  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></symbol>
  <symbol id="i-speed" viewBox="0 0 24 24"><path d="M3 15a9 9 0 0 1 18 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 15l5-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="15" r="2" fill="currentColor"/></symbol>
+ <symbol id="i-team" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3.2" fill="currentColor"/><circle cx="16.5" cy="9" r="2.6" fill="currentColor" opacity=".75"/><path d="M2.5 19c0-3.3 2.5-5.5 5.5-5.5s5.5 2.2 5.5 5.5zM13.5 19c.2-2.6 1.5-4.4 3.2-4.4 2.4 0 4.3 1.8 4.3 4.4z" fill="currentColor"/></symbol>
  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z" fill="currentColor"/></symbol>
 </svg>
 
@@ -394,6 +408,7 @@ input[type=range]{width:180px;accent-color:var(--acc);height:32px}
    <div class="col">
     <button class="sta" data-go="staffs" style="--sc:#a855f7"><span class="sic"><svg><use href="#i-wand"/></svg></span><span><b>Staff Collectie</b><small id="sStaff"></small><span class="bar"><i id="sStaffB"></i></span></span><i class="badge" id="nbS">!</i></button>
     <button class="sta" data-go="classes" style="--sc:#22d3ee"><span class="sic"><svg><use href="#i-crest"/></svg></span><span><b>Class Collectie</b><small id="sClass"></small><span class="bar"><i id="sClassB"></i></span></span><i class="badge" id="nbC">!</i></button>
+    <button class="sta" data-go="mp" style="--sc:#f472b6"><span class="sic"><svg><use href="#i-team"/></svg></span><span><b>Co-op Multiplayer</b><small id="sMp">Speel samen met max. 4 spelers</small></span><i class="badge" id="nbM">●</i></button>
     <button class="sta" data-go="syn" style="--sc:#ffc83d"><span class="sic"><svg><use href="#i-link"/></svg></span><span><b>Synergieën</b><small id="sSyn"></small><span class="bar"><i id="sSynB"></i></span></span></button>
    </div>
    <div class="center">
@@ -495,6 +510,11 @@ input[type=range]{width:180px;accent-color:var(--acc);height:32px}
  <p class="sub" style="margin-top:-6px">Kom iedere dag terug. Mis je een dag, dan begint de reeks opnieuw.</p>
  <div class="days" id="days"></div>
  <div style="text-align:center;margin-top:16px"><button class="big gold" id="claimDaily">Claim</button></div>
+</div></div>
+
+<div class="ov" id="mp"><div class="win" style="width:min(720px,100%)">
+ <div class="whead"><h2>Co-op Multiplayer</h2><button class="x" data-close aria-label="Sluiten">×</button></div>
+ <div id="mpBody"></div>
 </div></div>
 
 <div class="ov" id="set"><div class="win" style="width:min(640px,100%)">

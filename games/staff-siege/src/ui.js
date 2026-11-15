@@ -2,12 +2,12 @@
 const hc={};
 function setT(id,v){if(hc[id]!==v){hc[id]=v;const e=document.getElementById(id);if(e)e.textContent=v}}
 function setW(id,f){const v=(Math.max(0,Math.min(1,f))*100).toFixed(1)+'%';if(hc[id+'w']!==v){hc[id+'w']=v;const e=document.getElementById(id);if(e)e.style.width=v}}
-function announce(big,small,col){const a=$('#ann');$('#annB').textContent=big;$('#annS').textContent=small||'';a.style.setProperty('--ac',col||'#3dffa6');a.classList.remove('go');void a.offsetWidth;a.classList.add('go')}
+function announce(big,small,col,local){if(!local)netEv(['A',big,small||'',col||'#3dffa6']);const a=$('#ann');$('#annB').textContent=big;$('#annS').textContent=small||'';a.style.setProperty('--ac',col||'#3dffa6');a.classList.remove('go');void a.offsetWidth;a.classList.add('go')}
 function toast(t,kind){const e=document.createElement('div');e.className='toast '+(kind||'');e.textContent=t;const box=$('#toasts');box.appendChild(e);while(box.children.length>4)box.firstChild.remove();setTimeout(()=>e.remove(),2800)}
 function bossIntroUI(z){const e=$('#bossIntro');if(!z){e.classList.remove('on');return}e.style.setProperty('--b2',z.bdef.c2);$('#biW').textContent='WAVE '+G.wave+' · BOSS';$('#biN').textContent=z.name;$('#biT').textContent=z.bdef.title;e.classList.remove('on');void e.offsetWidth;e.classList.add('on')}
 let wiping=false;
 function transition(fn){if(wiping){fn();return}wiping=true;const w=$('#wipe');w.classList.remove('go');void w.offsetWidth;w.classList.add('go');setTimeout(()=>{try{fn()}finally{}},420);setTimeout(()=>{w.classList.remove('go');wiping=false},950)}
-function showScreen(n){$('#ann').classList.remove('go');$('#bossIntro').classList.remove('on');$('#lobby').classList.toggle('on',n==='lobby');$('#game').classList.toggle('on',n==='game');if(n==='lobby'){G.state='lobby';G.paused=false;MUS.mode='lobby';resetWorld();renderLobby()}renderHudStatic()}
+function showScreen(n){$('#ann').classList.remove('go');$('#bossIntro').classList.remove('on');$('#lobby').classList.toggle('on',n==='lobby');$('#game').classList.toggle('on',n==='game');if(n==='lobby'){const wasNet=G.net;G.state='lobby';G.paused=false;G.net=null;MUS.mode='lobby';resetWorld();PLAYERS=[];resize();renderLobby();if(wasNet&&NET.inRoom())setTimeout(()=>openPanel('mp'),60)}renderHudStatic()}
 const rarName=r=>r===6?`<span class="sec-t">${RAR[r].n}</span>`:`<span style="color:${RAR[r].c}">${RAR[r].n}</span>`;
 const inLobby=()=>G.state==='lobby';
 const lobbyOnly=()=>{if(inLobby())return true;toast('Dit kan alleen in de lobby');sfx('no');return false};
@@ -87,8 +87,10 @@ function renderLobby(){
  if(r.active&&r.wave>1&&STAFF[r.staff]&&CLS[r.cls]){h+=`<button class="big gold" data-start="${r.wave}" data-resume="1">Hervat · wave ${r.wave}</button>`;p=`Onderbroken potje met ${STAFF[r.staff].name} + ${CLS[r.cls].name} (loadout blijft vast).`}
  if(cp>1)h+=`<button class="big alt" data-start="${cp}">Checkpoint · wave ${cp}</button>`;
  h+=`<button class="big startbig" data-start="1"><svg class="ic" style="width:20px;height:20px;vertical-align:-4px"><use href="#i-play"/></svg> START</button>`;
+ if(NET.inRoom()){h=`<button class="big hot startbig" data-go="mp">Co-op kamer ${NET.code}</button>`;p=NET.role==='host'?'Jij bent de host. Open de kamer om het potje te starten.':'Je zit in de kamer van een vriend. De host start het potje.'}
  $('#runBtns').innerHTML=h;
- setT('runH',r.active&&r.wave>1?'Potje onderbroken':'Klaar voor de strijd?');
+ setT('runH',NET.inRoom()?'Co-op':r.active&&r.wave>1?'Potje onderbroken':'Klaar voor de strijd?');
+ setT('sMp',NET.inRoom()?'Kamer '+NET.code+' · '+NET.roster.length+'/'+MAXP+' spelers':'Speel samen met max. 4 spelers');$('#nbM').parentElement.classList.toggle('has',NET.inRoom());
  $('#runP').textContent=p||`Je start met ${st.name} + ${cl.name}. Tijdens het potje ligt je loadout vast.`;
 }
 
@@ -242,12 +244,34 @@ function renderSets(){
  $('#sets').innerHTML=SETS.map(s=>`<div class="srow"><div><label for="s-${s.k}">${s.l}</label>${s.d?`<small>${s.d}</small>`:''}</div>${s.range?`<input type="range" id="s-${s.k}" min="0" max="100" value="${S.set[s.k]}" data-r="${s.k}">`:s.seg?`<div class="seg">${s.seg.map(([v,n])=>`<button data-seg="${s.k}" data-v="${v}" class="${S.set[s.k]===v?'on':''}">${n}</button>`).join('')}</div>`:`<button class="tg ${S.set[s.k]?'on':''}" id="s-${s.k}" data-tg="${s.k}" role="switch" aria-checked="${!!S.set[s.k]}" aria-label="${s.l}"></button>`}</div>`).join('')
  +`<div class="ver">Staff Siege v${BUILD.version}${BUILD.env==='staging'?' · staging':''}</div>`+(inLobby()?`<div class="srow"><div><label>Voortgang resetten</label><small>Wist burgers, collectie, records en instellingen</small></div><button class="danger" id="resetB">Reset</button></div>`:'');
 }
-function cycleSpeed(){S.set.speed=String((+S.set.speed||1)%3+1);saveSoon();renderHudStatic();if($('#set').classList.contains('on'))renderSets();toast('Game speed '+S.set.speed+'x')}
-function toggleSet(k){S.set[k]=!S.set[k];save();applyVol();renderSets();renderHudStatic();if(k==='autoSkip'&&G.phase==='clear')G.clearT=5}
+function cycleSpeed(){if(G.net==='guest'){toast('De host bepaalt de snelheid');return}S.set.speed=String((+S.set.speed||1)%3+1);saveSoon();renderHudStatic();if($('#set').classList.contains('on'))renderSets();toast('Game speed '+S.set.speed+'x')}
+function toggleSet(k){if(G.net==='guest'&&k==='autoSkip'){toast('De host bepaalt Auto Skip');return}S.set[k]=!S.set[k];save();applyVol();renderSets();renderHudStatic();if(k==='autoSkip'&&G.phase==='clear')G.clearT=5}
+
+/* ================= CO-OP PANEEL ================= */
+function renderMP(){
+ if(inLobby())renderLobby();
+ const b=$('#mpBody');if(!b)return;
+ if(!NET.available()){b.innerHTML=`<p class="sub">Multiplayer werkt op de Bas Games-site. Open Staff Siege via de startpagina van Bas Games om samen te spelen.</p>`;return}
+ const name=(profileGet().name||'');
+ const nm=`<div class="srow"><div><label for="mpName">Jouw naam</label><small>Zo zien je vrienden je in de kamer en boven je held</small></div><input id="mpName" class="tin" maxlength="16" value="${name.replace(/"/g,'&quot;')}" placeholder="Naam"></div>`;
+ const msg=NET.msg?`<p class="mpmsg">${NET.msg}</p>`:'';
+ if(!NET.inRoom()){
+  b.innerHTML=nm+msg+`<div class="mpgrid"><div class="mpc"><b>Kamer maken</b><small>Je krijgt een code van 4 letters die je aan je vrienden geeft. Jij start het potje.</small><button class="big hot" id="mpHost">Kamer maken</button></div>
+  <div class="mpc"><b>Meedoen</b><small>Vul de code van je vriend in.</small><div class="mpj"><input id="mpCode" class="tin code" maxlength="4" placeholder="CODE" autocomplete="off"><button class="big" id="mpJoin">Meedoen</button></div></div></div>
+  <p class="sub">Iedereen speelt met zijn eigen staff en class uit de eigen lobby. Wave-burgers, gevonden burgers en boss-beloningen krijgt iedereen. Wie neergaat staat na de wave weer op.</p>`;
+  return}
+ const host=NET.role==='host',conn=NET.status==='connected';
+ const rows=NET.roster.map(r=>{const st=STAFF[r.staff]||STAFF.oak,cl=CLS[r.cls]||CLS.recruit;return `<div class="mpp">${staffArt(st)}${classArt(cl)}<div><b>${r.name||'Speler'}${r.cid===NET.me?' (jij)':''}</b><small><span style="color:${RAR[st.r].c}">${st.name}</span> + <span style="color:${RAR[cl.r].c}">${cl.name}</span></small></div>${r.host?'<span class="chip">HOST</span>':''}</div>`}).join('');
+ b.innerHTML=nm+`<div class="mpcode"><small>Kamercode</small><b>${NET.code}</b><span class="sub">${conn?'Verbonden':'Verbinden…'} · ${NET.roster.length}/${MAXP} spelers</span></div>${msg}<div class="mplist">${rows||'<p class="sub">Wachten op de host…</p>'}</div>
+  <p class="sub">${host?'Kies je loadout in de lobby; je vrienden doen dat ook. Hun keuze zie je hier verschijnen.':(NET.live?'Er is een potje bezig. Je kunt meedoen met het volgende potje.':'Kies je staff en class in de lobby. De host start het potje.')}</p>
+  <div class="lbtns">${host?`<button class="big hot" id="mpStart" ${NET.roster.length<2||!conn?'disabled':''}>Start co-op potje</button>`:''}<button class="big alt" id="mpLeave">${host?'Kamer sluiten':'Kamer verlaten'}</button></div>`;
+}
+document.addEventListener('change',e=>{if(e.target.id==='mpName'){profileSetName(e.target.value);if(NET.inRoom()){if(NET.role==='host')sendRoster();else sendHello()}renderMP()}});
+document.addEventListener('keydown',e=>{if(e.target.id==='mpCode'&&e.key==='Enter'){e.preventDefault();$('#mpJoin').click()}});
 
 /* ================= OVERLAYS ================= */
-const MENUS=['coll','syn','gacha','upg','stats','daily','set','pause'];
-function openOv(id){auInit();sfx('click');$('#'+id).classList.add('on');if(G.state==='play')G.paused=true}
+const MENUS=['coll','syn','gacha','upg','stats','daily','set','pause','mp'];
+function openOv(id){auInit();sfx('click');$('#'+id).classList.add('on');if(G.state==='play'&&!G.net)G.paused=true}
 function closeOv(id){$('#'+id).classList.remove('on');if(G.state==='play'&&!MENUS.some(m=>$('#'+m).classList.contains('on'))&&!$('#sum').classList.contains('on'))G.paused=false;if(inLobby())renderLobby();renderHudStatic()}
 function closeAll(){MENUS.forEach(m=>$('#'+m).classList.remove('on'));$('#sum').classList.remove('on');$('#res').classList.remove('on');G.paused=false}
 function openPanel(go){
@@ -261,22 +285,26 @@ function openPanel(go){
   case 'stats':renderStats();openOv('stats');break;
   case 'daily':renderDaily();openOv('daily');break;
   case 'set':renderSets();openOv('set');break;
+  case 'mp':renderMP();openOv('mp');break;
  }
 }
-function openPause(){if(G.state!=='play'||G.intro)return;$('#pauseInfo').textContent=`Wave ${G.wave} · ${G.kills} kills · ${fmt(G.earned)} burgers · ${K.st.name} + ${K.cl.name}`;openOv('pause')}
+function openPause(){if(G.state!=='play'||(G.intro&&!G.net))return;$('#pauseInfo').textContent=`Wave ${G.wave} · ${G.kills} kills · ${fmt(G.earned)} burgers · ${K.st.name} + ${K.cl.name}`+(G.net?' · Online: het spel loopt gewoon door':'');openOv('pause')}
 
 /* ================= HUD ================= */
+function trySpecial(){if(G.net==='guest')NET.trigger('sp');else staffSpecial()}
+function tryAbility(){if(G.net==='guest')NET.trigger('ab');else useAbility()}
+function tryBuild(k){if(G.net==='guest')NET.build(k);else build(k)}
 function renderEq(){
  const s=K.st,c=K.cl,sp=K.sp;
  $('#eqS').innerHTML=`<button class="ab" id="spB" style="--c:${s.col}" title="Staff special (Spatie)"><span>Spatie</span></button>${staffArt(s)}<div><small>${sp.n}</small><b style="color:${RAR[s.r].c}">${s.name}</b><small>Lv ${K.sl} · M${K.sMast}</small></div>`;
  $('#eqC').innerHTML=`<button class="ab" id="abB" style="--c:${c.col}" title="Class ability (E)"><span>E</span></button>${classArt(c)}<div><small>${c.ab.n}</small><b style="color:${RAR[c.r].c}">${c.name}</b><small>Lv ${K.cLv} · M${K.cMast}</small></div>`;
  $('#synHud').innerHTML=K.syn.map(x=>`<span class="chip" title="${x.d}">⚡ ${x.n}</span>`).join('');
- $('#spB').onclick=()=>staffSpecial();$('#abB').onclick=()=>useAbility();
+ $('#spB').onclick=()=>trySpecial();$('#abB').onclick=()=>tryAbility();
 }
 function renderHudStatic(){
  const play=G.state==='play';
  $('#scrapP').hidden=!(play&&K&&K.cl.id==='build');$('#build').classList.toggle('on',play&&!!K&&K.cl.id==='build');
- $('#skipS').textContent=S.set.autoSkip?'AAN':'UIT';const sp=+S.set.speed||1;$('#spdS').textContent=sp+'x';$('#spdB').classList.toggle('on',sp>1);$('#skipB').classList.toggle('on',S.set.autoSkip);
+ $('#skipS').textContent=S.set.autoSkip?'AAN':'UIT';const sp=G.net==='guest'?NET.hostSpeed||1:+S.set.speed||1;$('#spdS').textContent=sp+'x';$('#spdB').classList.toggle('on',sp>1);$('#skipB').classList.toggle('on',S.set.autoSkip);
  if(!play){$('#bossbar').classList.remove('on');$('#nextW').classList.remove('on')}
 }
 let lastBossHp=0;
@@ -291,8 +319,9 @@ function hudTick(){
  if(b){bb.style.setProperty('--b1',b.bdef.col);bb.style.setProperty('--b2',b.bdef.c2);setT('bn',b.name);setT('btl',b.bdef.title);setT('bph','FASE '+(b.phase+1)+(b.inv>0?' · IMMUUN':''));setW('bbf',b.hp/b.maxhp);setW('bbg',b.hp/b.maxhp);setT('bt',fmt(b.hp)+' / '+fmt(b.maxhp));
   if(lastBossHp-b.hp>b.maxhp*.01){bb.classList.remove('hit');void bb.offsetWidth;bb.classList.add('hit')}lastBossHp=b.hp}
  $('#nextW').classList.toggle('on',G.phase==='clear');
- if(G.phase==='clear')setT('cd',S.set.autoSkip?'Volgende wave in '+Math.ceil(Math.max(0,G.clearT))+'s':'Auto Skip staat uit');
- setT('scrap',fmt(G.scrap));
+ if(G.phase==='clear')setT('cd',(G.net==='guest'?NET.hostSkip:S.set.autoSkip)?'Volgende wave in '+Math.ceil(Math.max(0,G.clearT))+'s':G.net==='guest'?'De host start de volgende wave':'Auto Skip staat uit');
+ $('#nextB').hidden=G.net==='guest';
+ setT('scrap',fmt(P.scrap||0));
  const sp=$('#spB'),ab=$('#abB');
  if(sp){const f=Math.max(0,P.spT)/(K.sp.cd*K.cdMul);sp.style.setProperty('--p',f.toFixed(3));sp.classList.toggle('rdy',f<=0)}
  if(ab){const f=Math.max(0,P.abT)/(K.cl.ab.cd*K.cdMul);ab.style.setProperty('--p',f.toFixed(3));ab.classList.toggle('rdy',f<=0)}
@@ -309,6 +338,7 @@ function showResults(dead){
  $('#resGain').innerHTML=`<div><div class="mbar"><small><span>Player level ${S.lvl}${S.lvl>R.lvl?' (+'+(S.lvl-R.lvl)+')':''}</span><span>${fmt(S.xp)} / ${fmt(xpNeed(S.lvl))}</span></small><div class="bar"><i style="width:${S.xp/xpNeed(S.lvl)*100}%;background:var(--acc)"></i></div></div></div>`+mb(K.st.name,so)+mb(K.cl.name,co)+
   (G.newAch.length?`<div class="si act"><b>Nieuwe achievements</b><small>${G.newAch.join(' · ')} — claim ze in Stats &amp; Achievements</small></div>`:'')+
   (S.run.checkpoint>1?`<div class="si"><small>Checkpoint opgeslagen: wave ${S.run.checkpoint}</small></div>`:'');
+ $('#again').hidden=!!G.net;
  $('#res').classList.add('on');
 }
 
@@ -322,7 +352,7 @@ document.addEventListener('click',e=>{
  if(t.dataset.tix){doPull(1,true);return}
  if(t.dataset.tg){toggleSet(t.dataset.tg);return}
  if(t.dataset.seg){S.set[t.dataset.seg]=t.dataset.v;save();BG=null;renderSets();renderHudStatic();return}
- if(t.dataset.b){build(t.dataset.b);return}
+ if(t.dataset.b){tryBuild(t.dataset.b);return}
  if(t.dataset.buy){buyUpg(t.dataset.buy);return}
  if(t.dataset.claim){claimAch(t.dataset.claim);return}
  if(t.dataset.cclaim){claimColl(t.dataset.cclaim);return}
@@ -339,11 +369,15 @@ document.addEventListener('click',e=>{
   case 'pauseB':openPause();break;
   case 'nextB':nextWave();break;
   case 'resB':closeOv('pause');break;
-  case 'quitB':$('#pause').classList.remove('on');G.paused=false;endRun(false);break;
+  case 'quitB':$('#pause').classList.remove('on');G.paused=false;if(G.net==='guest')NET.guestQuit();else endRun(false);break;
   case 'toLobby':transition(()=>{$('#res').classList.remove('on');showScreen('lobby')});break;
   case 'again':{$('#res').classList.remove('on');S.eqStaff=K.st.id;S.eqClass=K.cl.id;G.state='lobby';RES0={lvl:S.lvl};startRun(1);break}
   case 'sumDone':$('#sum').classList.remove('on','burst','t4','t5','t6');renderGacha();renderLobby();if($('#coll').classList.contains('on'))renderColl();break;
   case 'claimDaily':claimDaily();break;
+  case 'mpHost':{const n=$('#mpName');if(n&&n.value.trim())profileSetName(n.value);NET.host();renderMP();break}
+  case 'mpJoin':{const n=$('#mpName');if(n&&n.value.trim())profileSetName(n.value);NET.join($('#mpCode').value);renderMP();break}
+  case 'mpStart':NET.startMatch();break;
+  case 'mpLeave':NET.leave();renderMP();break;
   case 'resetB':if(t.dataset.arm){localStorage.removeItem(KEY);load();applyVol();closeAll();renderSets();showScreen('lobby');toast('Voortgang gereset')}else{t.dataset.arm=1;t.textContent='Zeker weten? Klik nogmaals';setTimeout(()=>{if(t.isConnected){delete t.dataset.arm;t.textContent='Reset'}},3000)}break;
  }
 });
@@ -355,8 +389,8 @@ addEventListener('keydown',e=>{
  KEYS[k]=true;
  if(G.state!=='play'||G.paused)return;
  if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();
- if(k===' ')staffSpecial();if(k==='e')useAbility();
- if(k==='f')cycleSpeed();if(k==='t')build('tower');if(k==='g')build('wall');if(k==='u')build('up');if(k==='n')nextWave();
+ if(k===' ')trySpecial();if(k==='e')tryAbility();
+ if(k==='f')cycleSpeed();if(k==='t')tryBuild('tower');if(k==='g')tryBuild('wall');if(k==='u')tryBuild('up');if(k==='n')nextWave();
 });
 addEventListener('keyup',e=>{KEYS[e.key.toLowerCase()]=false});
 addEventListener('blur',()=>{for(const k in KEYS)KEYS[k]=false;M.down=false});
@@ -370,9 +404,11 @@ cv.addEventListener('pointermove',e=>{if(JOY.active&&e.pointerId===JOY.id){let d
 const up=e=>{if(JOY.active&&e.pointerId===JOY.id){JOY.active=false;JOY.dx=JOY.dy=0}else M.down=false};
 cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
 cv.addEventListener('contextmenu',e=>e.preventDefault());
-document.addEventListener('visibilitychange',()=>{if(document.hidden){commitTime();save();if(G.state==='play'&&!G.paused)openPause()}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){commitTime();save();if(G.state==='play'&&!G.paused&&!G.net)openPause()}});
 addEventListener('beforeunload',()=>{commitTime();save()});
-function resize(){const ow=W,oh=H;W=innerWidth;H=innerHeight;DPR=Math.min(2,devicePixelRatio||1);cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);BG=null;if(P&&ow){P.x=P.x/ow*W;P.y=P.y/oh*H}}
+function resize(){VW=innerWidth;VH=innerHeight;DPR=Math.min(2,devicePixelRatio||1);cv.width=Math.round(VW*DPR);cv.height=Math.round(VH*DPR);BG=null;
+ if(G.net==='guest'&&G.state==='play')return;
+ const ow=W,oh=H;W=VW;H=VH;if(ow)for(const pl of PLAYERS){pl.P.x=pl.P.x/ow*W;pl.P.y=pl.P.y/oh*H}}
 addEventListener('resize',resize);
 
 /* ================= LOOP ================= */
@@ -380,8 +416,9 @@ let last=performance.now(),fpsN=0,fpsT=0;
 function frame(now){
  const dt=Math.min(.05,(now-last)/1000);last=now;
  try{
-  if(G.state==='play'){const n=+S.set.speed||1;for(let i=0;i<n&&G.state==='play'&&!G.paused;i++)update(dt)}
+  if(G.state==='play'){if(G.net==='guest')clientTick(dt);else{const n=+S.set.speed||1;for(let i=0;i<n&&G.state==='play'&&!G.paused;i++)update(dt)}}
   else if(G.state==='res'&&!G.paused)updateFx(dt);
+  NET.tick(dt);
   if(G.state==='lobby')renderStage(now/1000);else render();
   hudTick();
  }catch(err){console.error(err)}
