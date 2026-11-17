@@ -362,7 +362,7 @@
     switch (cmd.type) {
       case 'move': return { ok: this.goTo(p, cmd.x, cmd.y) };
       case 'goto': return { ok: this.goRoom(p, cmd.room) };
-      case 'keys': p.kx = cmd.kx; p.ky = cmd.ky; return { ok: true };
+      case 'keys': p.kx = Math.max(-1, Math.min(1, +cmd.kx || 0)); p.ky = Math.max(-1, Math.min(1, +cmd.ky || 0)); return { ok: true };
       case 'place':
         err = this.canPlace(p, cmd.item, cmd.x, cmd.y);
         if (err) return { ok: false, msg: err };

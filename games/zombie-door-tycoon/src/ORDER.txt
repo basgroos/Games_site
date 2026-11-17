@@ -7,4 +7,5 @@ net.js
 profile.js
 ui.js
 extra.js
+mobile.js
 main.js

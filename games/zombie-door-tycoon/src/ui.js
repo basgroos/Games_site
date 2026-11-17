@@ -90,6 +90,9 @@
   UI.refreshCoins = function () { if ($('lcoins')) $('lcoins').textContent = fmt(P.d.coins); if ($('mcoins')) $('mcoins').textContent = fmt(P.d.coins); };
 
   UI._modal = function (a, b, c) { return modal(a, b, c); };
+  // text for touch screens vs keyboard/mouse
+  UI.touch = function () { return !!(G.Device && G.Device.touch); };
+  UI.say = function (touchText, keyText) { return UI.touch() ? touchText : keyText; };
   function modal(title, body, cls) {
     var m = $('modal'); m.classList.remove('hidden');
     m.innerHTML = '<div class="mbox ' + (cls || '') + '"><div class="mhead"><h2>' + title + '</h2><div class="grow"></div><div class="coinbox" style="font-size:15px;padding:5px 11px">🪙 <span class="coin" id="mcoins">' + fmt(P.d.coins) + '</span></div><button class="x" id="mClose">✕</button></div><div class="mbody" id="mbody">' + body + '</div></div>';
@@ -408,6 +411,7 @@
       '<p><b>5. Summon & verzamel.</b> Win potjes voor munten, summon nieuwe towers en stel een loadout van precies 5 items samen.</p>' +
       '<p><b>6. Sneller upgraden.</b> Selecteer een tower en druk op <b>E</b> (goedkoopste upgrade), <b>R</b> (verkopen), <b>T</b> (auto-upgrade) of <b>P</b> (prioriteit). <b>X</b> upgradet alles wat je kunt betalen, <b>C</b> al je farms, <b>F</b> de dichtstbijzijnde farm, <b>Q</b> je deur. <b>U</b> opent het upgrade-menu, <b>Spatie</b> de bouwmodus, <b>Tab</b> (vasthouden) het scorebord. Elke upgrade verandert het model van de tower; op hoge levels kun je towers <b>evolueren</b> (V).</p>' +
       '<p><b>7. Duo-kamer.</b> In een Duo-potje deel je één kamer en één portemonnee met een maatje. Jullie gebruiken allebei je eigen 5 towers en kunnen elkaars towers upgraden.</p>' +
+      (UI.touch() ? '<p><b>📱 Op telefoon of tablet.</b> Loop met de joystick linksonder of tik ergens op de kaart. Tik op een item onderin en tik daarna 2x op een groen vakje om te plaatsen (de eerste tik laat zien waar hij komt en hoe ver hij schiet). Tik op een tower voor upgrades. Knijp met twee vingers om in of uit te zoomen (of gebruik ＋/－). 🏠 brengt je naar je kamer, 🏆 toont het scorebord. Speel liefst liggend; via ⚙️ kun je volledig scherm aanzetten.</p>' : '') +
       '<p class="tip">Sneltoetsen: WASD lopen • 1–5 item • E upgrade • R verkoop • Q deur • F farm • X alles • C farms • U menu • Spatie bouwmodus • Tab scores • H naar huis • G snelheid • Esc sluiten. Alles aan te passen in ⚙️ Instellingen.</p></div>', 'sm');
   };
   UI.openSettings = function () {
@@ -525,7 +529,7 @@
       rb.className = 'repair ' + st;
     } else rb.classList.add('hidden');
     // location + minimap
-    var loc = here ? (here === room ? '🏠 Jouw kamer' + (me.alive ? ' — hier kun je bouwen' : '') : here.owner >= 0 ? '👁 Kamer van ' + esc(m.players[here.owner].name) : '🚪 ' + here.def.name + ' (vrij)') : room && m.canBuild(me) ? '🏠 Bij je deur' : '🗺 Onderweg' + (room && me.alive ? ' — druk ' + UI.keyName(UI.hk('home')) + ' om terug te lopen' : '');
+    var loc = here ? (here === room ? '🏠 Jouw kamer' + (me.alive ? ' — hier kun je bouwen' : '') : here.owner >= 0 ? '👁 Kamer van ' + esc(m.players[here.owner].name) : '🚪 ' + here.def.name + ' (vrij)') : room && m.canBuild(me) ? '🏠 Bij je deur' : '🗺 Onderweg' + (room && me.alive ? UI.say(' — tik op 🏠 om terug te lopen', ' — druk ' + UI.keyName(UI.hk('home')) + ' om terug te lopen') : '');
     if (!me.alive) loc = '👻 Uitgeschakeld — je kunt nog rondlopen en kijken';
     if ($('hLoc').innerHTML !== loc) $('hLoc').innerHTML = loc;
     UI._miniT -= dt;
@@ -538,9 +542,9 @@
     } else { cl.classList.add('hidden'); $('hLbar').classList.remove('hidden'); }
     // hint
     var hint = $('hHint');
-    if (m.phase === 'prep' && room && m.canBuild(me)) { hint.classList.remove('hidden'); hint.innerHTML = 'Kies een item onderin (1–5) en klik op een <b style="color:#7dff9a">groen vakje</b>. Klik op een tower of je deur om te upgraden. Eerste wave over ' + Math.ceil(m.prepTimer) + 's.'; }
-    else if (m.phase === 'prep' && room) { hint.classList.remove('hidden'); hint.innerHTML = 'Loop naar <b>jouw kamer</b> (' + room.def.name + ') om te bouwen — druk op <b>' + UI.keyName(UI.hk('home')) + '</b> of klik op de minimap.'; }
-    else if (g.ui.placing && !m.canBuild(me)) { hint.classList.remove('hidden'); hint.innerHTML = 'Je bent niet in je kamer. Druk op <b>' + UI.keyName(UI.hk('home')) + '</b> om terug te lopen en te bouwen.'; }
+    if (m.phase === 'prep' && room && m.canBuild(me)) { hint.classList.remove('hidden'); hint.innerHTML = UI.say('Kies een item onderin en tik op een <b style="color:#7dff9a">groen vakje</b> (2x tikken = plaatsen). Tik op een tower of je deur om te upgraden.', 'Kies een item onderin (1–5) en klik op een <b style="color:#7dff9a">groen vakje</b>. Klik op een tower of je deur om te upgraden.') + ' Eerste wave over ' + Math.ceil(m.prepTimer) + 's.'; }
+    else if (m.phase === 'prep' && room) { hint.classList.remove('hidden'); hint.innerHTML = 'Loop naar <b>jouw kamer</b> (' + room.def.name + ') om te bouwen — ' + UI.say('tik op <b>🏠</b>, op de minimap of gebruik de joystick.', 'druk op <b>' + UI.keyName(UI.hk('home')) + '</b> of klik op de minimap.'); }
+    else if (g.ui.placing && !m.canBuild(me)) { hint.classList.remove('hidden'); hint.innerHTML = 'Je bent niet in je kamer. ' + UI.say('Tik op <b>🏠</b>', 'Druk op <b>' + UI.keyName(UI.hk('home')) + '</b>') + ' om terug te lopen en te bouwen.'; }
     else if (g.ui.placing) { hint.classList.remove('hidden'); var pi = G.ITEM[g.ui.placing]; hint.innerHTML = 'Plaats <b>' + esc(pi.name) + '</b> ' + (pi.place === 'path' ? 'op de <b>gele tegels vóór jouw deur</b>' : 'op een <b>tegel in je kamer</b>') + ' • Esc/rechtsklik om te annuleren'; }
     else hint.classList.add('hidden');
     // player list (throttled)
@@ -674,7 +678,7 @@
     var g = G.Game;
     modal('💀 Je deur is gevallen', '<p>Je bent uitgeschakeld in wave <b>' + g.match.players[g.me].stats.waveReached + '</b>. Je kunt als geest blijven rondlopen en de andere kamers bekijken, of direct je beloning ophalen.</p><div style="display:flex;gap:10px"><button class="btn blue" id="dSpec" style="flex:1">👻 Rondkijken</button><button class="btn yellow" id="dRes" style="flex:1">Resultaten</button></div>', 'sm');
     $('modal').dataset.sticky = '1';
-    $('mClose').onclick = $('dSpec').onclick = function () { click(); $('modal').classList.add('hidden'); g.spectating = true; UI.toast('Klik op een speler in de lijst om naar zijn kamer te lopen.'); };
+    $('mClose').onclick = $('dSpec').onclick = function () { click(); $('modal').classList.add('hidden'); g.spectating = true; UI.toast(UI.say('Tik op 👥 en dan op een speler om naar zijn kamer te lopen.', 'Klik op een speler in de lijst om naar zijn kamer te lopen.')); };
     $('dRes').onclick = function () { click(); g.finish(); };
   };
 })();

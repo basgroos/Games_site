@@ -1,5 +1,17 @@
 # Wijzigingen
 
+## Zombie Door Tycoon 2.4.0 (2026-11-17)
+- **Speelbaar op telefoon en tablet.** Het spel herkent zelf of je op een telefoon, tablet of computer speelt (via aanraakscherm, muis of vinger, het type browser en de schermgrootte) en past de bediening en indeling daarop aan. Op een laptop met aanraakscherm blijft de muis-en-toetsenbordindeling staan. In ⚙️ Instellingen zie je wat er gedetecteerd is en kun je het zelf kiezen (Automatisch / Telefoon / Tablet / Computer). In de lobby staat welk apparaat het spel denkt dat je hebt.
+- **Aanraakbediening:**
+  - Een joystick linksonder om te lopen; tikken op de kaart werkt ook.
+  - Item kiezen en daarna 2x tikken op een vakje om te plaatsen. De eerste tik laat zien waar de tower komt en hoe ver hij schiet, zodat je niet per ongeluk iets neerzet.
+  - Inzoomen door met twee vingers te knijpen of met de ＋/－ knoppen. Op de computer zoom je met het muiswiel.
+  - Knoppen voor 🏠 naar je kamer en 🏆 scorebord, naast de snelknoppen voor Upgrade alles, Farms, Deur, Menu en Bouwmodus.
+- **Indeling voor telefoons:** kleinere balken bovenin, een compacte loadout zonder namen, een kleinere minimap en het torenpaneel als schuifpaneel aan de zijkant (staand: onderaan). Menu's openen schermvullend en de lobby scrolt. Houd je je telefoon staand, dan krijg je een tip om hem te draaien; staand spelen kan ook.
+  - Op telefoons waar het kan (Android) staat er een knop voor volledig scherm.
+  - De pagina zoomt niet meer per ongeluk in.
+  - Uitleg en tips noemen tikken in plaats van toetsen.
+- Nieuwe test `tests/mobile.js`: herkenning van iPhone, Android-telefoon, iPad en computer, de joystick, de zoom- en scorebordknoppen en zelf een apparaat kiezen.
 ## Age Clash 1.3.0 (2026-11-17)
 - **Speelbaar op de telefoon.** De game herkent zelf of je op een telefoon, tablet of computer speelt (touchscreen, schermgrootte en browser) en kiest daarbij de layout. In Instellingen → Apparaat kun je dat ook zelf kiezen.
 - **Telefoon-layout (liggend):** het slagveld vult het scherm en de bediening is een smalle balk met grote tikknoppen: units, item, Towers, Upgrades, Power en Evolueren. De menu's zijn compact en scrollen waar nodig. Een heel klein venster op de computer krijgt dezelfde compacte layout.

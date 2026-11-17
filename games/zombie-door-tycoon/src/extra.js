@@ -41,7 +41,7 @@
   // visual feedback for a key press
   UI.keyFx = function (id, text, ok) {
     var el = $('hKeyFx'); if (!el) return;
-    el.innerHTML = '<kbd>' + esc(UI.keyName(UI.hk(id))) + '</kbd> ' + text;
+    el.innerHTML = (UI.touch() ? '' : '<kbd>' + esc(UI.keyName(UI.hk(id))) + '</kbd> ') + text;
     el.className = 'keyfx show ' + (ok === false ? 'bad' : 'good');
     clearTimeout(UI._kfxT); UI._kfxT = setTimeout(function () { el.className = 'keyfx'; }, 1100);
     var chip = document.querySelector('#hKeys [data-k="' + id + '"]');
@@ -93,7 +93,7 @@
       case 'score': UI.showScore(true); return;
       case 'build':
         g.ui.build = !g.ui.build; g.ui.placing = null; g.ui.buildPick = null; UI.hideBuildPick();
-        UI.keyFx('build', g.ui.build ? 'Bouwmodus AAN — klik op een vrij vakje' : 'Bouwmodus uit', true); click(); return;
+        UI.keyFx('build', g.ui.build ? 'Bouwmodus AAN — ' + UI.say('tik', 'klik') + ' op een vrij vakje' : 'Bouwmodus uit', true); click(); return;
       case 'home': if (me.room >= 0) { g.goRoom(me.room); UI.keyFx('home', 'Terug naar je kamer', true); } return;
       case 'speed': g.cycleSpeed(); UI.keyFx('speed', 'Snelheid ' + g.speed + 'x', true); return;
       case 'menu': UI.toggleUpMenu(); return;
@@ -200,7 +200,7 @@
     var s = P.d.settings;
     el.classList.toggle('hidden', !s.hints || !s.hotkeysOn);
     $('hQ') && Array.prototype.forEach.call($('hQ').children, function (b) {
-      var k = s.hotkeysOn ? ' <kbd>' + esc(UI.keyName(UI.hk(b.dataset.a))) + '</kbd>' : '';
+      var k = s.hotkeysOn && !UI.touch() ? ' <kbd>' + esc(UI.keyName(UI.hk(b.dataset.a))) + '</kbd>' : '';
       if (!b.dataset.t) b.dataset.t = b.innerHTML; b.innerHTML = b.dataset.t + k;
     });
     el.innerHTML = '<div class="kh">SNELTOETSEN</div>' + ['upgrade', 'sell', 'auto', 'prio', 'evolve', 'farm', 'upall', 'upfarms', 'door', 'repair', 'menu', 'build', 'score', 'home'].map(function (id) {
@@ -216,7 +216,7 @@
     var q = $('hQ'); if (q) q.classList.toggle('hidden', !room || !me.alive || m.phase === 'claim');
     UI.updateDoorBar(m, me, room);
     // hint for building mode
-    if (g.ui.build && !g.ui.placing && room) { var hint = $('hHint'); hint.classList.remove('hidden'); hint.innerHTML = '🧱 <b>Bouwmodus</b> — klik op een vrij vakje om te bouwen, op een tower om te upgraden • ' + UI.keyName(UI.hk('build')) + ' om te sluiten'; }
+    if (g.ui.build && !g.ui.placing && room) { var hint = $('hHint'); hint.classList.remove('hidden'); hint.innerHTML = '🧱 <b>Bouwmodus</b> — ' + UI.say('tik op een vrij vakje om te bouwen, op een tower om te upgraden', 'klik op een vrij vakje om te bouwen, op een tower om te upgraden • ' + UI.keyName(UI.hk('build')) + ' om te sluiten'); }
     if (UI._upOpen) { UI._upT -= dt; if (UI._upT <= 0) { UI._upT = 0.3; UI.renderUpMenu(); } }
     if (UI._score) { UI._scoreT -= dt; if (UI._scoreT <= 0) { UI._scoreT = 0.4; UI.renderScore(); } }
   };
@@ -247,7 +247,7 @@
       G.Audio.sfx(lvl === 2 ? 'alarm' : 'error');
       UI._lowUntil = R.time + 4;
       low.innerHTML = (lvl === 2 ? '🚨 <b>JE DEUR IS BIJNA KAPOT!</b>' : '⚠️ <b>Je deur is onder de 50%</b>') +
-        '<small>' + (d.repairReady <= room.time && !repairing ? 'Druk op <kbd>' + esc(UI.keyName(UI.hk('repair'))) + '</kbd> om te repareren of <kbd>' + esc(UI.keyName(UI.hk('door'))) + '</kbd> om te upgraden' : 'Upgrade je deur (<kbd>' + esc(UI.keyName(UI.hk('door'))) + '</kbd>) of zet meer towers neer') + (m.canBuild(me) ? '' : ' — loop eerst terug (<kbd>' + esc(UI.keyName(UI.hk('home'))) + '</kbd>)') + '</small>';
+        '<small>' + (UI.touch() ? (d.repairReady <= room.time && !repairing ? 'Tik op de deurbalk om te repareren, of op 🚪 om te upgraden' : 'Upgrade je deur (🚪) of zet meer towers neer') : d.repairReady <= room.time && !repairing ? 'Druk op <kbd>' + esc(UI.keyName(UI.hk('repair'))) + '</kbd> om te repareren of <kbd>' + esc(UI.keyName(UI.hk('door'))) + '</kbd> om te upgraden' : 'Upgrade je deur (<kbd>' + esc(UI.keyName(UI.hk('door'))) + '</kbd>) of zet meer towers neer') + (m.canBuild(me) ? '' : UI.say(' — loop eerst terug (🏠)', ' — loop eerst terug (<kbd>' + esc(UI.keyName(UI.hk('home'))) + '</kbd>)')) + '</small>';
       low.className = 'lowwarn lv' + lvl;
     }
     low.style.top = $('hBoss').classList.contains('hidden') ? '' : (window.innerWidth > 900 ? '140px' : '172px');
@@ -348,7 +348,7 @@
       var r = m.roomOf(p), hp = r ? Math.max(0, r.door.hp / r.door.max) : 1;
       h += '<tr class="' + (p.id === g.me ? 'you' : '') + '"><td>' + (i + 1) + '</td><td><span class="rdot" style="background:' + p.color + '"></span>' + esc(p.name) + (p.isBot ? ' <span class="tip">bot</span>' : '') + '</td><td>' + (r ? esc(r.def.name) + (r.partner >= 0 ? ' 🤝' : '') : '—') + '</td><td>' + (!p.alive ? '💀 w' + p.stats.waveReached : p.finished ? '🏁' : '✅') + '</td><td>' + fmt(p.stats.kills) + '</td><td>$' + fmt(p.stats.killMoney) + '</td><td>' + p.stats.bosses + '</td><td>$' + fmt(p.stats.moneyEarned) + '</td><td><div class="hpb" style="width:60px"><i style="width:' + hp * 100 + '%;background:' + (hp > 0.5 ? '#4cd964' : hp > 0.25 ? '#ffcc00' : '#ff4d4d') + '"></i></div></td></tr>';
     });
-    el.innerHTML = h + '</table><p class="tip">Laat ' + UI.keyName(UI.hk('score')) + ' los om te sluiten</p>';
+    el.innerHTML = h + '</table><p class="tip">' + UI.say('Tik om te sluiten', 'Laat ' + UI.keyName(UI.hk('score')) + ' los om te sluiten') + '</p>';
   };
 
   // ---------------------------------------------------------------------
@@ -369,7 +369,7 @@
     return cv;
   }
   UI.towerCanvas = towerCanvas;
-  function kbd(id) { return P.d.settings.hotkeysOn ? ' <kbd>' + esc(UI.keyName(UI.hk(id))) + '</kbd>' : ''; }
+  function kbd(id) { return P.d.settings.hotkeysOn && !UI.touch() ? ' <kbd>' + esc(UI.keyName(UI.hk(id))) + '</kbd>' : ''; }
   UI.renderPanel = function () {
     var g = G.Game, m = g.match, me = m.players[g.me], room = m.roomOf(me), pan = $('hPanel');
     if (!room || g.ui.selDoor || !g.ui.selTower || !me.alive) return baseRenderPanel();

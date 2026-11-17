@@ -1,3 +1,4 @@
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#0d1017">
 <title>Zombie Door Tycoon</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -300,6 +301,104 @@ kbd{display:inline-block;min-width:18px;padding:1px 5px;border-radius:5px;backgr
 /* godly rarity */
 .godlyglow{animation:godly 1.6s ease-in-out infinite alternate;text-shadow:0 0 12px #fff09a,0 0 28px #ffb526}
 @keyframes godly{from{filter:brightness(1) drop-shadow(0 0 6px #fff09a)}to{filter:brightness(1.35) drop-shadow(0 0 16px #ffd23f) hue-rotate(25deg)}}
+/* =====================  TOUCH / PHONE / TABLET  ===================== */
+body.touch{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+body.touch #cv{touch-action:none}
+body.touch input{-webkit-user-select:text;user-select:text}
+body.touch .keys,body.touch #hud kbd,body.touch .bpick .bp kbd{display:none}
+.joy{position:absolute;left:16px;bottom:16px;width:124px;height:124px;border-radius:50%;background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.2);touch-action:none;z-index:3;backdrop-filter:blur(3px)}
+.joy::after{content:'';position:absolute;inset:28%;border-radius:50%;border:1px dashed rgba(255,255,255,.15)}
+.joy .joyk{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.75),rgba(200,210,230,.35));box-shadow:0 4px 12px rgba(0,0,0,.4);pointer-events:none;transition:transform .05s}
+.joy.on{background:rgba(255,255,255,.13);border-color:rgba(255,210,63,.6)}
+.tact{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;z-index:3}
+.tb{width:46px;height:46px;border-radius:14px;background:var(--panel2);border:1px solid var(--line);font-size:20px;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 0 rgba(0,0,0,.35)}
+.tb:active{transform:translateY(2px)}
+.fullbtn{position:absolute;right:12px;bottom:12px;width:46px;height:46px;font-size:20px;padding:0}
+.devtag{font-size:11px;color:var(--mut);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px 8px;white-space:nowrap}
+.rothint{position:fixed;inset:0;z-index:80;background:rgba(5,7,12,.92);display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
+.rothint .ph{font-size:64px;animation:rot 1.6s ease-in-out infinite}
+.rothint b{display:block;font-size:22px;margin:10px 0 4px}.rothint p{color:var(--mut);margin:0 0 16px}
+@keyframes rot{0%,30%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
+body.touch .lcard:hover,body.touch .mcard:hover{transform:none}
+
+/* tablets: desktop layout + touch controls */
+body.dev-tablet .tact{top:auto;right:auto;left:22px;bottom:356px;transform:none}
+body.dev-tablet .joy{bottom:200px;left:20px;width:140px;height:140px}
+body.touch.sheet .joy,body.touch.sheet .tact{display:none}
+
+/* ---------- phones (landscape first) ---------- */
+body.dev-phone .money{top:6px;left:6px;min-width:0;padding:4px 10px;border-radius:12px}
+body.dev-phone .money .cash{font-size:18px}body.dev-phone .money .inc{font-size:10px}body.dev-phone .money .ibar{height:3px}
+body.dev-phone .topbar{top:6px;padding:3px 10px;gap:6px;border-radius:12px}
+body.dev-phone .topbar .chip:not(#hAlive):not(#hKills){display:none}
+body.dev-phone .topbar .wavebox small{font-size:8px}body.dev-phone .topbar .wavebox b{font-size:16px}body.dev-phone .topbar .timer{font-size:13px}
+body.dev-phone .topbar .chip{font-size:11px;padding:2px 6px}
+body.dev-phone .ctrls{top:6px;right:6px;gap:4px}
+body.dev-phone .ctrls .btn{padding:4px 7px;font-size:13px;min-height:32px}
+body.dev-phone .doorbar{top:46px;width:min(300px,38vw)}
+body.dev-phone .doorbar .db{height:14px}body.dev-phone .doorbar b{font-size:10px}body.dev-phone .doorbar .dl{font-size:13px}
+body.dev-phone .bossbar,body.dev-phone .bossbar.below{top:66px;width:min(320px,40vw)}
+body.dev-phone .lowwarn{top:66px;font-size:13px;padding:5px 12px}body.dev-phone .lowwarn.lv2{font-size:14px}body.dev-phone .lowwarn small{font-size:10px}
+body.dev-phone .mini{left:6px;top:52px;bottom:auto;padding:3px;border-radius:10px}
+body.dev-phone .mini .loc{display:none}
+body.dev-phone .joy{left:12px;bottom:12px;width:116px;height:116px}
+body.dev-phone .lbar{bottom:4px;gap:4px;padding:4px;border-radius:14px}
+body.dev-phone .lcard{width:58px;padding:2px 2px 3px;border-radius:10px}
+body.dev-phone .lcard canvas{width:34px!important;height:34px!important}
+body.dev-phone .lcard .nm{display:none}body.dev-phone .lcard .pr{font-size:11px}body.dev-phone .lcard .ct{font-size:9px;top:1px;right:3px}
+body.dev-phone .lcard.sel{transform:translateY(-4px)}
+body.dev-phone .qbar{left:auto;right:6px;bottom:6px;top:auto;transform:none;flex-direction:column;gap:4px}
+body.dev-phone .qbar .btn{width:46px;height:44px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+body.dev-phone .qbar .qi{font-size:17px}body.dev-phone .qbar .ql{font-size:8px;margin-top:2px;color:var(--mut)}
+body.dev-phone .tact{right:58px;top:auto;bottom:6px;transform:none;gap:4px}
+body.dev-phone .tact .tb{width:44px;height:44px;font-size:18px}
+body.dev-phone #hud .hint{top:66px;bottom:auto;font-size:11.5px;max-width:min(440px,52vw);padding:5px 10px;border-radius:10px}
+body.dev-phone #toasts{top:auto;bottom:86px}body.dev-phone .toast{font-size:12px;padding:6px 12px}
+body.dev-phone .keyfx{bottom:120px;font-size:12px;padding:4px 10px}
+body.dev-phone .repair{bottom:74px;font-size:14px;padding:5px 14px}
+body.dev-phone .claim{bottom:6px;padding:6px 10px;font-size:12px;max-width:60vw}body.dev-phone .claim b{font-size:15px}
+body.dev-phone .plist{top:46px;right:6px;width:200px;max-height:calc(100vh - 60px);overflow:auto}
+body.dev-phone #banner{top:28%}body.dev-phone #banner .bt{font-size:28px}body.dev-phone #banner .bs{font-size:13px}body.dev-phone .bossintro .bn{font-size:30px}body.dev-phone .bossintro .bt2{font-size:13px}body.dev-phone .res-title{font-size:30px}
+/* tower panel becomes a side sheet */
+body.dev-phone .tpanel{left:auto;right:0;top:0;bottom:0;width:min(330px,50vw);max-height:none;border-radius:16px 0 0 16px;z-index:6;overflow-y:auto;padding:10px;-webkit-overflow-scrolling:touch}
+body.dev-phone.sheet .qbar,body.dev-phone.sheet .tact{display:none}
+body.dev-phone .tpanel .tquick{flex-wrap:wrap}
+body.dev-phone .upmenu{top:4px;width:96vw;max-height:calc(100vh - 8px);z-index:7;padding:8px}
+body.dev-phone .score{width:98vw;max-height:94vh;overflow:auto;padding:8px;font-size:12px}body.dev-phone .score .tbl td,body.dev-phone .score .tbl th{padding:3px 4px}
+body.dev-phone .bpick .bp{width:50px}
+/* modals and lobby */
+body.dev-phone .mbox,body.dev-phone .mbox.sm{width:100vw;max-width:100vw;max-height:100vh;height:100vh;height:100dvh;border-radius:0}
+body.dev-phone .mbody{padding:10px 12px}
+body.dev-phone #lobby header{padding:6px 12px;gap:8px}
+body.dev-phone .logo{font-size:20px}body.dev-phone .logo span{font-size:11px;letter-spacing:4px}
+body.dev-phone #lobby main{display:block;padding:6px 12px 70px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+body.dev-phone .hero{width:auto;margin:0 auto 10px;max-width:520px}
+body.dev-phone .pcard{padding:8px}body.dev-phone .playbtn{font-size:20px!important;padding:10px!important}
+body.dev-phone .menugrid{grid-template-columns:repeat(2,1fr);gap:8px;max-width:520px;margin:0 auto}
+body.dev-phone .mcard{padding:10px}body.dev-phone .mcard .ic{font-size:22px}body.dev-phone .mcard b{font-size:14px}
+body.dev-phone #lobby footer{display:none}
+body.dev-phone.landscape #lobby main{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+body.dev-phone.landscape .hero,body.dev-phone.landscape .menugrid{max-width:none;margin:0}
+body.dev-phone .resg{grid-template-columns:1fr!important}
+body.dev-phone .mastwrap{grid-template-columns:1fr}
+/* phone held upright */
+body.dev-phone.portrait .lbar{bottom:4px}
+body.dev-phone.portrait .joy{bottom:84px}
+body.dev-phone.portrait .qbar{bottom:84px}
+body.dev-phone.portrait .tact{bottom:84px}
+body.dev-phone.portrait #hud .hint{max-width:calc(100vw - 150px);left:auto;right:6px;transform:none;top:76px}
+body.dev-phone.portrait .doorbar{width:calc(100vw - 150px);left:auto;right:6px;transform:none;top:48px}
+body.dev-phone.portrait .topbar{top:6px;left:auto;right:6px;transform:none}
+body.dev-phone.portrait .topbar #hAlive,body.dev-phone.portrait .topbar #hKills{display:none}
+body.dev-phone.portrait .money{top:6px}
+body.dev-phone.portrait .ctrls{top:160px;left:6px;right:auto;flex-direction:column}
+body.dev-phone.portrait .mini{top:66px}
+body.dev-phone.portrait .keyfx{bottom:310px}
+body.dev-phone.portrait .tpanel{left:0;right:0;top:auto;bottom:0;width:100%;max-height:58vh;border-radius:16px 16px 0 0}
+body.dev-phone.portrait .bossbar,body.dev-phone.portrait .lowwarn{top:92px;width:80vw}
+body.dev-phone .topbar #hKills{display:inline-block}
+@media (max-width:900px){body.dev-tablet .joy{bottom:280px}body.dev-tablet .tact{bottom:436px}body.dev-tablet .keyfx{bottom:262px}}
+body:not(.dev-phone) .tpanel{max-height:calc(100vh - 300px)}
 </style>
 <body>
 <canvas id="cv"></canvas>

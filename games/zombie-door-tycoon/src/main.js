@@ -57,9 +57,9 @@ function boot() {
   Game.selectItem = function (id) {
     var m = Game.match, me = m.players[Game.me];
     if (m.phase === 'claim' || !me.alive) return;
-    Game.ui.placing = Game.ui.placing === id ? null : id;
+    Game.ui.placing = Game.ui.placing === id ? null : id; Game.ui.armed = false;
     Game.ui.selTower = null; Game.ui.selDoor = false;
-    if (Game.ui.placing && !m.canBuild(me)) UI.toast('Loop naar je kamer om te bouwen — druk op <b>' + UI.keyName(UI.hk('home')) + '</b> om terug te lopen', '#ff9f1c');
+    if (Game.ui.placing && !m.canBuild(me)) UI.toast('Loop naar je kamer om te bouwen — ' + UI.say('tik op <b>🏠</b>', 'druk op <b>' + UI.keyName(UI.hk('home')) + '</b>') + ' om terug te lopen', '#ff9f1c');
   };
   Game.cycleSpeed = function () {
     if (Game.mode === 'client') { UI.toast('Alleen de host kan de snelheid aanpassen.'); return; }
@@ -156,10 +156,13 @@ function boot() {
   //  Camera: follows your avatar and shows ~1/5 of the map
   // ---------------------------------------------------------------------
   function layout(dt) {
-    var dpr = Math.min(2, window.devicePixelRatio || 1), W = window.innerWidth, H = window.innerHeight;
+    var dpr = Math.min(G.Device && G.Device.type === 'phone' ? 1.6 : 2, window.devicePixelRatio || 1), W = window.innerWidth, H = window.innerHeight;
     if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
     var s = Math.sqrt(W * H / (WORLD_W * WORLD_H * VIEW_FRACTION));
     if (Game.state !== 'match') s *= 1.15;
+    var dev = G.Device && G.Device.type;
+    if (dev === 'phone') s = Math.max(s, 0.82); else if (dev === 'tablet') s = Math.max(s, 0.75);   // big enough to tap a tile
+    if (Game.state === 'match') s *= Game.zoom || 1;
     s = Math.max(0.45, s);
     var vw = W / s, vh = H / s, target;
     if (Game.state === 'match') target = Game.match.players[Game.me].pos;
@@ -185,11 +188,25 @@ function boot() {
     Game.ui.hover = { x: Math.floor(w.x / T), y: Math.floor(w.y / T) };
   });
   cv.addEventListener('contextmenu', function (e) { e.preventDefault(); Game.ui.placing = null; });
+  var touchDown = null;
   cv.addEventListener('pointerdown', function (e) {
     G.Audio.init();
+    if (e.pointerType === 'touch') { touchDown = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId }; return; }
+    handleTap(e);
+  });
+  cv.addEventListener('pointerup', function (e) {
+    if (e.pointerType !== 'touch' || !touchDown || touchDown.id !== e.pointerId) return;
+    var d = touchDown; touchDown = null;
+    if (Game.pinching || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 16 || performance.now() - d.t > 700) return;
+    handleTap({ clientX: e.clientX, clientY: e.clientY, button: 0, shiftKey: false, touch: true });
+  });
+  cv.addEventListener('pointercancel', function () { touchDown = null; });
+  Game.cancelTap = function () { touchDown = null; };
+  function handleTap(e) {
     if (Game.state !== 'match' || e.button === 2) return;
     var m = Game.match, me = m.players[Game.me], w = toWorld(e.clientX, e.clientY);
     var tx = Math.floor(w.x / T), ty = Math.floor(w.y / T);
+    var prevHover = Game.ui.hover;
     Game.ui.hover = { x: tx, y: ty };
     var room = m.roomOf(me);
     if (m.phase !== 'claim' && me.alive && room) {
@@ -197,6 +214,12 @@ function boot() {
         var it = G.ITEM[Game.ui.placing];
         var valid = it.place === 'path' ? room.def.pathSet[tx + ',' + ty] : G.inRect(room.def.interior, tx, ty);
         if (valid) {
+          // touch: the first tap shows where it goes (with its range), a second tap on the same tile places it
+          if (e.touch && !(prevHover && prevHover.x === tx && prevHover.y === ty && Game.ui.armed)) {
+            Game.ui.armed = true; var err = m.canPlace(me, Game.ui.placing, tx, ty);
+            UI.keyFx('slot1', err ? '⚠ ' + err : 'Tik nog een keer om <b>' + it.name + '</b> te plaatsen', !err); return;
+          }
+          Game.ui.armed = false;
           var r = Game.net.send({ type: 'place', item: Game.ui.placing, x: tx, y: ty });
           if (!r.ok) { UI.toast(r.msg, '#ff4d4d'); G.Audio.sfx('error'); }
           else if (!e.shiftKey && (me.cash < it.cost || m.countPlaced(room, it.id) >= it.limit)) Game.ui.placing = null;
@@ -210,9 +233,14 @@ function boot() {
       if (tx === d.x && ty === d.y) { Game.ui.selDoor = true; Game.ui.selTower = null; Game.ui.placing = null; G.Audio.sfx('click'); UI.$('hPanel').dataset.k = ''; return; }
     }
     // otherwise: walk there
+    Game.ui.armed = false;
     Game.ui.selTower = null; Game.ui.selDoor = false; UI.$('hPanel').dataset.k = '';
     if (Game.net.send({ type: 'move', x: w.x, y: w.y }).ok) Game.ui.marker = { x: w.x, y: w.y, t: 1 };
-  });
+  }
+  // zoom: mouse wheel (desktop) and pinch (touch, see mobile.js)
+  Game.zoom = 1;
+  Game.setZoom = function (z) { Game.zoom = Math.max(0.6, Math.min(1.9, z)); };
+  cv.addEventListener('wheel', function (e) { if (Game.state !== 'match') return; e.preventDefault(); Game.setZoom(Game.zoom * (e.deltaY > 0 ? 0.9 : 1.1)); }, { passive: false });
   window.addEventListener('keydown', function (e) {
     var t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;   // never while typing
@@ -306,6 +334,7 @@ function boot() {
   //  Boot
   // ---------------------------------------------------------------------
   P.load();
+  G.Device.apply(); G.Device.bind(cv);
   MP.hooks = {
     myInfo: function () { var st = {}; P.d.loadout.forEach(function (id) { st[id] = P.stars(id); }); return { name: P.d.name, loadout: P.d.loadout.slice(), stars: st, cos: P.cosMap(), hat: P.d.hat }; },
     toast: function (msg) { UI.toast(msg, '#3fa2ff'); },
