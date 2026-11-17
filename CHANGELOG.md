@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## Age Clash 1.3.0 (2026-11-17)
+- **Speelbaar op de telefoon.** De game herkent zelf of je op een telefoon, tablet of computer speelt (touchscreen, schermgrootte en browser) en kiest daarbij de layout. In Instellingen → Apparaat kun je dat ook zelf kiezen.
+- **Telefoon-layout (liggend):** het slagveld vult het scherm en de bediening is een smalle balk met grote tikknoppen: units, item, Towers, Upgrades, Power en Evolueren. De menu's zijn compact en scrollen waar nodig. Een heel klein venster op de computer krijgt dezelfde compacte layout.
+- **Touch:** tikken op tower-plekken met een grotere tikzone. Op de telefoon klapt het tower-menu in nadat je een type kiest; ergens anders tikken annuleert. Geen hover-tooltips op touchscreens, inzoomen en tekstselectie zijn uitgezet tijdens het spelen, geluid start na de eerste tik (iOS), en de tutorial gebruikt tik-teksten.
+- **Telefoon rechtop:** je krijgt de melding om de telefoon te draaien, met "Volledig scherm" (als de browser dat ondersteunt; dan wordt ook liggend vastgezet) of "Toch doorgaan".
+- Lokaal 1v1 (twee spelers op één scherm) zit niet in het telefoonmenu, wel op tablet en computer. Tablets gebruiken de volledige layout met touch-bediening.
+- Getest met nagebootste iPhone, Android-telefoon, iPad en computer. Nieuwe test `tests/phone.js`: detectie, layout, de draai-melding, een match met tikken en het handmatig kiezen van het apparaat.
+
 ## Staff Siege 1.2.0 (2026-11-15) — co-op multiplayer
 - **Co-op met maximaal 4 spelers** via de nieuwe lobby-knop *Co-op Multiplayer*: maak een kamer (code van 4 letters) of doe mee met de code van een vriend. Werkt ook met twee tabbladen op één computer.
 - Iedereen speelt met zijn **eigen staff en class** (met eigen levels, mastery en upgrades) uit de eigen lobby; de loadout ligt vast zodra de host start.

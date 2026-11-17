@@ -6,11 +6,28 @@ var AC = window.AC;
   var Main = { demo: null, last: 0, t: 0 };
   AC.Main = Main;
 
+  /* Schalen: het podium heeft een vaste ontwerpmaat en wordt passend geschaald.
+     Computer/tablet: 1600×900. Telefoon (compacte layout): 1000 breed, hoogte volgt
+     de verhouding van het scherm, zodat knoppen en tekst groot genoeg blijven. */
   function fit() {
-    var st = document.getElementById('stage');
-    var s = Math.min(window.innerWidth / 1600, window.innerHeight / 900);
+    var st = document.getElementById('stage'), D = AC.Device;
+    var vw = window.innerWidth || 1600, vh = window.innerHeight || 900;
+    if (window.visualViewport && window.visualViewport.width) { vw = Math.min(vw, window.visualViewport.width); vh = Math.min(vh, window.visualViewport.height); }
+    var phone = D.layout() === 'phone', W = 1600, H = 900;
+    if (phone) { W = 1000; H = Math.max(420, Math.min(720, Math.round(1000 * vh / vw))); }
+    st.style.width = W + 'px'; st.style.height = H + 'px';
+    var s = Math.min(vw / W, vh / H);
     st.style.transform = 'scale(' + s + ')';
+    Main.scale = s; Main.W = W; Main.H = H;
+    var b = document.body.classList;
+    b.toggle('phone', phone); b.toggle('touch', D.touch); b.toggle('dev-' + D.type, true);
+    var rot = document.getElementById('rotate');
+    if (rot) {
+      rot.style.display = phone && D.touch && D.isPortrait() && !Main.rotateDismissed ? 'flex' : 'none';
+      var fsb = rot.querySelector('[data-act=fs]'); if (fsb) fsb.style.display = D.canFullscreen() ? '' : 'none';
+    }
   }
+  Main.fit = fit;
 
   Main.newDemo = function () {
     var a = Math.floor(Math.random() * 8), b = Math.max(0, Math.min(7, a + Math.floor(Math.random() * 3) - 1));
@@ -62,11 +79,19 @@ var AC = window.AC;
 
   Main.boot = function () {
     if (Main.booted) return; Main.booted = true; Main.bootT = performance.now();
-    fit(); window.addEventListener('resize', fit);
     AC.Profile.loadLocal();
+    AC.Device.override = AC.Profile.data.settings.device || 'auto';
+    fit(); window.addEventListener('resize', fit); window.addEventListener('orientationchange', function () { setTimeout(fit, 120); });
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', fit);
+    var rot = document.getElementById('rotate');
+    if (rot) rot.addEventListener('click', function (e) {
+      var t = e.target.closest && e.target.closest('button'); if (!t) return;
+      if (t.dataset.act === 'fs') AC.Device.fullscreen(); else { Main.rotateDismissed = true; fit(); }
+    });
     var S = AC.Profile.data.settings;
     AC.audio = new AC.Audio(); AC.audio.vol = S.vol; AC.audio.musVol = S.mus; AC.audio.muted = S.muted;
     document.addEventListener('pointerdown', function () { AC.audio.init(); }, { once: false });
+    document.addEventListener('touchend', function () { AC.audio.init(); }, { passive: true }); // iOS: geluid pas na een tik
     document.addEventListener('keydown', function (e) {
       if (e.target && e.target.tagName === 'INPUT') return;
       AC.audio.init();
@@ -74,8 +99,8 @@ var AC = window.AC;
       if (e.key === 'Escape' && !AC.Match.active) { var m = document.querySelector('.modal-bg'); if (m) m.remove(); else if (AC.UI.cur !== 'menu') AC.UI.show(AC.UI.cur === 'online' ? 'mode' : 'menu'); }
     });
     var cv = document.getElementById('cv');
-    cv.addEventListener('mousemove', function (e) { AC.Match.mouseMove(e); });
-    cv.addEventListener('mousedown', function (e) { AC.Match.mouseDown(e); });
+    cv.addEventListener('pointermove', function (e) { AC.Match.mouseMove(e); });
+    cv.addEventListener('pointerdown', function (e) { AC.Match.mouseMove(e); AC.Match.mouseDown(e); });
     cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
     AC.Profile.on(function () { if (AC.UI.cur === 'menu') AC.UI.show('menu'); });
     AC.UI.show('menu');

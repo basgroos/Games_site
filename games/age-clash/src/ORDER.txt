@@ -1,4 +1,5 @@
 data.js
+device.js
 sim.js
 ai.js
 art_units.js

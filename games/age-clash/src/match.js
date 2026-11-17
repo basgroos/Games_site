@@ -59,10 +59,22 @@ var AC = window.AC;
     M.active = true;
     AC.audio.init(); AC.audio.music(true, 0);
     if (!d.tutorialDone && opts.mode === 'bot') M.queueTutorial();
-    else M.hint(opts.mode === 'local' ? 'Speler 1: 1–5, Q, E · Speler 2: 7–0, −, P, O' : 'Vernietig de vijandelijke basis! Units: 1–4 · item: 5', 3500);
+    else M.hint(opts.mode === 'local' ? (AC.Device.touch ? 'Ieder speelt met zijn eigen knoppen onderin' : 'Speler 1: 1–5, Q, E · Speler 2: 7–0, −, P, O') : (AC.Device.touch ? 'Vernietig de vijandelijke basis! Tik op units om ze te plaatsen' : 'Vernietig de vijandelijke basis! Units: 1–4 · item: 5'), 3500);
   };
 
   Match.queueTutorial = function () {
+    if (AC.Device.touch) {
+      Match.hints = [
+        { t: 0.5, s: '👉 Tik op een unit onderin om hem te plaatsen', d: 6000 },
+        { t: 9, s: '⚔ Melee verslaat ranged · ranged verslaat melee · anti-armor sloopt armored', d: 6000 },
+        { t: 16, s: '🎒 De 5e knop is je <b>tijdperk-item</b>: een damager, potion of power-up', d: 5500 },
+        { t: 24, s: '⬆ Tik op <b>Upgrades</b> voor meer inkomen en sterkere units — de match loopt door', d: 6500 },
+        { t: 36, s: '🏰 Tik op <b>Towers</b>, kies er een en tik op een plek voor je basis', d: 6000 },
+        { t: 48, s: '⏳ Vul je XP-balk en tik op <b>Evolueren</b> voor het volgende tijdperk!', d: 6500 },
+        { t: 62, s: '⚡ Gebruik je <b>tijdperk-power</b> op een grote groep vijanden', d: 6000 },
+      ];
+      return;
+    }
     Match.hints = [
       { t: 0.5, s: '👉 Klik op een unit onderin (of druk <kbd>1</kbd>–<kbd>4</kbd>) om hem te plaatsen', d: 6000 },
       { t: 9, s: '⚔ Melee verslaat ranged · ranged verslaat melee · anti-armor sloopt armored', d: 6000 },
@@ -123,7 +135,7 @@ var AC = window.AC;
     if (!split && M.mode !== 'local') {
       // rechts: info over tegenstander
       var os = 1 - M.local[0];
-      M.oppBox = h('div', { class: 'ironbox', style: 'width:auto;flex:1;max-width:300px;margin-left:auto' });
+      M.oppBox = h('div', { class: 'ironbox oppbox', style: 'width:auto;flex:1;max-width:300px;margin-left:auto' });
       bot.appendChild(M.oppBox);
     }
     hud.appendChild(bot);
@@ -138,7 +150,7 @@ var AC = window.AC;
     var wrap = h('div', { class: 'side-hud' + (side && compact ? ' r' : '') });
     u.iron = h('div', { class: 'amt ironic' }); u.inc = h('b'); u.kill = h('b'); u.cnt = h('b');
     var ib = h('div', { class: 'ironbox', style: compact ? 'width:118px;padding:8px' : '' }, [h('div', { class: 'mut', style: 'font-size:11px;font-weight:800;letter-spacing:1px', text: 'IJZER' }), u.iron,
-      h('div', { class: 'ln' }, [h('span', { text: 'Per seconde' }), u.inc]), h('div', { class: 'ln' }, [h('span', { text: 'Per kill' }), u.kill]), compact ? null : h('div', { class: 'ln' }, [h('span', { text: 'Leger' }), u.cnt])]);
+      h('div', { class: 'ln' }, [h('span', { text: AC.Device.layout() === 'phone' ? 'Per sec.' : 'Per seconde' }), u.inc]), h('div', { class: 'ln' }, [h('span', { text: 'Per kill' }), u.kill]), compact ? null : h('div', { class: 'ln' }, [h('span', { text: 'Leger' }), u.cnt])]);
     var slots = h('div', { class: 'slots', style: compact ? 'gap:5px' : '' });
     for (var s = 0; s < 4; s++) (function (slot) {
       var cv = h('canvas', { width: 192, height: 160 });
@@ -175,6 +187,7 @@ var AC = window.AC;
 
   Match.tip = function (side, slot, el) {
     var t = $('#slotTip');
+    if (AC.Device.touch && side != null) return; // geen hover-tooltips op touchscreens
     if (side == null) { if (t) t.remove(); return; }
     if (!t) { t = h('div', { id: 'slotTip', class: 'panel', style: 'position:absolute;z-index:40;padding:10px 12px;width:260px;font-size:13px;pointer-events:none' }); $('#hud').appendChild(t); }
     var sim = Match.sim;
@@ -227,13 +240,22 @@ var AC = window.AC;
       AC.TOWERS.forEach(function (t, k) {
         var cost = h('b', { class: 'ironic' });
         var ts = sim.towerStats(side, k);
-        var b = h('button', { class: 'tbtn' + (M.towerMode && M.towerMode.side === side && M.towerMode.kind === k ? ' on' : ''), onclick: function () { AC.UI.click(); M.towerMode = { side: side, kind: k }; M.renderDrawer(side); } }, [
+        var b = h('button', { class: 'tbtn' + (M.towerMode && M.towerMode.side === side && M.towerMode.kind === k ? ' on' : ''), onclick: function () { AC.UI.click(); M.pickTower(side, { side: side, kind: k }); } }, [
           h('span', { class: 'ti', text: t.icon }), h('span', { style: 'flex:1' }, [h('b', { text: t.name }), h('small', { text: t.desc }), h('small', { text: 'Schade ' + Math.round(ts.dmg) + ' · ' + (1 / ts.cd).toFixed(1) + '/s · bereik ' + Math.round(ts.range) + (ts.splash ? ' · gebied' : '') })]), cost]);
         M.tBtns[side].push({ b: b, cost: cost, k: k, last: '' });
         trow.appendChild(b);
       });
-      trow.appendChild(h('button', { class: 'tbtn' + (M.towerMode && M.towerMode.side === side && M.towerMode.sell ? ' on' : ''), onclick: function () { AC.UI.click(); M.towerMode = { side: side, sell: true }; M.renderDrawer(side); } }, [h('span', { class: 'ti', text: '💰' }), h('span', { style: 'flex:1' }, [h('b', { text: 'Verkopen' }), h('small', { text: 'Klik op een eigen tower: ' + Math.round(AC.TOWER_SELL * 100) + '% terug (naar rato van HP)' })])]));
+      trow.appendChild(h('button', { class: 'tbtn' + (M.towerMode && M.towerMode.side === side && M.towerMode.sell ? ' on' : ''), onclick: function () { AC.UI.click(); M.pickTower(side, { side: side, sell: true }); } }, [h('span', { class: 'ti', text: '💰' }), h('span', { style: 'flex:1' }, [h('b', { text: 'Verkopen' }), h('small', { text: 'Klik op een eigen tower: ' + Math.round(AC.TOWER_SELL * 100) + '% terug (naar rato van HP)' })])]));
     }
+  };
+
+  // Op een telefoon bedekt het tower-menu de tower-plekken: na het kiezen klapt het in.
+  Match.pickTower = function (side, mode) {
+    var M = Match; M.towerMode = mode;
+    if (AC.Device.layout() === 'phone') {
+      M.drawer[side] = null; M.renderDrawer(side);
+      M.hint(mode.sell ? '💰 Tik op een eigen tower om hem te verkopen · tik ergens anders om te annuleren' : '🏰 Tik op een vrije plek voor je basis · ergens anders tikken = annuleren', 4000);
+    } else M.renderDrawer(side);
   };
 
   /* ------------------------------ input ------------------------------ */
@@ -290,22 +312,29 @@ var AC = window.AC;
     return { x: (e.clientX - r.left) / r.width * C.W, y: (e.clientY - r.top) / r.height * C.H };
   };
   Match.spotAt = function (side, x) {
-    for (var sp = 0; sp < 3; sp++) { var tx = side ? C.W - C.TOWER_SPOTS[sp] : C.TOWER_SPOTS[sp]; if (Math.abs(x - tx) < 26) return sp; }
-    return -1;
+    // op een touchscreen is een vinger breder dan een muis: grotere tikzone (plekken liggen 53 px uit elkaar)
+    var best = -1, bd = AC.Device.touch ? 34 : 26;
+    for (var sp = 0; sp < 3; sp++) { var tx = side ? C.W - C.TOWER_SPOTS[sp] : C.TOWER_SPOTS[sp], d = Math.abs(x - tx); if (d < bd) { bd = d; best = sp; } }
+    return best;
   };
   Match.mouseMove = function (e) {
     var M = Match; if (!M.active || !M.towerMode) { M.view && (M.view.hoverSpot = -1); return; }
-    var p = M.canvasPos(e); M.view.hoverSpot = p.y > C.GROUND - 190 && p.y < C.GROUND + 40 ? M.spotAt(M.towerMode.side, p.x) : -1;
+    var p = M.canvasPos(e); M.view.hoverSpot = p.y > C.GROUND - 220 && p.y < C.GROUND + 90 ? M.spotAt(M.towerMode.side, p.x) : -1;
   };
   Match.mouseDown = function (e) {
     var M = Match; if (!M.active || !M.towerMode || M.over) return;
     if (e.button === 2) { M.towerMode = null; M.renderDrawer(0); M.renderDrawer(1); return; }
     var p = M.canvasPos(e), side = M.towerMode.side, sp = M.spotAt(side, p.x);
-    if (sp < 0 || p.y < C.GROUND - 190 || p.y > C.GROUND + 40) return;
+    var phone = AC.Device.layout() === 'phone';
+    if (sp < 0 || p.y < C.GROUND - 220 || p.y > C.GROUND + 90) {
+      if (phone) { M.towerMode = null; M.hint('Tower plaatsen geannuleerd', 1200); }
+      return;
+    }
     var existing = M.sim.towerAt(side, sp);
-    if (M.towerMode.sell) { if (existing) M.cmd(side, { t: 'sell', s: sp }); return; }
+    if (M.towerMode.sell) { if (existing) { M.cmd(side, { t: 'sell', s: sp }); if (phone) M.towerMode = null; } return; }
     if (existing) return deny('Deze plek is bezet');
     M.cmd(side, { t: 'tower', s: sp, k: M.towerMode.kind });
+    if (phone) M.towerMode = null;
   };
 
   /* ------------------------------ pauze ------------------------------ */

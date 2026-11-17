@@ -20,7 +20,7 @@ var AC = window.AC;
       rating: 1000, peak: 1000, wins: 0, losses: 0, matches: 0, streak: 0, bestStreak: 0,
       season: { xp: 0, claimed: [] }, crates: 1, boost: 0,
       daily: { day: '', firstWin: false },
-      settings: { vol: 0.7, mus: 0.35, muted: false, dmgNums: true, diff: 'normal', quality: 'high' },
+      settings: { vol: 0.7, mus: 0.35, muted: false, dmgNums: true, diff: 'normal', quality: 'high', device: 'auto' },
       history: [], stats: { kills: 0, maxAge: 1, playTime: 0 },
       tutorialDone: false,
     };

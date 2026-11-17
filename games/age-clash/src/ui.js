@@ -151,7 +151,9 @@ var AC = window.AC;
     var B = AC.BUILD;
     if (B && B.home != null) el.appendChild(h('a', { class: 'btn ghost sm', href: B.home || '../../', style: 'position:absolute;left:24px;top:22px;text-decoration:none', text: '← Bas Games' }));
     if (B && B.env === 'staging') el.appendChild(h('div', { style: 'position:absolute;left:50%;top:0;transform:translateX(-50%);background:#ff8a2a;color:#221;font-weight:900;padding:4px 14px;border-radius:0 0 8px 8px;font-size:13px', text: 'STAGING' + (B.commit ? ' · ' + B.commit.slice(0, 7) : '') }));
-    el.appendChild(h('div', { class: 'ver', text: 'v' + ((B && B.version) || '1.0') + ' · ' + (Pf.cloud === 'cloud' ? 'voortgang opgeslagen in je account' : 'voortgang opgeslagen in deze browser') }));
+    var Dv = AC.Device;
+    el.appendChild(h('div', { class: 'ver', text: Dv.icon() + ' ' + Dv.label() + (Dv.layout() === 'phone' ? '-modus' : '') + (Dv.touch ? ' · touch' : '') + ' · v' + ((B && B.version) || '1.0') + ' · ' + (Pf.cloud === 'cloud' ? 'voortgang opgeslagen in je account' : 'voortgang opgeslagen in deze browser') }));
+    if (Dv.touch && Dv.canFullscreen() && !document.fullscreenElement) el.appendChild(h('button', { class: 'btn ghost sm fsbtn', text: '⛶ Volledig scherm', onclick: function () { UI.click(); Dv.fullscreen(); } }));
   };
 
   UI.openCrate = function () {
@@ -192,14 +194,15 @@ var AC = window.AC;
       h('div', { style: 'flex:1' }),
       h('button', { class: 'btn blue', style: 'font-size:22px;padding:16px', text: 'ZOEK TEGENSTANDER', onclick: function () { UI.click(); UI.show('online'); } }),
     ]));
-    modes.appendChild(h('div', { class: 'panel mode' }, [
+    modes.appendChild(h('div', { class: 'panel mode mode-local' }, [
       h('div', { class: 'big', text: '🎮' }), h('h2', { text: 'Lokaal 1v1' }),
       h('p', { html: 'Twee spelers op één computer. Speler 1: <kbd>1</kbd>–<kbd>5</kbd> <kbd>Q</kbd> <kbd>E</kbd> · Speler 2: <kbd>7</kbd>–<kbd>0</kbd> <kbd>−</kbd> <kbd>P</kbd> <kbd>O</kbd> + muis.' }),
       h('div', { style: 'flex:1' }),
       h('button', { class: 'btn', style: 'font-size:22px;padding:16px', text: 'START LOKAAL', onclick: function () { UI.click(); AC.Match.start({ mode: 'local' }); } }),
     ]));
     el.appendChild(modes);
-    el.appendChild(h('div', { style: 'position:absolute;left:0;right:0;bottom:60px;text-align:center', class: 'mut', html: 'Jouw maximale tijdperk in een match: <b style="color:#fff">' + AC.AGES[Pf.maxAge()].name + '</b> · koop meer tijdperken onder <i>Tijdperken</i>' }));
+    el.appendChild(h('div', { class: 'mut phone-only', style: 'position:absolute;left:0;right:0;bottom:44px;text-align:center;font-size:13px', text: 'Lokaal 1v1 (twee spelers op één scherm) kan op een tablet of computer.' }));
+    el.appendChild(h('div', { style: 'position:absolute;left:0;right:0;bottom:60px;text-align:center', class: 'mut modefoot', html: 'Jouw maximale tijdperk in een match: <b style="color:#fff">' + AC.AGES[Pf.maxAge()].name + '</b> · koop meer tijdperken onder <i>Tijdperken</i>' }));
   };
 
   /* --------------------------- COLLECTION --------------------------- */
@@ -452,7 +455,15 @@ var AC = window.AC;
     function apply() { var a = AC.audio; a.vol = S.vol; a.musVol = S.mus; a.muted = S.muted; a.apply(); }
     function toggle(key, lab, cb) { var b = h('button', { class: 'btn sm ' + (S[key] ? 'green' : 'ghost'), text: S[key] ? 'Aan' : 'Uit' }); b.onclick = function () { S[key] = !S[key]; Pf.save(); cb && cb(); UI.show('settings'); }; return b; }
     [['Spelersnaam', name], ['Geluidseffecten', range('vol', apply)], ['Muziek', range('mus', apply)], ['Alles dempen', toggle('muted', '', apply)], ['Schadegetallen', toggle('dmgNums')]].forEach(function (r) { f.appendChild(h('b', { text: r[0] })); f.appendChild(r[1]); });
+    var Dv = AC.Device;
+    f.appendChild(h('b', { text: 'Apparaat' }));
+    var devRow = h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center' }, [h('span', { class: 'mut', style: 'margin-right:6px', text: 'Gedetecteerd: ' + Dv.icon() + ' ' + Dv.label() + (Dv.touch ? ' (touch)' : '') })]);
+    [['auto', 'Automatisch'], ['phone', '📱 Telefoon'], ['tablet', '📲 Tablet'], ['desktop', '🖥 Computer']].forEach(function (o) {
+      devRow.appendChild(h('button', { class: 'btn sm ' + ((S.device || 'auto') === o[0] ? 'green' : 'ghost'), text: o[1], onclick: function () { UI.click(); S.device = o[0]; Pf.save(); Dv.override = o[0]; AC.Main.fit(); UI.show('settings'); } }));
+    });
+    f.appendChild(devRow);
     f.appendChild(h('b', { text: 'Besturing' }));
+    if (Dv.touch) { f.appendChild(h('div', { class: 'mut', html: 'Tik op de knoppen onderin: units (1–4), het tijdperk-item (5), Towers, Upgrades, Power en Evolueren. Towers plaats je door een type te kiezen en op een vrije plek voor je basis te tikken.' })); f.appendChild(h('b', { text: 'Toetsenbord' })); }
     f.appendChild(h('div', { class: 'keys', html: '<kbd>1</kbd>–<kbd>4</kbd><span>Unit plaatsen (slot 1–4)</span><kbd>5</kbd><span>Tijdperk-item (slot 5)</span><kbd>Q</kbd><span>Tijdperk-power</span><kbd>E</kbd><span>Evolueren</span><kbd>U</kbd><span>Upgrade-menu</span><kbd>T</kbd><span>Towers</span><kbd>Esc</kbd><span>Pauze / sluiten</span><kbd>F</kbd><span>Snelheid 1× / 2× / 3× / 5× (online: stemmen)</span><kbd>7</kbd>–<kbd>0</kbd> <kbd>−</kbd><span>Speler 2 units + item (lokaal)</span><kbd>P</kbd>/<kbd>O</kbd><span>Speler 2 power / evolueren</span>' }));
     f.appendChild(h('b', { text: 'Opslag' }));
     f.appendChild(h('div', { class: 'mut', text: Pf.cloud === 'cloud' ? 'Je voortgang wordt opgeslagen in je account en lokaal in deze browser.' : 'Je voortgang wordt lokaal in deze browser opgeslagen.' }));
