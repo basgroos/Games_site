@@ -54,7 +54,7 @@ const G = {
   player: null, ai: null, lots: [], lotIdx: -1, A: null, screen: 'scr-title',
   place: null, B: null, mode: null, speed: 1, paused: false, countdown: 0, target: null, endT: 0, hover: null, seq: 1,
 };
-const LOT_T = { easy: 11, normal: 9, hard: 8 }, BID_EXT = 4;
+const LOT_T = { easy: 11, normal: 9, hard: 8 }, BID_EXT = 3.5;
 function newOwner() { return { coins: 20, units: [], buffs: [], abilities: [] }; }
 const store = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } } };
 
@@ -112,7 +112,7 @@ $('#modal').addEventListener('click', e => { if (e.target.closest('[data-close]'
 function howTo() {
   openModal(`<h2>Hoe werkt het?</h2>
   <div class="rules">
-    <div><b>1. De veiling</b><p>Iedere ronde krijgen jij en de AI precies €20. Er komen 10 tot 12 kavels voorbij: units, buffs en abilities. Bied tegen de klok. Elk bod verlengt de timer. Wie het hoogst biedt, betaalt en krijgt het item.</p></div>
+    <div><b>1. De veiling</b><p>Iedere ronde krijgen jij en de AI precies €20. Er komen 10 tot 12 kavels voorbij: units, buffs en abilities. Je ziet pas welk kavel komt als het aan de beurt is. Elk kavel begint op €1 en elk bod is €1 meer. Elk bod verlengt de timer; wie het hoogst biedt, betaalt en krijgt het item.</p></div>
     <div><b>2. Geld is schaars</b><p>Je kunt nooit alles kopen. Niet uitgegeven geld wordt een spaarbonus: +3% HP en damage per euro (max +30%). Iedereen krijgt daarnaast één gratis Rekruut.</p></div>
     <div><b>3. Rarity</b><p>Common (grijs), Uncommon (groen), Rare (blauw), Epic (paars), Legendary (goud) en Mythic (rood, 2%). Hogere rarity is sterker en duurder, maar geen garantie op winst.</p></div>
     <div><b>4. Synergieën</b><p>Units hebben tags zoals Volk, Krijger, Magiër of Beest. Met 2, 3 of 5 van dezelfde tag krijgt je team bonussen. Een slimme combinatie verslaat vaak één dure unit.</p></div>
@@ -127,7 +127,7 @@ function codex(tab = 'unit') {
   if (tab === 'syn') body = `<div class="syn-list">${SYNERGIES.map(s => `<div style="--tc:${TAGS[s.tag]}"><b>${s.tag}</b>${s.levels.map(l => `<p>${l.n}×: ${esc(l.txt)}</p>`).join('')}<p style="color:var(--muted)">${UNITS.filter(u => u.tags.includes(s.tag)).map(u => u.name).join(', ')}</p></div>`).join('')}</div>`;
   else {
     const list = tab === 'unit' ? UNITS : tab === 'buff' ? BUFFS : ABILITIES;
-    body = `<div class="cards">${list.slice().sort((a, b) => RAR[a.rar].tier - RAR[b.rar].tier).map(d => cardHTML(tab, d, { price: RAR[d.rar].price, priceLbl: 'Startprijs' })).join('')}</div>`;
+    body = `<div class="cards">${list.slice().sort((a, b) => RAR[a.rar].tier - RAR[b.rar].tier).map(d => cardHTML(tab, d)).join('')}</div>`;
   }
   openModal(`<h2>Alle kaarten</h2><div class="tabs">${tabs.map(([k, l]) => `<button data-codex="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</div>${body}`);
 }
@@ -196,12 +196,13 @@ function startRound() {
 // ---------- draft ----------
 function renderStrip() {
   $('#lotStrip').innerHTML = G.lots.map((l, i) => {
+    if (i > G.lotIdx) return `<div class="lot hidden" title="Nog geheim"><span class="q">?</span><span class="nm">Kavel ${i + 1}</span></div>`;
     const who = l.winner === 0 ? '<span class="who p">Jij €' + l.price + '</span>' : l.winner === 1 ? '<span class="who a">AI €' + l.price + '</span>' : l.winner === -1 ? '<span class="who n">—</span>' : '';
     return `<div class="lot ${i === G.lotIdx ? 'cur' : ''} ${l.winner != null ? 'done' : ''}" style="--rc:${RAR[l.def.rar].color}" data-lot="${i}" title="${esc(l.def.name)} (${RAR[l.def.rar].name})">${miniImg(l.kind, l.def, 40)}<span class="nm">${esc(l.def.name)}</span>${who}</div>`;
   }).join('');
   const cur = $('#lotStrip .cur'); if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
 }
-$('#lotStrip').addEventListener('click', e => { const l = e.target.closest('[data-lot]'); if (!l) return; const lot = G.lots[+l.dataset.lot]; openModal(`<div class="cards" style="margin-top:20px">${cardHTML(lot.kind, lot.def, { price: lot.start, priceLbl: 'Startprijs' })}</div>`); });
+$('#lotStrip').addEventListener('click', e => { const l = e.target.closest('[data-lot]'); if (!l) return; const lot = G.lots[+l.dataset.lot]; openModal(`<div class="cards" style="margin-top:20px">${cardHTML(lot.kind, lot.def, lot.winner != null && lot.winner >= 0 ? { price: lot.price, priceLbl: lot.winner ? 'AI betaalde' : 'Jij betaalde' } : {})}</div>`); });
 
 function ownerPanel(o, who) {
   const defs = o.units.map(u => u.def);
@@ -219,9 +220,9 @@ function nextLot() {
   G.lotIdx++;
   if (G.lotIdx >= G.lots.length) { endDraft(); return; }
   const lot = G.lots[G.lotIdx];
-  const left = G.lots.slice(G.lotIdx + 1);
-  G.A = { lot, price: 0, leader: null, timer: LOT_T[G.level], max: LOT_T[G.level], aiMax: aiMaxBid(lot, G.ai, left, G.pers, G.level), aiAt: rnd(0.9, 2.2), aiOut: false, pPassed: false, closed: false, lastTick: 99 };
-  $('#lotCard').innerHTML = cardHTML(lot.kind, lot.def, { cls: 'enter', price: lot.start, priceLbl: 'Startprijs' });
+  const left = G.lots.length - G.lotIdx - 1;
+  G.A = { lot, price: 0, leader: null, timer: LOT_T[G.level], max: LOT_T[G.level], aiMax: aiMaxBid(lot, G.ai, left, G.pers, G.level), aiAt: rnd(0.7, 1.8), aiOut: false, pPassed: false, closed: false, lastTick: 99 };
+  $('#lotCard').innerHTML = cardHTML(lot.kind, lot.def, { cls: 'enter' });
   $('#stamp').className = 'stamp'; $('#stamp').innerHTML = '';
   $('#bidFeed').innerHTML = '';
   renderStrip(); renderSides(); updateAuctionUI();
@@ -253,7 +254,7 @@ function placeBid(who, amt) {
   feed(who, `${who ? 'AI' : 'Jij'} €${amt}`); bubble(who, '€' + amt); coinFly(who); SFX.bid(who);
   const p = $('#bidPrice'); p.classList.remove('pop'); void p.offsetWidth; p.classList.add('pop');
   if (who === 0) {
-    if (!A.aiOut) { const d = G.level === 'hard' ? rnd(0.4, 1.1) : G.level === 'easy' ? rnd(0.9, 2.2) : rnd(0.6, 1.7); A.aiAt = Math.min(d, Math.max(0.3, A.timer - 0.7)); }
+    if (!A.aiOut) { const d = G.level === 'hard' ? rnd(0.35, 0.9) : G.level === 'easy' ? rnd(0.8, 1.9) : rnd(0.5, 1.3); A.aiAt = Math.min(d, Math.max(0.3, A.timer - 0.7)); }
   } else { A.aiAt = null; if (A.pPassed) A.timer = Math.min(A.timer, 2.3); }
   renderSides(); updateAuctionUI();
 }
@@ -261,8 +262,7 @@ function aiAct() {
   const A = G.A; A.aiAt = null;
   const need = A.leader === null ? A.lot.start : A.price + 1;
   if (need <= A.aiMax && need <= G.ai.coins) {
-    let amt = need; if (A.aiMax - need >= 3 && Math.random() < 0.3) amt = need + 1;
-    placeBid(1, amt);
+    placeBid(1, need);
   } else {
     A.aiOut = true; feed(1, 'AI past'); bubble(1, 'Past'); SFX.pass();
     if (A.leader === 0) A.timer = Math.min(A.timer, 2.3);
@@ -323,11 +323,9 @@ function updateAuctionUI() {
   L.textContent = A.closed ? (A.leader === null ? 'Geen biedingen' : (A.leader ? 'AI wint' : 'Jij wint')) : A.leader === null ? 'Nog geen bod' : A.leader === 0 ? 'Jij leidt' : esc(G.pers.name) + ' leidt';
   const card = $('#lotCard .card'); if (card) { card.classList.toggle('lead-p', A.leader === 0); card.classList.toggle('lead-a', A.leader === 1); }
   const need = A.leader === null ? lot.start : A.price + 1;
-  [[0, '#bid1', 1], [1, '#bid2', 2], [4, '#bid5', 3]].forEach(([extra, id, key]) => {
-    const b = $(id); const amt = need + extra;
-    b.innerHTML = `Bied €${amt} <small>toets ${key}</small>`;
-    b.disabled = A.closed || A.leader === 0 || amt > G.player.coins;
-  });
+  const b = $('#bid1');
+  b.innerHTML = `Bied €${need} <small>${A.leader === null ? 'openingsbod' : '+€1'} · toets 1</small>`;
+  b.disabled = A.closed || A.leader === 0 || need > G.player.coins;
   $('#bidPass').disabled = A.closed || A.pPassed || A.leader === 0;
 }
 function tickDraft(dt) {
@@ -698,13 +696,13 @@ $('#logoBtn').onclick = () => {
   openModal(`<h2>Terug naar het menu?</h2><p>De huidige match wordt afgebroken.</p><div class="actions"><button class="btn ghost" data-close>Verder spelen</button><button class="btn red" id="quit">Stoppen</button></div>`);
   $('#quit').onclick = toMenu;
 };
-$('#bid1').onclick = () => playerBid(0); $('#bid2').onclick = () => playerBid(1); $('#bid5').onclick = () => playerBid(4); $('#bidPass').onclick = playerPass;
+$('#bid1').onclick = () => playerBid(0); $('#bidPass').onclick = playerPass;
 document.addEventListener('keydown', e => {
   if (e.target.closest('input,textarea')) return;
   if (e.key === 'Escape') { if (G.modalOpen && !G.modalNoClose) { closeModal(); return; } if (G.target) { G.target = null; updateAbilityBar(); return; } if (G.place) { G.place.assign = null; G.place.sel = null; if (G.mode === 'place') renderPlaceUI(); } }
   if (G.modalOpen) return;
   if (G.screen === 'scr-draft') {
-    if (e.key === '1' || e.key === ' ') { e.preventDefault(); playerBid(0); } else if (e.key === '2') playerBid(1); else if (e.key === '3') playerBid(4); else if (e.key.toLowerCase() === 'p') playerPass();
+    if (e.key === '1' || e.key === ' ') { e.preventDefault(); playerBid(0); } else if (e.key.toLowerCase() === 'p') playerPass();
   } else if (G.mode === 'battle') {
     const n = parseInt(e.key, 10); if (n >= 1 && n <= 9) armAbility(n - 1);
     if (e.key === ' ') { e.preventDefault(); $('#btnPause').click(); }

@@ -260,7 +260,7 @@ function onHit(B, u, t, dmg, crit, hit = {}) {
     if (sp === 'charge' && hit.first) { applyCC(B, t, 'stun', 0.8); fxText(B, t, 'Stun', '#ffe27a', 12); }
     if (sp === 'frost' && t.alive) { applySlow(t, 0.35, 2); if (u.shots % 4 === 0) { applyCC(B, t, 'freeze', 1.5); fx(B, { type: 'ring', x: t.x, y: t.y, r: 0.7, color: '#bff3ff' }); } }
     if ((sp === 'fireball' || sp === 'rebirth') && t.alive) applyBurn(t, 6, 3, u);
-    if (sp === 'breath' && t.alive) applyBurn(t, 7, 3, u);
+    if (sp === 'breath' && t.alive) applyBurn(t, 5, 3, u);
   }
   const cx = t ? t.x : u.x, cy = t ? t.y : u.y;
   if (hit.nova) {
@@ -271,7 +271,7 @@ function onHit(B, u, t, dmg, crit, hit = {}) {
     fx(B, { type: 'explosion', x: cx, y: cy, r: u.splash, color: sp === 'stone' ? '#c9b48a' : sp === 'nova' ? '#c9a6ff' : '#ff9a3c', small: true });
     for (const e of B.alive[1 - u.team]) if (e !== t && e.alive && Math.hypot(e.x - cx, e.y - cy) <= u.splash) {
       dealDamage(B, u, e, dmg * 0.6, { color: '#ffd2a8' });
-      if (sp === 'breath') applyBurn(e, 7, 3, u);
+      if (sp === 'breath') applyBurn(e, 5, 3, u);
       if (sp === 'fireball' || sp === 'rebirth') applyBurn(e, 6, 3, u);
     }
   }
@@ -316,7 +316,7 @@ function specials(B, u, dt) {
     } else if (sp === 'void') {
       const en = B.alive[1 - u.team].filter(e => dist(u, e) <= 4);
       if (!en.length) { u.spCd = 0.5; return; }
-      u.spCd = 8; u.anim.cast = 0.8;
+      u.spCd = 10; u.anim.cast = 0.8;
       fx(B, { type: 'voidpull', x: u.x, y: u.y, r: 4 }); B.shake = Math.max(B.shake, 0.3);
       for (const e of en) {
         const d = dist(u, e), k = Math.max(0, (d - (radOf(u) + radOf(e) + 0.2)) / d) * 0.75;
@@ -464,7 +464,7 @@ function updateZones(B, dt) {
       }
       if (z.t >= z.dur) {
         fx(B, { type: 'explosion', x: z.x, y: z.y, r: 1.8, color: '#b06bff' }); B.shake = Math.max(B.shake, 0.6);
-        for (const e of B.alive[1 - z.team]) if (Math.hypot(e.x - z.x, e.y - z.y) <= 1.8) dealDamage(B, null, e, 260, { big: true, color: '#e2c6ff' });
+        for (const e of B.alive[1 - z.team]) if (Math.hypot(e.x - z.x, e.y - z.y) <= 1.8) dealDamage(B, null, e, 200, { big: true, color: '#e2c6ff' });
       }
     }
   }
@@ -653,7 +653,7 @@ function generateDraft() {
     let c = pool.filter(d => d.rar === rar && !lots.some(l => l.kind !== 'unit' && l.def === d));
     if (!c.length) c = pool.filter(d => !lots.some(l => l.kind !== 'unit' && l.def === d));
     const def = pick(c);
-    lots.push({ kind, def, start: RAR[def.rar].price });
+    lots.push({ kind, def, start: 1 }); // every lot opens at €1
   };
   for (let i = 0; i < nUnits; i++) take(UNITS, 'unit');
   for (let i = 0; i < nBuff; i++) take(BUFFS, 'buff');
@@ -667,7 +667,9 @@ function generateDraft() {
 
 // ---------- AI valuation ----------
 const FAIR = [2.2, 3.3, 4.7, 6.6, 8.6, 11];
-function aiValue(item, me, lotsLeft, pers, level) {
+// nLeft = number of lots still to come. The contents are secret, so the AI only uses averages.
+const AVG_FAIR = RARITIES.reduce((s, r) => s + FAIR[r.tier] * r.weight / 100, 0), UNIT_SHARE = 0.6;
+function aiValue(item, me, nLeft, pers, level) {
   const def = item.def, tier = tierOf(def);
   let v = FAIR[tier];
   const units = me.units.map(x => x.def);
@@ -683,7 +685,7 @@ function aiValue(item, me, lotsLeft, pers, level) {
     if (def.role === 'healer' && units.some(d => d.role === 'healer')) v *= 0.8;
     if (def.tags.includes('Beschermer') && !units.some(d => d.tags.includes('Beschermer'))) v += 0.5;
   } else if (item.kind === 'buff') {
-    const n = Math.max(3, nU + lotsLeft.filter(l => l.kind === 'unit').length * 0.4);
+    const n = Math.max(3, nU + nLeft * UNIT_SHARE * 0.4);
     if (def.target === 'team') v *= Math.min(1.35, 0.5 + n * 0.14);
     if (def.id === 'folk') { const c = units.filter(d => d.tags.includes('Volk')).length; v *= c >= 3 ? 1.4 : c >= 1 ? 0.9 : 0.5; }
     if (def.id === 'eagle') { const c = units.filter(d => d.role !== 'melee').length; v *= c >= 2 ? 1.2 : c ? 0.8 : 0.4; }
@@ -697,17 +699,17 @@ function aiValue(item, me, lotsLeft, pers, level) {
   if (pers) v *= pers.pref[item.kind] * pers.aggr;
   return v;
 }
-function aiMaxBid(item, me, lotsLeft, pers, level) {
+function aiMaxBid(item, me, nLeft, pers, level) {
   const noise = level === 'easy' ? rnd(0.6, 1.25) : level === 'hard' ? rnd(0.95, 1.12) : rnd(0.82, 1.18);
-  let v = aiValue(item, me, lotsLeft, pers, level) * noise;
+  let v = aiValue(item, me, nLeft, pers, level) * noise;
   // pacing: spend money if lots are running out
-  const futureFair = lotsLeft.reduce((s, l) => s + FAIR[tierOf(l.def)], 0);
+  const futureFair = nLeft * AVG_FAIR;
   const ratio = me.coins / Math.max(1, futureFair * 0.55);
   if (ratio > 1) v *= Math.min(1.6, ratio);
-  if (lotsLeft.length === 0) v = Math.max(v, me.coins * (item.kind === 'unit' ? 1 : 0.6));
+  if (nLeft === 0) v = Math.max(v, me.coins * (item.kind === 'unit' ? 1 : 0.6));
   // reserve money for at least 2-3 units
   const needUnits = Math.max(0, 3 - me.units.length - (item.kind === 'unit' ? 1 : 0));
-  const futureUnits = lotsLeft.filter(l => l.kind === 'unit').length;
+  const futureUnits = Math.round(nLeft * UNIT_SHARE);
   const reserve = Math.min(needUnits, futureUnits) * 1.5;
   return Math.max(0, Math.min(me.coins - reserve, Math.floor(v)));
 }

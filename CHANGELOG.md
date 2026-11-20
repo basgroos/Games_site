@@ -1,5 +1,12 @@
 # Wijzigingen
 
+## Unit Draft Arena 1.1.0 (2026-11-20)
+- **Geheime kavels:** je ziet pas welk item geveild wordt als het aan de beurt is. Bovenin staan de volgende kavels als **?**, zodat je wel weet hoeveel er nog komen maar niet wat. Ook de AI weet alleen hoeveel kavels er nog komen, niet welke.
+- **Alles begint op €1 en elk bod is €1 meer:** units, buffs en abilities van elke rarity openen op €1. Er is nog één biedknop (toets 1 of spatie) en de AI verhoogt ook steeds met €1. Een bod verlengt de timer nu tot 3,5 s en de AI reageert iets sneller, zodat een biedoorlog niet te lang duurt.
+- Balans voor goedkope Mythics: Oerdraak (minder HP, damage, gebied en brand), Leegtetitaan (minder HP en damage, trekt elke 10 s in plaats van 8 s) en Zwart Gat (200 in plaats van 260 damage). In AI-tegen-AI-drafts wint een team met een Mythic nu ongeveer 60–65% en een team van vooral Commons ongeveer 40%.
+- Het kaartenoverzicht toont geen startprijzen meer (alles start op €1); een al verkocht kavel bovenin laat zien wie hoeveel betaalde.
+- Tests: kavels blijven geheim, alles opent op €1 en elk bod is precies €1 hoger.
+
 ## Unit Draft Arena 1.0.0 (2026-11-20) — nieuw spel
 - **Nieuw op Bas Games:** Unit Draft Arena, een strategy game met een veiling en een auto-battler. Jij en de AI krijgen elk precies €20 en bieden tegen de klok op 10 tot 12 kavels per ronde. Elk bod verlengt de timer; wie het hoogst biedt, betaalt en krijgt het item.
 - **27 units, 18 buffs en 18 abilities** in zes rarities: Common (40%), Uncommon (27%), Rare (17%), Epic (9%), Legendary (5%) en Mythic (2%). Elke unit heeft HP, damage, attack speed, snelheid, range en een eigen special.

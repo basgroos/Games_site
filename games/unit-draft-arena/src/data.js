@@ -128,12 +128,12 @@ const UNITS = [
 
   // ---------- MYTHIC ----------
   { id: 'dragon', name: 'Oerdraak', rar: 'mythic', role: 'ranged', tags: ['Beest'],
-    hp: 1800, dmg: 40, as: 0.6, ms: 1.2, rng: 3, splash: 1.3, fly: true, size: 1.9, proj: 'breath', sp: 'breath', spName: 'Drakenvuur',
+    hp: 1650, dmg: 34, as: 0.6, ms: 1.2, rng: 3, splash: 1.1, fly: true, size: 1.9, proj: 'breath', sp: 'breath', spName: 'Drakenvuur',
     spDesc: 'Spuwt vuur over een groot gebied en laat alles branden.',
     look: { creature: 'dragon', body: '#c3262f' } },
   { id: 'titan', name: 'Leegtetitaan', rar: 'mythic', role: 'melee', tags: ['Ondood'],
-    hp: 2300, dmg: 48, as: 0.5, ms: 0.9, rng: 0.5, size: 1.85, dr: 0.15, cc: true, spCd0: 4, sp: 'void', spName: 'Leegtegreep',
-    spDesc: 'Elke 8s trekt hij alle vijanden binnen 4 vakjes naar zich toe en stunt ze. Geneest bij kills.',
+    hp: 2000, dmg: 42, as: 0.5, ms: 0.9, rng: 0.5, size: 1.85, dr: 0.15, cc: true, spCd0: 4, sp: 'void', spName: 'Leegtegreep',
+    spDesc: 'Elke 10s trekt hij alle vijanden binnen 4 vakjes naar zich toe en stunt ze. Geneest bij kills.',
     look: { creature: 'titan', body: '#2b1f45' } },
 ];
 const SKELETON = { id: 'skeleton', name: 'Skelet', rar: 'common', role: 'melee', tags: [], hp: 130, dmg: 13, as: 1.0, ms: 1.5, rng: 0.4,
@@ -224,7 +224,7 @@ const ABILITIES = [
   { id: 'inv', name: 'Goddelijk Schild', rar: 'legendary', cd: 28, target: 'none', icon: 'inv', color: '#ffd84a',
     desc: 'Je hele team is 3s onkwetsbaar.' },
   { id: 'hole', name: 'Zwart Gat', rar: 'mythic', cd: 30, target: 'point', radius: 3, icon: 'hole', color: '#b06bff',
-    desc: 'Zuigt vijanden 2,5s naar het midden en implodeert dan (260 damage).' },
+    desc: 'Zuigt vijanden 2,5s naar het midden en implodeert dan (200 damage).' },
 ];
 const ABILITY = Object.fromEntries(ABILITIES.map(a => [a.id, a]));
 

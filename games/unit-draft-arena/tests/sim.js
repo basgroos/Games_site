@@ -22,17 +22,17 @@ run('content: 27 units, 18 buffs, 18 abilities, every rarity present', () => {
 });
 run('drafts: 10-12 lots, at least 5 units, 2 buffs and 2 abilities', () => {
   for (let i = 0; i < 200; i++) {
-    const r = E('(() => { const L = generateDraft(); return [L.length, L.filter(l => l.kind === "unit").length, L.filter(l => l.kind === "buff").length, L.filter(l => l.kind === "ability").length, L.every(l => l.start === RAR[l.def.rar].price)]; })()');
+    const r = E('(() => { const L = generateDraft(); return [L.length, L.filter(l => l.kind === "unit").length, L.filter(l => l.kind === "buff").length, L.filter(l => l.kind === "ability").length, L.every(l => l.start === 1)]; })()');
     ok(r[0] >= 10 && r[0] <= 12 && r[1] >= 5 && r[2] >= 2 && r[3] >= 2 && r[4], 'bad draft ' + r);
   }
 });
 run('AI never bids more than it has', () => {
-  for (let i = 0; i < 300; i++) ok(E('(() => { const me = { coins: Math.floor(Math.random() * 21), units: [], buffs: [], abilities: [] }; const L = generateDraft(); return L.every(l => aiMaxBid(l, me, L, pick(AI_NAMES), "hard") <= me.coins); })()'), 'overbid');
+  for (let i = 0; i < 300; i++) ok(E('(() => { const me = { coins: Math.floor(Math.random() * 21), units: [], buffs: [], abilities: [] }; const L = generateDraft(); return L.every((l, i) => aiMaxBid(l, me, L.length - i - 1, pick(AI_NAMES), "hard") <= me.coins); })()'), 'overbid');
 });
 run('every ability can be cast and every buff applied without errors', () => {
   const ids = E('ABILITIES.map(a => a.id)');
   for (const id of ids) E(`(() => { const B = createBattle([T_side(['knight','archer','acolyte'], BUFFS.map(b => b.id), ['${id}'], 0), T_side(['militia','firemage','tank'], [], [], 1)]);
-      for (let i = 0; i < 200; i++) stepBattle(B, 1/30);
+      for (let i = 0; i < 30; i++) stepBattle(B, 1/30); // 1s: armies have not met yet, so both sides are alive
       const ab = B.teams[0].abilities[0]; ab.cd = 0;
       if ('${id}' === 'resurrect') { const d = B.alive[0][0]; d.soulUsed = true; d.rebirthUsed = true; killUnit(B, d, null); refreshAlive(B); }
       const tgt = { x: B.alive[1][0].x, y: B.alive[1][0].y, unit: B.alive[0][0] };
@@ -50,7 +50,7 @@ run('balance over AI-vs-AI drafts: mythic does not auto-win, cheap teams can win
     const st = { myth: [0, 0], cheap: [0, 0], over: 0 }, N = 220;
     for (let g = 0; g < N; g++) {
       const lots = generateDraft(); const P = [0, 1].map(() => ({ coins: 20, units: [], buffs: [], abilities: [], pers: pick(AI_NAMES) }));
-      lots.forEach((l, i) => { const left = lots.slice(i + 1), m = P.map(p => aiMaxBid(l, p, left, p.pers, 'normal')); const hi = m[0] === m[1] ? (Math.random() < .5 ? 0 : 1) : m[0] > m[1] ? 0 : 1;
+      lots.forEach((l, i) => { const left = lots.length - i - 1, m = P.map(p => aiMaxBid(l, p, left, p.pers, 'normal')); const hi = m[0] === m[1] ? (Math.random() < .5 ? 0 : 1) : m[0] > m[1] ? 0 : 1;
         if (m[hi] < l.start) return; const price = Math.max(l.start, Math.min(m[hi], m[1 - hi] + 1)); P[hi].coins -= price;
         (l.kind === 'unit' ? P[hi].units : l.kind === 'buff' ? P[hi].buffs : P[hi].abilities).push({ def: l.def }); });
       P.forEach(p => { p.units.push({ def: RECRUIT }); p.units = p.units.map(x => x.def); p.buffs = p.buffs.map(x => x.def); p.abilities = p.abilities.map(x => x.def); });

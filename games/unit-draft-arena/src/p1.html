@@ -90,6 +90,8 @@ kbd{font:700 11px Nunito,sans-serif;padding:1px 6px;border-radius:5px;background
 .lot .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
 .lot.cur{outline:3px solid var(--gold);opacity:1;transform:translateY(-2px)}
 .lot.done{opacity:.45}
+.lot.hidden{--rc:#3b2f58;cursor:default;opacity:.7;background:repeating-linear-gradient(135deg,#1b1528 0 8px,#211a31 8px 16px)}
+.lot .q{display:grid;place-items:center;width:40px;height:40px;margin:0 auto 2px;font:700 26px Cinzel,serif;color:var(--muted)}
 .lot .who{position:absolute;top:3px;right:3px;font-size:9px;padding:1px 4px;border-radius:5px;color:#081018}
 .lot .who.p{background:var(--p)}.lot .who.a{background:var(--a)}.lot .who.n{background:#666;color:#eee}
 .draft{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr) minmax(0,260px);gap:14px;align-items:start}
@@ -138,7 +140,7 @@ kbd{font:700 11px Nunito,sans-serif;padding:1px 6px;border-radius:5px;background
 .leader.p{color:var(--p)}.leader.a{color:var(--a)}
 .callout{font-family:Cinzel,serif;font-size:20px;color:var(--gold);min-width:150px;text-align:center;min-height:28px}
 .bids{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-.bids .btn{min-width:108px}
+.bids .btn{min-width:150px}
 .bids .btn small{display:block;font-size:11px;opacity:.75;font-weight:700}
 .feed{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;min-height:26px}
 .feed span{font-size:12px;font-weight:800;padding:3px 9px;border-radius:99px;background:var(--panel);animation:fadein .25s}
@@ -276,7 +278,7 @@ kbd{font:700 11px Nunito,sans-serif;padding:1px 6px;border-radius:5px;background
       </div>
     </div>
     <div class="feat">
-      <div><b>Veiling</b><span>10–12 kavels per ronde. Bied tegen de klok, of pas en bewaar je geld.</span></div>
+      <div><b>Veiling</b><span>10–12 geheime kavels per ronde. Alles start op €1, elk bod €1 meer. Bied of pas en bewaar je geld.</span></div>
       <div><b>Synergie</b><span>Negen tags met bonussen. Drie goedkope Volk-units kunnen een Mythic verslaan.</span></div>
       <div><b>Opstelling</b><span>Zet tanks vooraan, schutters achteraan, of verras met een flank.</span></div>
       <div><b>Abilities</b><span>Meteoren, bevriezing, een zwart gat: jij kiest het moment.</span></div>
@@ -297,12 +299,10 @@ kbd{font:700 11px Nunito,sans-serif;padding:1px 6px;border-radius:5px;background
         </div>
         <div class="bids">
           <button class="btn blue" id="bid1"></button>
-          <button class="btn blue" id="bid2"></button>
-          <button class="btn blue" id="bid5"></button>
           <button class="btn ghost" id="bidPass">Passen <small>P</small></button>
         </div>
         <div class="feed" id="bidFeed"></div>
-        <div class="hint">Toetsen: <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> om te bieden, <kbd>P</kbd> om te passen. Klik een kavel bovenin om hem te bekijken.</div>
+        <div class="hint">Elk kavel begint op €1 en elk bod is €1 meer. Volgende kavels blijven geheim. Toetsen: <kbd>1</kbd> of <kbd>spatie</kbd> om te bieden, <kbd>P</kbd> om te passen.</div>
       </div>
       <aside class="side ai" id="sideAi"></aside>
     </div>

@@ -31,13 +31,21 @@ async function run(label, fn) {
     return { lots: n, ai: E('G.pers.name') };
   });
   let bought = 0;
+  await run('upcoming lots stay secret and every lot opens at €1', () => {
+    ok(w.document.querySelectorAll('#lotStrip .lot.hidden').length === E('G.lots.length') - 1, 'upcoming lots are visible');
+    ok(!$('#lotStrip').textContent.includes(E('G.lots[G.lots.length - 1].def.name')) || E('G.lots[0].def.name === G.lots[G.lots.length - 1].def.name'), 'last lot name leaks');
+    ok(E('G.lots.every(l => l.start === 1)'), 'not every lot starts at €1');
+    ok(!$('#bid2') && !$('#bid5'), 'big-step bid buttons still there');
+  });
   await run('plays the whole auction: bids on cheap lots, passes on the rest', async () => {
-    let guard = 0;
+    let guard = 0, prev = 0;
     while (!E('G.modalOpen') && guard++ < 4000) {
       if (E('G.A && !G.A.closed')) {
         const can = E('(() => { const A = G.A, need = A.leader === null ? A.lot.start : A.price + 1; return A.leader !== 0 && !A.pPassed && need <= 3 && need <= G.player.coins; })()');
-        if (can && !$('#bid1').disabled) click('#bid1');
+        if (can && !$('#bid1').disabled) { const before = E('G.A.leader === null ? 0 : G.A.price'); click('#bid1'); ok(E('G.A.price') === before + 1, 'bid did not go up by €1'); }
         else if (!$('#bidPass').disabled && E('G.A.leader !== 0') && Math.random() < 0.3) click('#bidPass');
+        const p = E('G.A.price'); if (E('G.A.leader === 1') && prev > 0) ok(p <= prev + 1 || p === 1, 'AI raised by more than €1: ' + prev + ' -> ' + p);
+        prev = E('G.A.closed') ? 0 : p;
         E('tickDraft(0.25)');
       } else await sleep(60);
     }
