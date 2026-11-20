@@ -1,5 +1,14 @@
 # Wijzigingen
 
+## Unit Draft Arena 1.0.0 (2026-11-20) — nieuw spel
+- **Nieuw op Bas Games:** Unit Draft Arena, een strategy game met een veiling en een auto-battler. Jij en de AI krijgen elk precies €20 en bieden tegen de klok op 10 tot 12 kavels per ronde. Elk bod verlengt de timer; wie het hoogst biedt, betaalt en krijgt het item.
+- **27 units, 18 buffs en 18 abilities** in zes rarities: Common (40%), Uncommon (27%), Rare (17%), Epic (9%), Legendary (5%) en Mythic (2%). Elke unit heeft HP, damage, attack speed, snelheid, range en een eigen special.
+- **Negen synergieën** (Volk, Krijger, Schutter, Magiër, Beschermer, Schaduw, Heilig, Ondood, Beest) met bonussen bij 2, 3 of 5 units. Niet uitgegeven geld wordt een spaarbonus (+3% HP en damage per euro, max +30%) en iedereen krijgt per ronde een gratis Rekruut.
+- **Opstelling op een grid** (klikken of slepen, automatisch plaatsen, buffs voor één unit zelf toewijzen). Daarna vechten de units automatisch: tanks lokken vijanden, healers blijven achter de frontlinie en sluipmoordenaars springen naar de achterhoede. Abilities activeer je met knoppen of toetsen 1–9; tijdens het richten gaat de tijd langzamer.
+- **AI met vier persoonlijkheden en drie moeilijkheden** die strategisch biedt, zelf plaatst en zelf abilities gebruikt. Best of 1, 3 of 5, snelheid 1×/2×/3×, pauze, kaartenoverzicht, itemoverzicht en een eindscherm. Staging heeft een eigen record.
+- Balans getest met AI-tegen-AI-drafts: teams met een Mythic winnen ongeveer 55–60%, teams van vooral Commons ongeveer 40%.
+- Tests: `tests/sim.js` (inhoud, drafts, AI-budget, alle abilities, eerlijkheid en balans) en `tests/smoke.js` (een hele match: veiling, opstelling, gevecht, uitslag en eindscherm).
+
 ## Zombie Door Tycoon 2.4.0 (2026-11-17)
 - **Speelbaar op telefoon en tablet.** Het spel herkent zelf of je op een telefoon, tablet of computer speelt (via aanraakscherm, muis of vinger, het type browser en de schermgrootte) en past de bediening en indeling daarop aan. Op een laptop met aanraakscherm blijft de muis-en-toetsenbordindeling staan. In ⚙️ Instellingen zie je wat er gedetecteerd is en kun je het zelf kiezen (Automatisch / Telefoon / Tablet / Computer). In de lobby staat welk apparaat het spel denkt dat je hebt.
 - **Aanraakbediening:**

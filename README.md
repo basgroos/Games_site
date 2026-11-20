@@ -21,6 +21,7 @@ Een website met browsergames. Alles draait direct in de browser; voortgang wordt
 | Zombie Door Tycoon | `games/zombie-door-tycoon/` | live |
 | Age Clash | `games/age-clash/` | live |
 | Staff Siege | `games/staff-siege/` | live |
+| Unit Draft Arena | `games/unit-draft-arena/` | live |
 
 ## Hoe het werkt
 
