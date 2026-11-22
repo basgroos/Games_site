@@ -18,6 +18,7 @@ EA('MP').fake = fakeFor(A, 'A'); EB('MP').fake = fakeFor(B, 'B');
 function deliver(){ let n = 0; while (queue.length && n < 5000){ const m = queue.shift(); n++; for (const r of room) if (r.mp !== m.from) r.mp.recv(m.ev, r.w.JSON.parse(m.data)); } }
 // run both games side by side
 function both(sec){ const n = Math.max(1, Math.round(sec * 20)); for (let i = 0; i < n; i++){ A.eval('tick(lastT + 50)'); B.eval('tick(lastT + 50)'); deliver(); } }
+const until2 = (cond, sec) => { for (let i = 0; i < sec * 10 && !EA(cond); i++) both(0.1); return EA(cond); };
 const near = (a, b, d = 1.5) => Math.hypot(a[0] - b[0], a[1] - b[1]) < d;
 
 (async () => {
@@ -121,6 +122,30 @@ const near = (a, b, d = 1.5) => Math.hypot(a[0] - b[0], a[1] - b[1]) < d;
   EA("setPlayer(8, 3, 7.7, Math.PI)"); use(A, 'PROPS.lightHit'); both(0.5); for (let i = 0; i < 40 && !EA("MON.burning"); i++) both(0.1);
   EA("MON.mode = 'watch'"); both(0.5);
   check(EB("PROPS.fireRoom.visible") && EB("MON.burning") && EB("PROPS.monFire.visible"), 'the fire and the burning monster show up for the guest');
+
+  // ---- chapter 3 together ----
+  EA("MP.hostStart('c3mid')"); both(1.5);
+  check(EB("G.flags.ch3") && EB("player.pos.x") > 290 && !EB("$('phBadge').hidden"), 'chapter 3 checkpoint: both in Ruth\'s house, both have a phone');
+  check(until2("(G.flags.c3m || []).length === 1", 8) && EB("$('phBadge').textContent").includes('1 new'), 'the text message reaches the guest\'s phone too');
+  // the house only changes when NOBODY looks: the guest watching is enough to stop it
+  EA("player.pos.set(304, 0, 2.5); player.yaw = 0; player.vel.set(0, 0, 0)"); EB("setPlayer(304, 0, 2.5, Math.PI)"); both(0.3);
+  EA("c3Change('coop', { pts: () => [new V3(304, 1.2, 7)], wait: 0.6, apply: () => { G.flags.coopChange = 1; } })"); both(2.5);
+  check(!EA("G.flags.coopChange"), 'the host looks away, but the guest is looking: nothing changes');
+  EB("openPhone()"); both(0.4);
+  check(EA("MP.remotes['id-Guest'].bl") === 1, 'the host knows the guest is looking at their phone');
+  both(1.5); check(EA("G.flags.coopChange") === 1, 'the guest looks at their phone: now it changes');
+  EB("closePhone()"); both(0.2);
+  EA("G.flags.c3len = 6; G.flags.c3carpet = 2; MP.dirty = true"); both(0.6);
+  check(EB("C3.seg[5].g.visible && !C3.seg[6].g.visible") && EB("Math.abs(C3.end.position.z - 12) < 0.01") && EB("M3.carpet.map === C3TEX.carpet[2]"), 'the longer hallway and the green carpet show up on the guest\'s screen');
+  // the woods: it freezes when either of you looks, and catching one of you ends it for both
+  EA("MP.hostStart('c3stalk')"); both(1.5);
+  check(EA("G.step") === 'c3_stalk' && EB("C3ENT.visible"), 'both in the woods, and the guest sees the thing');
+  EA("player.pos.set(545, 0, 45); player.yaw = -Math.PI / 2; player.vel.set(0, 0, 0)"); EB("setPlayer(540, 0, 45, -Math.PI / 2)"); EA("C3ENT.position.set(534, 0, 45)"); both(0.2);
+  EB("player.yaw = Math.PI / 2"); both(0.4); const ex = EA("C3ENT.position.x"); both(1.5);
+  check(Math.abs(EA("C3ENT.position.x") - ex) < 0.4, 'the guest turns round and watches it: it does not move', EA("C3ENT.position.x") - ex);
+  EB("player.yaw = -Math.PI / 2"); both(2.5);
+  check(EA("G.state") === 'dead' && EB("G.state") === 'dead' && EB("$('deadTitle').textContent").includes('YOU'), 'nobody looks: it catches the guest, game over for both', [EA("G.state"), EB("G.state"), EA("C3ENT.position.x")]);
+  check(EB("C3ENT.visible") && !EB("MON.m.root.visible"), 'the guest sees the thing in the raincoat, not the old monster');
 
   // ---- leaving ----
   EB("toMenu()"); both(0.3);

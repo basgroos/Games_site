@@ -62,6 +62,18 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:non
 .paper.scrawl #noteBody{font-family:var(--f-type);font-size:30px;line-height:1.3;color:#3a0d0b;letter-spacing:.04em;text-align:center}
 .paper.inspect{background:#15171b;color:var(--hud);background-image:none;transform:none;border:1px solid #2b2f36}
 .paper.inspect .hint{color:var(--hud-dim)}
+#phone{position:fixed;inset:0;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.35);padding:0 16px}
+.ph{width:min(340px,92vw);height:min(560px,78vh);background:#07090b;border:1px solid #2a2f36;border-bottom:none;border-radius:28px 28px 0 0;padding:16px 18px;display:flex;flex-direction:column;box-shadow:0 0 60px rgba(120,150,200,.12)}
+.ph-top{display:flex;justify-content:space-between;font-size:12px;color:#7d858f;letter-spacing:.08em}
+.ph-h{font-family:var(--f-title);font-weight:800;font-size:30px;color:#d8dbe0;margin:14px 0 8px}
+#phMsgs{flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px}
+.ph-msg{background:#141a21;border-radius:14px;padding:9px 12px;font-size:15px;color:#d7dce2;line-height:1.35;align-self:flex-start;max-width:92%}
+.ph-msg span{display:block;font-size:10px;letter-spacing:.18em;color:#8a6f6a;margin-bottom:3px}
+.ph-empty{color:#59606a;font-size:14px}
+.ph-hint{font-size:11px;color:#59606a;text-align:center;letter-spacing:.12em;margin-top:8px}
+#phBadge{position:absolute;left:max(18px,env(safe-area-inset-left,0px));bottom:calc(84px + env(safe-area-inset-bottom,0px));font-size:13px;color:#8a9098;letter-spacing:.08em;text-shadow:0 1px 2px #000}
+#phBadge.new{color:#ffd48a;animation:phb 1.2s infinite}
+@keyframes phb{50%{opacity:.45}}
 #keypad{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px}
 .paper.kp{width:min(360px,92vw);text-align:center}
 #kpDigits{font-family:var(--f-title);font-weight:800;font-size:64px;letter-spacing:.12em;color:#e8e2d6;margin:10px 0 4px}
@@ -125,6 +137,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:non
 <div id="hud" hidden>
   <div id="cross"></div>
   <div id="obj"><div class="lbl">TO DO</div><ul id="objList"></ul></div>
+  <div id="phBadge" hidden>Q · phone</div>
   <div id="inv"><div class="lbl">POCKETS</div><div id="invList"></div></div>
   <div id="bars">
     <div class="bar" id="stamWrap"><span>STAMINA</span><b><i id="stam"></i></b></div>
@@ -138,6 +151,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:non
 <div id="lockhint" hidden>CLICK TO LOOK AROUND</div>
 
 <div id="note" hidden><div class="paper" id="paper"><div id="noteBody"></div><div class="hint">[E] or click to put it down</div></div></div>
+<div id="phone" hidden><div class="ph"><div class="ph-top"><span id="phTime">9:32 PM</span><span>NO SERVICE</span><span id="phBat">100%</span></div><div class="ph-h">Messages</div><div id="phMsgs"></div><div class="ph-hint">Q / Esc · put the phone away</div></div></div>
 <div id="keypad" hidden><div class="paper inspect kp"><div class="lbl">COMBINATION LOCK</div><div id="kpDigits">_ _ _ _</div><div id="kpMsg"></div><div class="hint">Type 4 numbers · Backspace to erase · Esc to step back</div></div></div>
 <div id="cine" hidden><div id="cineText"></div><div class="skip">[E] continue</div></div>
 
@@ -148,6 +162,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:non
     <button id="bNew">New game</button>
     <button id="bCont" disabled>Continue from checkpoint</button>
     <button id="bCh2">Chapter 2: The Room</button>
+    <button id="bCh3">Chapter 3: Don't Look Away</button>
     <button id="bMp" hidden>Play together (online)</button>
     <a id="bHome" class="home" href="../../" hidden>&larr; Back to Bas Games</a>
   </div>
@@ -190,7 +205,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:non
   <div id="mpRoom" class="mp-col" hidden>
     <div class="mp-code-wrap"><span class="lbl">ROOM CODE</span><span id="mpCodeShow" class="mp-code">----</span></div>
     <ul id="mpList"></ul>
-    <div class="menu-btns" id="mpHostBtns"><button id="mpGo">Start a new game</button><button id="mpGoCh2">Start chapter 2: The Room</button><button id="mpGoCont" hidden>Continue from checkpoint</button></div>
+    <div class="menu-btns" id="mpHostBtns"><button id="mpGo">Start a new game</button><button id="mpGoCh2">Start chapter 2: The Room</button><button id="mpGoCh3">Start chapter 3: Don't Look Away</button><button id="mpGoCont" hidden>Continue from checkpoint</button></div>
   </div>
   <p class="small" id="mpMsg"></p>
   <div class="menu-btns"><button id="mpBack">Back</button></div>
@@ -209,6 +224,6 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:non
   <div class="line" id="end1">YOU SURVIVED THE NIGHT.</div>
   <div class="line" id="end2">BUT YOU NEVER FOUND OUT WHO WAS HOUSE-SITTING FOR WHOM.</div>
   <h1 class="title" id="end3"><span>HOUSE</span><span>SITTING</span></h1>
-  <div class="menu-btns" id="end4"><button id="bEndCh2" hidden>Continue: Chapter 2</button><button id="bEndMenu">Main menu</button></div>
+  <div class="menu-btns" id="end4"><button id="bEndCh2" hidden>Continue: Chapter 2</button><button id="bEndCh3" hidden>Continue: Chapter 3</button><button id="bEndMenu">Main menu</button></div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

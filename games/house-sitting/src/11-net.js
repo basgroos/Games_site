@@ -436,7 +436,7 @@ function netInit(){
   netWrap('storyUpdate', o => dt => {
     o(dt);
     if (!(MP.host && MP.started)) return;
-    for (const r of MP.liveRemotes()){ if (!(G.state === 'playing' || G.state === 'cine' || G.state === 'note' || G.state === 'paused')) break; MP.withView(r, () => o(0)); }
+    for (const r of MP.liveRemotes()){ if (!(G.state === 'playing' || G.state === 'cine' || G.state === 'note' || G.state === 'paused' || G.state === 'phone' || G.state === 'keypad')) break; MP.withView(r, () => o(0)); }
   });
   netWrap('monViews', o => () => {
     const v = o(); if (!(MP.host && MP.started)) return v;

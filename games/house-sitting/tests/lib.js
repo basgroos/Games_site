@@ -36,7 +36,7 @@ function step(w, sec){
     w.eval('tick(lastT + 50)');
     // while you are playing, the to-do list in the top left must never be empty
     // (the "Look around" line is only a safety net: the story itself should always say what to do)
-    if (w.eval("G.state === 'playing' && !$('hud').hidden && (!(G.objectives || []).some(o => !o.done && o.text && o.text !== '...'))")) w.__noObjective = (w.__noObjective || 0) + 1;
+    if (w.eval("G.state === 'playing' && !$('hud').hidden && (!(G.objectives || []).some(o => !o.done && o.text && o.text !== '...'))")) { w.__noObjective = (w.__noObjective || 0) + 1; const k = w.eval('G.step'); (w.__noObjAt = w.__noObjAt || {})[k] = (w.__noObjAt[k] || 0) + 1; }
   }
 }
 // use the interaction behind an object, like pressing E while looking at it

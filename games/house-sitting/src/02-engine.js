@@ -182,7 +182,7 @@ function updatePlayer(dt){
   p.roll += ((p.stumble > 0 ? 0.08 : 0) - p.roll) * Math.min(1, dt * 6);
   camera.rotation.set(p.pitch + (Math.random() - 0.5) * sh * 0.03, p.yaw + (Math.random() - 0.5) * sh * 0.03, p.roll);
   // flashlight
-  if (p.flashOn){ p.battery = Math.max(0, p.battery - dt * 0.9); if (p.battery <= 0){ p.flashOn = false; subtitle('The flashlight died.', 2, 'thought'); SND.click(); } }
+  if (p.flashOn){ p.battery = Math.max(0, p.battery - dt * (G.flashDrain || 0.9)); if (p.battery <= 0){ p.flashOn = false; subtitle('The flashlight died.', 2, 'thought'); SND.click(); } }
   let fi = p.flashOn ? 2.4 : 0; if (p.flashOn && p.battery < 15 && Math.random() < 0.08) fi *= 0.2;
   flash.intensity = fi;
 }
@@ -196,7 +196,7 @@ const _ray = new THREE.Raycaster(); const _v = new V3(), _f = new V3();
 function inView(pos, deg = 30, maxDist = 40, occl = true){
   _v.copy(pos).sub(camera.position); const d = _v.length(); if (d > maxDist) return false;
   camera.getWorldDirection(_f); if (_f.angleTo(_v) * 57.3 > deg) return false;
-  if (occl){ _ray.set(camera.position, _v.clone().normalize()); _ray.far = Math.max(0.01, d - 0.35); _ray.near = 0; if (_ray.intersectObjects(occluders, false).length) return false; }
+  if (occl){ _ray.set(camera.position, _v.clone().normalize()); _ray.far = Math.max(0.01, d - 0.35); _ray.near = 0; if (_ray.intersectObjects(occluders, false).some(h => visibleChain(h.object))) return false; }
   return true;
 }
 function dist2(a, x, z){ return Math.hypot(a.x - x, a.z - z); }
