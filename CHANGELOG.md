@@ -1,5 +1,14 @@
 # Wijzigingen
 
+## Unit Draft Arena 1.2.0 (2026-11-22) — online multiplayer
+- **Online spelen:** nieuwe knop op het startscherm. Speel een best of 3 tegen een echte tegenstander via de Bas Games-lobby (Supabase Realtime): **Snel spel** zoekt de eerste die ook zoekt, **Privé-kamer** geeft een code van 5 tekens die je vriend invult. Je naam wordt onthouden.
+- **Samen dezelfde veiling:** jullie bieden op dezelfde geheime kavels, ieder met een eigen €20. Alles begint op €1 en elk bod is €1 meer; een bod dat te laat aankomt (de prijs was al hoger) wordt geweigerd en niet dubbel geteld.
+- **Geheime opstelling:** je ziet het leger van je tegenstander pas als het gevecht begint. Allebei op **Klaar** drukken start het gevecht; de volgende ronde begint pas als jullie allebei klaar zijn.
+- **Gevecht:** ieder ziet zijn eigen leger links in blauw. Jullie gebruiken allebei je abilities met knoppen of toetsen 1–9. Online zijn pauze, snelheid en slow-motion tijdens het richten uit, zodat het gevecht voor jullie allebei gelijk loopt.
+- **Verbinding:** vertrekt je tegenstander of is die 25 seconden onbereikbaar, dan zie je dat en ga je terug naar het menu. Een match loopt door als het tabblad op de achtergrond staat.
+- Zonder online-instellingen (los HTML-bestand) speel je in testmodus tussen twee tabbladen van dezelfde browser.
+- Nieuwe test `tests/online.js`: twee pagina's spelen een privé-match via de echte schermen over een nagebootst netwerk met vertraging (veiling, opstelling, gevecht met spreuken van de gast, volgende ronde, ongeldige biedingen, vertrekken).
+
 ## Unit Draft Arena 1.1.0 (2026-11-20)
 - **Geheime kavels:** je ziet pas welk item geveild wordt als het aan de beurt is. Bovenin staan de volgende kavels als **?**, zodat je wel weet hoeveel er nog komen maar niet wat. Ook de AI weet alleen hoeveel kavels er nog komen, niet welke.
 - **Alles begint op €1 en elk bod is €1 meer:** units, buffs en abilities van elke rarity openen op €1. Er is nog één biedknop (toets 1 of spatie) en de AI verhoogt ook steeds met €1. Een bod verlengt de timer nu tot 3,5 s en de AI reageert iets sneller, zodat een biedoorlog niet te lang duurt.

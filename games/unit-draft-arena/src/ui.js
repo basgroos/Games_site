@@ -106,7 +106,7 @@ function openModal(html, opts = {}) {
   $('#modalBox').innerHTML = (opts.noClose ? '' : '<button class="icon-btn x" data-close>Sluiten</button>') + html;
   $('#modal').classList.add('on'); G.modalOpen = true; G.modalNoClose = !!opts.noClose;
 }
-function closeModal() { $('#modal').classList.remove('on'); G.modalOpen = false; }
+function closeModal() { $('#modal').classList.remove('on'); G.modalOpen = false; if (typeof Net !== 'undefined' && Net._seeking) Net.cancel(); if (G.lobbyUnsub) { G.lobbyUnsub(); G.lobbyUnsub = null; } }
 $('#modal').addEventListener('click', e => { if (e.target.closest('[data-close]') || (e.target.id === 'modal' && !G.modalNoClose)) closeModal(); });
 
 function howTo() {
@@ -118,6 +118,7 @@ function howTo() {
     <div><b>4. Synergieën</b><p>Units hebben tags zoals Volk, Krijger, Magiër of Beest. Met 2, 3 of 5 van dezelfde tag krijgt je team bonussen. Een slimme combinatie verslaat vaak één dure unit.</p></div>
     <div><b>5. Opstelling</b><p>Zet je units in het blauwe gebied. Tanks lokken vijanden naar zich toe, healers blijven achter de frontlinie, sluipmoordenaars springen naar de achterhoede.</p></div>
     <div><b>6. Het gevecht</b><p>Units vechten automatisch. Jij activeert abilities met de knoppen of toetsen 1–9. Spreuken op een gebied richt je door daarna in de arena te klikken. Het team dat overblijft wint de ronde.</p></div>
+    <div><b>7. Online</b><p>Kies "Online spelen" om een best of 3 te spelen tegen een vriend (maak een kamer en geef de code door) of tegen de eerste die ook zoekt. Jullie bieden op dezelfde kavels; de opstelling van je tegenstander zie je pas als het gevecht begint.</p></div>
   </div>
   <div class="actions"><button class="btn gold" data-close>Begrepen</button></div>`);
 }
@@ -137,7 +138,7 @@ function inventory(who = 0) {
   const defs = o.units.map(u => u.def);
   const sec = (title, kind, arr) => arr.length ? `<h3 style="margin:16px 0 8px">${title}</h3><div class="cards">${arr.map(x => cardHTML(kind, x.def, { price: x.price, priceLbl: x.price ? 'Betaald' : 'Gratis' })).join('')}</div>` : '';
   openModal(`<h2>${who ? esc(G.pers.name) : 'Jouw items'}</h2>
-    <div class="tabs"><button data-inv="0" class="${who ? '' : 'on'}">Jij</button><button data-inv="1" class="${who ? 'on' : ''}">${esc(G.pers.name)} (AI)</button></div>
+    <div class="tabs"><button data-inv="0" class="${who ? '' : 'on'}">Jij</button><button data-inv="1" class="${who ? 'on' : ''}">${esc(G.pers.name)}${G.net ? '' : ' (AI)'}</button></div>
     <p style="margin:0"><b style="color:var(--gold)">€${o.coins}</b> over · spaarbonus <b>+${savingsPct(o.coins)}%</b> HP en damage</p>
     <div class="syns">${synChips(defs, true)}</div>
     ${sec('Units', 'unit', o.units)}${sec('Buffs', 'buff', o.buffs)}${sec('Abilities', 'ability', o.abilities)}
@@ -186,8 +187,9 @@ function newMatch() {
 }
 function startRound() {
   G.token++; closeModal();
-  G.round++; G.player = newOwner(); G.ai = newOwner(); G.seq = 1;
+  G.round++; G.player = newOwner(); G.ai = newOwner(); G.seq = 1; G.mode = null; G.B = null;
   G.lots = generateDraft(); G.lotIdx = -1; G.A = null;
+  if (G.net) Object.assign(G.net, { ph: 'draft', readyL: false, readyR: false, remote: null, nextL: false, nextR: false, iAmNext: false, fxLog: [], dirty: true });
   renderScore(); show('scr-draft');
   renderStrip(); renderSides();
   nextLot();
@@ -197,7 +199,7 @@ function startRound() {
 function renderStrip() {
   $('#lotStrip').innerHTML = G.lots.map((l, i) => {
     if (i > G.lotIdx) return `<div class="lot hidden" title="Nog geheim"><span class="q">?</span><span class="nm">Kavel ${i + 1}</span></div>`;
-    const who = l.winner === 0 ? '<span class="who p">Jij €' + l.price + '</span>' : l.winner === 1 ? '<span class="who a">AI €' + l.price + '</span>' : l.winner === -1 ? '<span class="who n">—</span>' : '';
+    const who = l.winner === 0 ? '<span class="who p">Jij €' + l.price + '</span>' : l.winner === 1 ? '<span class="who a">' + esc(G.net ? G.pers.name.slice(0, 6) : 'AI') + ' €' + l.price + '</span>' : l.winner === -1 ? '<span class="who n">—</span>' : '';
     return `<div class="lot ${i === G.lotIdx ? 'cur' : ''} ${l.winner != null ? 'done' : ''}" style="--rc:${RAR[l.def.rar].color}" data-lot="${i}" title="${esc(l.def.name)} (${RAR[l.def.rar].name})">${miniImg(l.kind, l.def, 40)}<span class="nm">${esc(l.def.name)}</span>${who}</div>`;
   }).join('');
   const cur = $('#lotStrip .cur'); if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
@@ -221,11 +223,11 @@ function nextLot() {
   if (G.lotIdx >= G.lots.length) { endDraft(); return; }
   const lot = G.lots[G.lotIdx];
   const left = G.lots.length - G.lotIdx - 1;
-  G.A = { lot, price: 0, leader: null, timer: LOT_T[G.level], max: LOT_T[G.level], aiMax: aiMaxBid(lot, G.ai, left, G.pers, G.level), aiAt: rnd(0.7, 1.8), aiOut: false, pPassed: false, closed: false, lastTick: 99 };
+  G.A = { lot, price: 0, leader: null, timer: LOT_T[G.level], max: LOT_T[G.level], aiMax: G.net ? 0 : aiMaxBid(lot, G.ai, left, G.pers, G.level), aiAt: G.net ? null : rnd(0.7, 1.8), aiOut: false, pPassed: false, closed: false, lastTick: 99 };
   $('#lotCard').innerHTML = cardHTML(lot.kind, lot.def, { cls: 'enter' });
   $('#stamp').className = 'stamp'; $('#stamp').innerHTML = '';
   $('#bidFeed').innerHTML = '';
-  renderStrip(); renderSides(); updateAuctionUI();
+  renderStrip(); renderSides(); updateAuctionUI(); netDirty();
 }
 function feed(who, txt) {
   const f = $('#bidFeed'); const s = document.createElement('span'); s.className = who === 0 ? 'p' : who === 1 ? 'a' : ''; s.textContent = txt;
@@ -251,12 +253,16 @@ function coinFly(who) {
 function placeBid(who, amt) {
   const A = G.A; if (!A || A.closed) return;
   A.price = amt; A.leader = who; A.timer = Math.max(A.timer, BID_EXT);
-  feed(who, `${who ? 'AI' : 'Jij'} €${amt}`); bubble(who, '€' + amt); coinFly(who); SFX.bid(who);
-  const p = $('#bidPrice'); p.classList.remove('pop'); void p.offsetWidth; p.classList.add('pop');
+  bidFx(who, amt);
   if (who === 0) {
-    if (!A.aiOut) { const d = G.level === 'hard' ? rnd(0.35, 0.9) : G.level === 'easy' ? rnd(0.8, 1.9) : rnd(0.5, 1.3); A.aiAt = Math.min(d, Math.max(0.3, A.timer - 0.7)); }
+    if (!A.aiOut && !G.net) { const d = G.level === 'hard' ? rnd(0.35, 0.9) : G.level === 'easy' ? rnd(0.8, 1.9) : rnd(0.5, 1.3); A.aiAt = Math.min(d, Math.max(0.3, A.timer - 0.7)); }
   } else { A.aiAt = null; if (A.pPassed) A.timer = Math.min(A.timer, 2.3); }
-  renderSides(); updateAuctionUI();
+  if (G.net && who === 0 && A.aiOut) A.timer = Math.min(A.timer, 2.3);
+  renderSides(); updateAuctionUI(); netDirty();
+}
+function bidFx(who, amt) {
+  feed(who, `${who ? oppLabel() : 'Jij'} €${amt}`); bubble(who, '€' + amt); coinFly(who); SFX.bid(who);
+  const p = $('#bidPrice'); p.classList.remove('pop'); void p.offsetWidth; p.classList.add('pop');
 }
 function aiAct() {
   const A = G.A; A.aiAt = null;
@@ -275,28 +281,37 @@ function playerBid(extra) {
   const A = G.A; if (!A || A.closed || A.leader === 0) return;
   const need = A.leader === null ? A.lot.start : A.price + 1, amt = need + extra;
   if (amt > G.player.coins) return;
+  if (isGuest()) { if (G.net.lastBid === G.round + ':' + G.lotIdx + ':' + amt) return; G.net.lastBid = G.round + ':' + G.lotIdx + ':' + amt; G.net.send({ t: 'bid', i: G.lotIdx, a: amt }); SFX.click(); return; }
   A.pPassed = false;
   placeBid(0, amt);
 }
 function playerPass() {
   SFX.ensure();
   const A = G.A; if (!A || A.closed || A.pPassed || A.leader === 0) return;
+  if (isGuest()) { G.net.send({ t: 'pass', i: G.lotIdx }); A.pPassed = true; updateAuctionUI(); return; }
   A.pPassed = true; feed(0, 'Jij past'); bubble(0, 'Pas'); SFX.pass();
   if (A.leader === 1) A.timer = Math.min(A.timer, 1.6);
   else if (A.aiOut) A.timer = Math.min(A.timer, 0.6);
-  else A.aiAt = Math.min(A.aiAt ?? 0.4, 0.4);
-  updateAuctionUI();
+  else if (!G.net) A.aiAt = Math.min(A.aiAt ?? 0.4, 0.4);
+  updateAuctionUI(); netDirty();
 }
 function closeLot() {
   const A = G.A; A.closed = true; const lot = A.lot; const tok = G.token;
-  const st = $('#stamp');
   if (A.leader !== null) {
     const o = A.leader ? G.ai : G.player;
     o.coins -= A.price;
     const item = { def: lot.def, price: A.price, uid: G.seq++ };
     if (lot.kind === 'unit') o.units.push(item); else if (lot.kind === 'buff') { item.target = null; o.buffs.push(item); } else o.abilities.push(item);
     lot.winner = A.leader; lot.price = A.price;
-    st.innerHTML = `<span style="color:${A.leader ? 'var(--a)' : 'var(--p)'}">Verkocht aan ${A.leader ? 'AI' : 'jou'}</span>`;
+  } else lot.winner = -1;
+  soldFx(A, lot);
+  renderStrip(); renderSides(); updateAuctionUI(); netDirty();
+  setTimeout(() => { if (tok === G.token) nextLot(); }, 1400);
+}
+function soldFx(A, lot) {
+  const st = $('#stamp'), tok = G.token;
+  if (A.leader !== null && A.leader >= 0) {
+    st.innerHTML = `<span style="color:${A.leader ? 'var(--a)' : 'var(--p)'}">Verkocht aan ${A.leader ? esc(oppLabel()) : 'jou'}</span>`;
     SFX.sold();
     const card = $('#lotCard .card'); const target = A.leader ? $('#sideAi') : $('#sideMe');
     if (card && target) {
@@ -306,12 +321,8 @@ function closeLot() {
         card.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${b.left + b.width / 2 - (a.left + a.width / 2)}px,${b.top + 140 - (a.top + a.height / 2)}px) scale(.25) rotate(${A.leader ? 12 : -12}deg)`, opacity: 0 }], { duration: 500, easing: 'cubic-bezier(.5,0,.8,.4)', fill: 'forwards' });
       }, 650);
     }
-  } else {
-    lot.winner = -1; st.innerHTML = '<span style="color:#9a92ad">Niet verkocht</span>'; SFX.pass();
-  }
+  } else { st.innerHTML = '<span style="color:#9a92ad">Niet verkocht</span>'; SFX.pass(); }
   st.className = 'stamp show';
-  renderStrip(); renderSides(); updateAuctionUI();
-  setTimeout(() => { if (tok === G.token) nextLot(); }, 1400);
 }
 function updateAuctionUI() {
   const A = G.A; if (!A) return;
@@ -320,7 +331,7 @@ function updateAuctionUI() {
   $('#bidPrice').textContent = '€' + (A.leader === null ? lot.start : A.price);
   const L = $('#bidLeader');
   L.className = 'leader ' + (A.leader === 0 ? 'p' : A.leader === 1 ? 'a' : '');
-  L.textContent = A.closed ? (A.leader === null ? 'Geen biedingen' : (A.leader ? 'AI wint' : 'Jij wint')) : A.leader === null ? 'Nog geen bod' : A.leader === 0 ? 'Jij leidt' : esc(G.pers.name) + ' leidt';
+  L.textContent = A.closed ? (A.leader === null ? 'Geen biedingen' : (A.leader ? esc(oppLabel()) + ' wint' : 'Jij wint')) : A.leader === null ? 'Nog geen bod' : A.leader === 0 ? 'Jij leidt' : esc(G.pers.name) + ' leidt';
   const card = $('#lotCard .card'); if (card) { card.classList.toggle('lead-p', A.leader === 0); card.classList.toggle('lead-a', A.leader === 1); }
   const need = A.leader === null ? lot.start : A.price + 1;
   const b = $('#bid1');
@@ -329,9 +340,9 @@ function updateAuctionUI() {
   $('#bidPass').disabled = A.closed || A.pPassed || A.leader === 0;
 }
 function tickDraft(dt) {
-  const A = G.A; if (!A || A.closed || G.modalOpen) return;
+  const A = G.A; if (!A || A.closed || (G.modalOpen && !G.net)) return;
   A.timer -= dt;
-  if (!A.aiOut && A.leader !== 1 && A.aiAt != null) { A.aiAt -= dt; if (A.aiAt <= 0) aiAct(); }
+  if (!G.net && !A.aiOut && A.leader !== 1 && A.aiAt != null) { A.aiAt -= dt; if (A.aiAt <= 0) aiAct(); }
   const t = Math.max(0, A.timer);
   $('#timerTxt').textContent = Math.ceil(t);
   $('#timerArc').setAttribute('stroke-dashoffset', 201 * (1 - t / A.max));
@@ -339,7 +350,7 @@ function tickDraft(dt) {
   $('#timer').classList.toggle('hot', t < 3);
   if (t < 3 && Math.ceil(t) !== A.lastTick) { A.lastTick = Math.ceil(t); SFX.tick(); }
   $('#callout').textContent = A.leader !== null ? (t < 1.1 ? 'Andermaal…' : t < 2.3 ? 'Eenmaal…' : '') : (t < 2 ? 'Laatste kans…' : '');
-  if (A.timer <= 0) closeLot();
+  if (A.timer <= 0 && !isGuest()) closeLot();
 }
 
 function endDraft() {
@@ -349,11 +360,15 @@ function endDraft() {
   G.ai.buffs.forEach(b => { if (b.def.target === 'unit') b.target = G.ai.units[bestUnitIndex(G.ai.units.map(u => u.def))].uid; });
   G.player.buffs.forEach(b => { if (b.def.target === 'unit') b.target = G.player.units[bestUnitIndex(G.player.units.map(u => u.def))].uid; });
   renderSides(); renderStrip();
+  if (G.net) { Object.assign(G.net, { ph: 'place', readyL: false, readyR: false, remote: null }); netDirty(); }
+  showDraftSummary();
+}
+function showDraftSummary() {
   const col = (o, who) => `<div class="side ${who ? 'ai' : 'me'}"><h2 style="color:${who ? 'var(--a)' : 'var(--p)'}">${who ? esc(G.pers.name) : 'Jij'}</h2>
     <div class="wallet"><span class="coin">€</span><b>${o.coins}</b><span>over · spaarbonus +${savingsPct(o.coins)}%</span></div>
     <div class="minis">${o.units.map(u => miniHTML('unit', u)).concat(o.buffs.map(b => miniHTML('buff', b)), o.abilities.map(a => miniHTML('ability', a))).join('')}</div>
     <div class="syns">${synChips(o.units.map(u => u.def))}</div></div>`;
-  openModal(`<div class="res-head"><h2 class="win">Draft voltooid</h2><p>Beide legers kregen een gratis Rekruut. Tijd om je troepen op te stellen.</p></div>
+  openModal(`<div class="res-head"><h2 class="win">Draft voltooid</h2><p>Beide legers kregen een gratis Rekruut. Tijd om je troepen op te stellen.${G.net ? ' De opstelling van ' + esc(G.pers.name) + ' blijft geheim tot het gevecht.' : ''}</p></div>
     <div class="two">${col(G.player, 0)}${col(G.ai, 1)}</div>
     <div class="actions"><button class="btn gold big" id="toArena">Naar de arena</button></div>`, { noClose: true });
   $('#toArena').onclick = () => { closeModal(); startPlacement(); };
@@ -363,8 +378,8 @@ function endDraft() {
 const cv = $('#cv'), cx2 = cv.getContext('2d');
 function startPlacement() {
   G.mode = 'place'; G.B = null; resetVFX();
-  const aiPos = autoPlace(G.ai.units.map(u => u.def), 1);
-  G.place = { pos: {}, aiPos, sel: null, assign: null, drag: null };
+  const aiPos = G.net ? [] : autoPlace(G.ai.units.map(u => u.def), 1);
+  G.place = { pos: {}, aiPos, sel: null, assign: null, drag: null, locked: false };
   G.player.units.forEach(u => { G.place.sel = G.place.sel ?? u.uid; });
   show('scr-arena');
   $('#placePanel').style.display = ''; $('#battlePanel').style.display = 'none';
@@ -382,12 +397,12 @@ function sideFor(o, posMap, team) {
   return {
     units: placed.map(u => ({ def: u.def, cx: posMap[u.uid].cx, cy: posMap[u.uid].cy, uid: u.uid })),
     buffs: o.buffs.map(b => ({ def: b.def, target: b.def.target === 'unit' ? Math.max(0, placed.findIndex(u => u.uid === b.target)) : null })),
-    abilities: o.abilities.map(a => a.def), coins: o.coins, ai: team === 1, level: G.level,
+    abilities: o.abilities.map(a => a.def), coins: o.coins, ai: team === 1 && !G.net, level: G.level,
   };
 }
 function aiPosMap() { const m = {}; G.ai.units.forEach((u, i) => { if (G.place.aiPos[i]) m[u.uid] = G.place.aiPos[i]; }); return m; }
-function rebuildPreview() {
-  const sp = sideFor(G.player, G.place.pos, 0), sa = sideFor(G.ai, aiPosMap(), 1);
+function rebuildPreview(full) {
+  const sp = sideFor(G.player, G.place.pos, 0), sa = sideFor(G.ai, G.net ? (full ? G.net.remote || {} : {}) : aiPosMap(), 1);
   G.B = createBattle([sp, sa]);
   G.B.units.forEach((u, i) => { u.ownerUid = i < sp.units.length ? sp.units[i].uid : null; });
   G.B.fx.length = 0;
@@ -402,19 +417,24 @@ function renderPlaceUI() {
   $('#placeBuffs').innerHTML = chips.join('') || '<span class="empty">Geen buffs of abilities gekocht. Je spaarbonus is +' + savingsPct(G.player.coins) + '%.</span>';
   $('#placeSyn').innerHTML = synChips(G.player.units.map(u => u.def));
   const allPlaced = G.player.units.every(u => P.pos[u.uid]);
-  $('#btnFight').disabled = !allPlaced;
-  $('#placeHint').textContent = P.assign != null ? 'Klik nu een eigen unit in de arena voor deze buff' : allPlaced ? 'Klaar! Sleep units om te wisselen, of start het gevecht' : 'Klik een unit en dan een vak in het blauwe gebied';
+  const fb = $('#btnFight');
+  fb.disabled = !allPlaced || P.locked;
+  const oppReady = G.net && (G.net.host ? G.net.readyR : G.net.oppReady);
+  fb.textContent = G.net ? (P.locked ? `Wachten op ${G.pers.name}…` : 'Klaar') : 'Start gevecht';
+  $('#placeHint').textContent = P.locked ? (oppReady ? 'Allebei klaar, het gevecht begint…' : `Je opstelling staat vast. ${G.pers.name} stelt nog op.`)
+    : P.assign != null ? 'Klik nu een eigen unit in de arena voor deze buff'
+    : (oppReady ? `${G.pers.name} is klaar! ` : '') + (allPlaced ? (G.net ? 'Sleep units om te wisselen en klik op Klaar' : 'Klaar! Sleep units om te wisselen, of start het gevecht') : 'Klik een unit en dan een vak in het blauwe gebied');
   updateHud();
 }
 $('#tray').addEventListener('click', e => {
-  const b = e.target.closest('[data-uid]'); if (!b) return; const uid = +b.dataset.uid; SFX.ensure(); SFX.click();
+  const b = e.target.closest('[data-uid]'); if (!b || G.place.locked) return; const uid = +b.dataset.uid; SFX.ensure(); SFX.click();
   if (G.place.sel === uid && G.place.pos[uid]) { delete G.place.pos[uid]; rebuildPreview(); }
   G.place.sel = G.place.sel === uid ? null : uid; G.place.assign = null; renderPlaceUI();
 });
-$('#placeBuffs').addEventListener('click', e => { const c = e.target.closest('[data-buff]'); if (!c) return; const i = +c.dataset.buff; G.place.assign = G.place.assign === i ? null : i; G.place.sel = null; renderPlaceUI(); });
-$('#btnAuto').onclick = () => { autoPlacePlayer(); rebuildPreview(); renderPlaceUI(); SFX.click(); };
-$('#btnClear').onclick = () => { G.place.pos = {}; G.place.sel = G.player.units[0]?.uid ?? null; rebuildPreview(); renderPlaceUI(); SFX.click(); };
-$('#btnFight').onclick = () => startBattle();
+$('#placeBuffs').addEventListener('click', e => { const c = e.target.closest('[data-buff]'); if (!c || G.place.locked) return; const i = +c.dataset.buff; G.place.assign = G.place.assign === i ? null : i; G.place.sel = null; renderPlaceUI(); });
+$('#btnAuto').onclick = () => { if (G.place.locked) return; autoPlacePlayer(); rebuildPreview(); renderPlaceUI(); SFX.click(); };
+$('#btnClear').onclick = () => { if (G.place.locked) return; G.place.pos = {}; G.place.sel = G.player.units[0]?.uid ?? null; rebuildPreview(); renderPlaceUI(); SFX.click(); };
+$('#btnFight').onclick = () => G.net ? onlineReady() : startBattle();
 
 function canvasPoint(e) {
   const r = cv.getBoundingClientRect();
@@ -435,12 +455,12 @@ function unitAt(p, team) {
 function placeOccupant(cx, cy) { for (const [uid, p] of Object.entries(G.place.pos)) if (p.cx === cx && p.cy === cy) return +uid; return null; }
 const inZone = (cx, cy) => cx >= ZONE[0][0] && cx <= ZONE[0][1] && cy >= 0 && cy < AH;
 function placeClick(p) {
-  const P = G.place;
+  const P = G.place; if (P.locked) return;
   if (P.assign != null) {
     const u = unitAt(p, 0); if (!u) return;
     G.player.buffs[P.assign].target = u.ownerUid; P.assign = null; SFX.click(); rebuildPreview(); renderPlaceUI(); return;
   }
-  if (!inZone(p.cx, p.cy)) { if (p.cx >= ZONE[1][0]) toast('Dat is het gebied van de AI', '#ff5a6a'); return; }
+  if (!inZone(p.cx, p.cy)) { if (p.cx >= ZONE[1][0]) toast('Dat is het gebied van ' + (G.net ? G.pers.name : 'de AI'), '#ff5a6a'); return; }
   const occ = placeOccupant(p.cx, p.cy);
   if (P.sel != null) {
     const prev = P.pos[P.sel];
@@ -455,7 +475,7 @@ cv.addEventListener('pointerdown', e => {
   const p = canvasPoint(e);
   if (G.mode === 'place') {
     const occ = inZone(p.cx, p.cy) ? placeOccupant(p.cx, p.cy) : null;
-    if (occ != null && G.place.assign == null && G.place.sel == null) { G.place.drag = { uid: occ, start: p, moved: false }; cv.setPointerCapture(e.pointerId); return; }
+    if (occ != null && G.place.assign == null && G.place.sel == null && !G.place.locked) { G.place.drag = { uid: occ, start: p, moved: false }; cv.setPointerCapture(e.pointerId); return; }
     placeClick(p);
   } else if (G.mode === 'battle') battleClick(p, e);
 });
@@ -465,7 +485,7 @@ cv.addEventListener('pointermove', e => {
   showTip(p, e);
 });
 cv.addEventListener('pointerup', e => {
-  if (G.mode !== 'place' || !G.place.drag) return;
+  if (G.mode !== 'place' || !G.place.drag || G.place.locked) return;
   const p = canvasPoint(e), d = G.place.drag; G.place.drag = null;
   if (!d.moved) { G.place.sel = d.uid; renderPlaceUI(); return; }
   if (!inZone(p.cx, p.cy)) return;
@@ -524,8 +544,9 @@ function placementOverlay() {
 // ===================== BATTLE =====================
 function startBattle() {
   closeModal();
-  rebuildPreview(); resetVFX();
+  rebuildPreview(true); resetVFX();
   G.mode = 'battle'; G.countdown = 3.4; G.endT = 0; G.endSound = false; G.target = null; G.paused = false; G.acc = 0; G.lastCount = 4;
+  if (G.net) { Object.assign(G.net, { ph: 'battle', fxLog: [], dirty: true }); G.speed = 1; }
   $('#placePanel').style.display = 'none'; $('#battlePanel').style.display = '';
   $('#btnPause').textContent = 'Pauze';
   renderAbilityBar(); renderAiAbs(); updateHud();
@@ -537,6 +558,7 @@ function renderAbilityBar() {
 }
 function renderAiAbs() {
   const T = G.B.teams[1];
+  $('#aiAbsTitle').textContent = G.net ? 'Abilities van ' + G.pers.name : 'AI abilities';
   $('#aiAbs').innerHTML = T.abilities.map((a, i) => `<div class="ai-ab" data-aiab="${i}" title="${esc(a.def.name)}: ${esc(a.def.desc)}">${iconSVG(a.def.icon, 24, RAR[a.def.rar].color)}<span class="cdv"></span></div>`).join('') || '<span class="empty">Geen</span>';
 }
 function updateAbilityBar() {
@@ -558,7 +580,7 @@ function armAbility(i) {
   const T = G.B.teams[0], a = T.abilities[i]; if (!a) return;
   if (G.target && G.target.i === i) { G.target = null; updateAbilityBar(); return; }
   if (!canCast(G.B, T, a)) { if (a.def.id === 'resurrect' && a.cd <= 0) toast('Er zijn nog geen gevallen units', '#ffe066'); return; }
-  if (a.def.target === 'none') { castAbility(G.B, 0, a, { x: 0, y: 0 }); G.target = null; }
+  if (a.def.target === 'none') { doCast(i, { x: 0, y: 0 }); G.target = null; }
   else { G.target = { i, a, stage: a.def.target === 'ally' ? 'ally' : 'point', unit: null }; }
   updateAbilityBar();
 }
@@ -567,8 +589,8 @@ function battleClick(p) {
   const tg = G.target;
   if (p.x < 0 || p.x > AW || p.y < 0 || p.y > AH) return;
   if (tg.stage === 'ally') { const u = unitAt(p, 0); if (u) { tg.unit = u; tg.stage = 'dest'; SFX.click(); } return; }
-  if (tg.stage === 'dest') { castAbility(G.B, 0, tg.a, { unit: tg.unit, x: p.x, y: p.y }); G.target = null; updateAbilityBar(); return; }
-  castAbility(G.B, 0, tg.a, { x: p.x, y: p.y }); G.target = null; updateAbilityBar();
+  if (tg.stage === 'dest') { doCast(tg.i, { unit: tg.unit, x: p.x, y: p.y }); G.target = null; updateAbilityBar(); return; }
+  doCast(tg.i, { x: p.x, y: p.y }); G.target = null; updateAbilityBar();
 }
 function battleOverlay() {
   return {
@@ -607,7 +629,7 @@ function battleOverlay() {
 }
 function onCast(e) {
   if (e.type === 'banner') { toast(e.text, e.team === 0 ? '#4fd1ff' : '#ff5a6a'); return; }
-  toast(`${e.team === 0 ? 'Jij' : 'AI'}: ${e.name}`, e.team === 0 ? '#4fd1ff' : '#ff5a6a');
+  toast(`${e.team === 0 ? 'Jij' : oppLabel()}: ${e.name}`, e.team === 0 ? '#4fd1ff' : '#ff5a6a');
   if (e.team === 1) { const el = $(`#aiAbs .ai-ab:nth-child(${G.B.teams[1].abilities.findIndex(a => a.def.id === e.id) + 1})`); if (el && el.animate) el.animate([{ transform: 'scale(1.4)' }, { transform: 'none' }], { duration: 400 }); }
 }
 function updateHud() {
@@ -623,22 +645,22 @@ function updateHud() {
     $('#midS').textContent = B.time > SUDDEN ? 'Arena-storm! Iedereen verliest HP' : `Ronde ${G.round}${G.speed > 1 ? ' · ' + G.speed + '×' : ''}`;
   }
 }
-$('#btnPause').onclick = () => { if (G.mode !== 'battle') return; G.paused = !G.paused; $('#btnPause').textContent = G.paused ? 'Verder' : 'Pauze'; };
-$('#btnSpeed').onclick = () => { G.speed = G.speed === 1 ? 2 : G.speed === 2 ? 3 : 1; $('#btnSpeed').textContent = `Snelheid ${G.speed}×`; };
+$('#btnPause').onclick = () => { if (G.mode !== 'battle' || G.net) return; G.paused = !G.paused; $('#btnPause').textContent = G.paused ? 'Verder' : 'Pauze'; };
+$('#btnSpeed').onclick = () => { if (G.net) return; G.speed = G.speed === 1 ? 2 : G.speed === 2 ? 3 : 1; $('#btnSpeed').textContent = `Snelheid ${G.speed}×`; };
 
 function tickBattle(dt) {
   const B = G.B;
-  if (G.paused || G.modalOpen) return;
+  if ((G.paused || G.modalOpen) && !G.net) return;
   if (G.countdown > 0) {
     G.countdown -= dt;
     const n = Math.ceil(G.countdown - 0.4); if (n !== G.lastCount) { G.lastCount = n; n > 0 ? SFX.tick() : SFX.go(); }
     if (G.countdown <= 0) updateAbilityBar();
     return;
   }
-  const scale = G.target ? 0.3 : G.speed;
+  const scale = G.net ? 1 : G.target ? 0.3 : G.speed;
   G.acc += Math.min(dt, 0.1) * scale;
   let steps = 0;
-  while (G.acc >= 1 / 60 && steps < 12) { stepBattle(B, 1 / 60); G.acc -= 1 / 60; steps++; consumeFx(B, onCast); }
+  while (G.acc >= 1 / 60 && steps < 12) { stepBattle(B, 1 / 60); G.acc -= 1 / 60; steps++; if (G.net) { logFx(B); if (B.fx.length) netDirty(); } consumeFx(B, onCast); }
   for (const u of B.units) if (u.anim.moving) u.anim.walk += dt * scale * 0.8;
   if (B.over) {
     if (G.target) { G.target = null; }
@@ -649,21 +671,29 @@ function tickBattle(dt) {
 }
 
 // ---------- round end ----------
+function teamRows(B, i) { return B.units.filter(u => u.team === i).sort((a, b) => b.stats.dmg + b.stats.heal - a.stats.dmg - a.stats.heal); }
+function mvpOf(B, i) { const m = teamRows(B, i)[0]; return m && m.def.name; }
 function roundEnd() {
   const B = G.B, w = B.winner; G.endSound = false;
   if (w >= 0) G.score[w]++;
   const need = Math.ceil(G.bestOf / 2), over = G.score[0] >= need || G.score[1] >= need;
-  const rows = i => B.units.filter(u => u.team === i).sort((a, b) => b.stats.dmg + b.stats.heal - a.stats.dmg - a.stats.heal);
-  const mvp = i => rows(i)[0];
-  G.history.push({ round: G.round, winner: w, timeout: B.timeout, p: G.player.units.map(u => u.def.name), a: G.ai.units.map(u => u.def.name), mvp: mvp(0) && mvp(0).def.name, spent: 20 - G.player.coins });
+  G.history.push({ round: G.round, winner: w, timeout: B.timeout, p: G.player.units.map(u => u.def.name), a: G.ai.units.map(u => u.def.name), mvp: mvpOf(B, 0), spent: 20 - G.player.coins });
+  if (G.net) { Object.assign(G.net, { ph: 'result', nextL: false, nextR: false, iAmNext: false, matchOver: over, dirty: true }); }
   renderScore();
+  showResult(B, w, over);
+}
+function showResult(B, w, over) {
+  const rows = i => teamRows(B, i);
   const table = i => { const r = rows(i); const m = r[0]; return `<table class="st-table"><thead><tr><th>Unit</th><th class="n">Damage</th><th class="n">Heal</th><th class="n">Kills</th></tr></thead><tbody>${r.map(u => `<tr class="${u === m ? 'mvp' : ''} ${u.alive ? '' : 'dead'}"><td>${u === m ? '★ ' : ''}${esc(u.def.name)}${u.summon ? ' (opgeroepen)' : ''}</td><td class="n">${Math.round(u.stats.dmg)}</td><td class="n">${Math.round(u.stats.heal)}</td><td class="n">${u.stats.kills}</td></tr>`).join('')}</tbody></table>`; };
   const title = w === 0 ? 'Overwinning!' : w === 1 ? 'Nederlaag' : 'Gelijkspel';
   const sub = (B.timeout ? 'De tijd was op: het team met de meeste HP wint. ' : '') + `Stand: Jij ${G.score[0]} – ${G.score[1]} ${G.pers.name}`;
   openModal(`<div class="res-head"><h2 class="${w === 0 ? 'win' : 'lose'}">${title}</h2><p>${esc(sub)}</p></div>
     <div class="two"><div class="side me"><h2 style="color:var(--p)">Jouw leger</h2>${table(0)}</div><div class="side ai"><h2 style="color:var(--a)">${esc(G.pers.name)}</h2>${table(1)}</div></div>
-    <div class="actions">${over ? '<button class="btn gold big" id="toFinal">Bekijk eindresultaat</button>' : '<button class="btn gold big" id="nextRound">Start ronde ' + (G.round + 1) + '</button>'}</div>`, { noClose: true });
-  if (over) $('#toFinal').onclick = () => { closeModal(); finalScreen(); }; else $('#nextRound').onclick = () => startRound();
+    ${G.net && !over ? '<p class="next-info" id="nextInfo"></p>' : ''}
+    <div class="actions">${over ? '<button class="btn gold big" id="toFinal">Bekijk eindresultaat</button>' : '<button class="btn gold big" id="nextRound">' + (G.net ? 'Klaar voor ronde ' : 'Start ronde ') + (G.round + 1) + '</button>'}</div>`, { noClose: true });
+  if (over) $('#toFinal').onclick = () => { closeModal(); finalScreen(); };
+  else $('#nextRound').onclick = () => G.net ? onlineNext() : startRound();
+  if (G.net) updateNextInfo();
 }
 function finalScreen() {
   const win = G.score[0] > G.score[1];
@@ -674,18 +704,20 @@ function finalScreen() {
     <p style="font-size:20px;margin:6px 0 0"><b style="color:var(--p)">${G.score[0]}</b> – <b style="color:var(--a)">${G.score[1]}</b></p>
     <div class="hist">${G.history.map(h => `<div><b>Ronde ${h.round}</b><span style="color:var(--muted);font-size:14px">${esc(h.p.filter(n => n !== 'Rekruut').join(', ') || 'Alleen een Rekruut')} · €${h.spent} uitgegeven${h.mvp ? ' · MVP ' + esc(h.mvp) : ''}</span><span class="w ${h.winner === 0 ? 'p' : h.winner === 1 ? 'a' : ''}">${h.winner === 0 ? 'Gewonnen' : h.winner === 1 ? 'Verloren' : 'Gelijk'}</span></div>`).join('')}</div>
     <p style="color:var(--muted)">Totaal: ${rec.w} matches gewonnen, ${rec.l} verloren.</p>
-    <div class="row" style="justify-content:center"><button class="btn gold big" id="again">Opnieuw spelen</button><button class="btn ghost" id="menu">Hoofdmenu</button></div></div>`;
+    <div class="row" style="justify-content:center"><button class="btn gold big" id="again">${G.net ? 'Nieuwe online match' : 'Opnieuw spelen'}</button><button class="btn ghost" id="menu">Hoofdmenu</button></div></div>`;
   show('scr-final'); G.mode = null;
-  $('#again').onclick = () => newMatch();
+  const wasOnline = !!G.net; leaveOnline();
+  $('#again').onclick = () => wasOnline ? (toMenu(), onlineLobby()) : newMatch();
   $('#menu').onclick = () => toMenu();
 }
-function toMenu() { G.token++; G.mode = null; G.round = 0; G.A = null; G.player = null; renderScore(); closeModal(); show('scr-title'); renderRecord(); }
+function toMenu() { leaveOnline(); G.token++; G.mode = null; G.round = 0; G.A = null; G.player = null; renderScore(); closeModal(); show('scr-title'); renderRecord(); }
 function renderRecord() { const r = store.get(RECORD_KEY, { w: 0, l: 0 }); $('#record').textContent = (r.w + r.l ? `Jouw record: ${r.w} gewonnen, ${r.l} verloren` : 'Tip: lees "Hoe werkt het?" voor je eerste veiling.') + ` · v${BUILD.version}${BUILD.env === 'staging' ? ' · staging' : ''}`; }
 
 // ===================== GLOBAL EVENTS & LOOP =====================
 function seg(id, key) { $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; $$(id + ' button').forEach(x => x.classList.toggle('on', x === b)); G[key] = key === 'bestOf' ? +b.dataset.v : b.dataset.v; SFX.ensure(); SFX.click(); }); }
 seg('#segLevel', 'level'); seg('#segBo', 'bestOf');
 $('#btnStart').onclick = () => { SFX.ensure(); newMatch(); };
+$('#btnOnline').onclick = () => onlineLobby();
 $('#btnHow').onclick = howTo;
 $('#btnCodex').onclick = () => codex();
 $('#btnCodex2').onclick = () => codex();
@@ -693,7 +725,7 @@ $('#btnItems').onclick = () => inventory(0);
 $('#btnMute').onclick = () => { SFX.setMuted(!SFX.isMuted()); $('#btnMute').textContent = SFX.isMuted() ? 'Stil' : 'Geluid'; $('#btnMute').setAttribute('aria-pressed', String(!SFX.isMuted())); };
 $('#logoBtn').onclick = () => {
   if (G.screen === 'scr-title') return;
-  openModal(`<h2>Terug naar het menu?</h2><p>De huidige match wordt afgebroken.</p><div class="actions"><button class="btn ghost" data-close>Verder spelen</button><button class="btn red" id="quit">Stoppen</button></div>`);
+  openModal(`<h2>Terug naar het menu?</h2><p>De huidige match wordt afgebroken.${G.net ? ' ' + esc(G.pers.name) + ' ziet dat je bent vertrokken.' : ''}</p><div class="actions"><button class="btn ghost" data-close>Verder spelen</button><button class="btn red" id="quit">Stoppen</button></div>`);
   $('#quit').onclick = toMenu;
 };
 $('#bid1').onclick = () => playerBid(0); $('#bidPass').onclick = playerPass;
@@ -710,21 +742,25 @@ document.addEventListener('keydown', e => {
 });
 
 let last = performance.now(), hudT = 0;
+function gameStep(dt, t) {
+  if (G.net) netStep(dt);
+  if (G.screen === 'scr-title') drawHero(t);
+  else if (G.screen === 'scr-draft') tickDraft(dt);
+  else if (G.screen === 'scr-arena' && G.B) {
+    if (G.mode === 'battle' || G.mode === 'done') { if (isGuest()) guestTick(dt); else tickBattle(dt); }
+    else if (G.mode === 'place') for (const u of G.B.units) u.anim.walk = 0;
+    updateVFX(dt * (G.target && !G.net ? 0.3 : 1));
+    drawScene(cx2, G.B, t, G.mode === 'place' ? placementOverlay() : battleOverlay());
+    hudT -= dt; if (hudT <= 0) { hudT = 0.1; updateHud(); if (G.mode === 'battle') updateAbilityBar(); }
+  }
+}
 function frame(now) {
-  const dt = Math.min(0.05, (now - last) / 1000); last = now; const t = now / 1000;
-  try {
-    if (G.screen === 'scr-title') drawHero(t);
-    else if (G.screen === 'scr-draft') tickDraft(dt);
-    else if (G.screen === 'scr-arena' && G.B) {
-      if (G.mode === 'battle' || G.mode === 'done') tickBattle(dt);
-      else if (G.mode === 'place') for (const u of G.B.units) u.anim.walk = 0;
-      updateVFX(dt * (G.target ? 0.3 : 1));
-      drawScene(cx2, G.B, t, G.mode === 'place' ? placementOverlay() : battleOverlay());
-      hudT -= dt; if (hudT <= 0) { hudT = 0.1; updateHud(); if (G.mode === 'battle') updateAbilityBar(); }
-    }
-  } catch (err) { console.error(err); }
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  try { gameStep(dt, now / 1000); } catch (err) { console.error(err); }
   requestAnimationFrame(frame);
 }
+// keep an online match running when the tab is in the background (rAF stops there)
+setInterval(() => { if (G.net && document.hidden) { const now = performance.now(); const dt = Math.min(0.25, (now - last) / 1000); last = now; try { gameStep(dt, now / 1000); } catch (e) { console.error(e); } } }, 100);
 function boot() {
   if (BUILD.home) { const a = document.createElement('a'); a.className = 'home-link'; a.href = BUILD.home; a.textContent = '← Bas Games'; $('.top').prepend(a); }
   renderRecord();

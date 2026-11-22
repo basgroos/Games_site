@@ -2,18 +2,20 @@
   "id": "unit-draft-arena",
   "name": "Unit Draft Arena",
   "tagline": "Veiling + auto-battler",
-  "description": "Je krijgt €20 en biedt tegen de AI op 27 units, 18 buffs en 18 abilities in zes rarities. Bouw synergieën, zet je leger op een grid en grijp in met meteoren, bevriezing of een zwart gat terwijl het gevecht automatisch losbarst. Best of 1, 3 of 5 tegen een AI met eigen persoonlijkheid.",
-  "version": "1.1.0",
+  "description": "Je krijgt €20 en biedt tegen de AI op 27 units, 18 buffs en 18 abilities in zes rarities. Bouw synergieën, zet je leger op een grid en grijp in met meteoren, bevriezing of een zwart gat terwijl het gevecht automatisch losbarst. Speel tegen een AI met eigen persoonlijkheid, of online tegen een vriend (met een code) of een willekeurige tegenstander.",
+  "version": "1.2.0",
   "status": "live",
   "color": "#f2c35b",
   "tags": [
     "Strategie",
     "Veiling",
-    "Auto-battler"
+    "Auto-battler",
+    "Online"
   ],
   "order": 11,
   "tests": [
     "tests/sim.js",
-    "tests/smoke.js"
+    "tests/smoke.js",
+    "tests/online.js"
   ]
 }

@@ -64,7 +64,7 @@ npm run build:staging    # bouwt de staging-versie naar site/
 
 - `config/online.json`: de Supabase-URL en de openbare sleutel.
 - `supabase/schema.sql`: scores en ranglijst. `supabase/schema_social.sql`: spelers, vrienden en uitnodigingen. Plak ze in de SQL Editor van Supabase.
-- Samen spelen loopt via Supabase Realtime (kanalen `bg-lobby-<env>` en `bg-room-<uitnodiging>`). Zombie Door Tycoon gebruikt `bg-lobby-zdt-<env>` en `bg-room-zdt-<env>-<code>`; de host rekent het potje uit en stuurt de stand naar de anderen. Age Clash gebruikt `bg-lobby-ac-<env>` en `bg-room-ac-<env>-<kamer>` met lockstep: beide spelers rekenen hetzelfde potje na.
+- Samen spelen loopt via Supabase Realtime (kanalen `bg-lobby-<env>` en `bg-room-<uitnodiging>`). Zombie Door Tycoon gebruikt `bg-lobby-zdt-<env>` en `bg-room-zdt-<env>-<code>`; de host rekent het potje uit en stuurt de stand naar de anderen. Age Clash gebruikt `bg-lobby-ac-<env>` en `bg-room-ac-<env>-<kamer>` met lockstep: beide spelers rekenen hetzelfde potje na. Unit Draft Arena gebruikt `bg-lobby-uda-<env>` en `bg-room-uda-<env>-<kamer>`: de host draait de veiling en het gevecht, de gast stuurt genummerde commando's (bieden, passen, opstelling, spreuken) en tekent de snapshots van de host gespiegeld.
 
 ## Bekende beperking
 

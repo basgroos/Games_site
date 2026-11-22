@@ -244,6 +244,28 @@ kbd{font:700 11px Nunito,sans-serif;padding:1px 6px;border-radius:5px;background
 .home-link{color:var(--muted);text-decoration:none;font-weight:800;font-size:14px;padding:8px 12px;border-radius:10px;background:var(--panel);border:1px solid var(--line);white-space:nowrap}
 .home-link:hover{color:var(--ink);border-color:var(--gold)}
 
+
+/* ---------- online ---------- */
+.online #btnPause,.online #btnSpeed{display:none}
+.lede2{color:#cfc4e6;margin:8px 0 14px;max-width:62ch}
+.on-grid{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:14px;align-items:end}
+.fld{display:grid;gap:4px;font-size:13px;font-weight:800;color:var(--muted)}
+.fld input,.code-row input{font:700 16px Nunito,sans-serif;color:var(--ink);background:#120d1d;border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px;width:100%}
+.fld input:focus,.code-row input:focus{outline:2px solid var(--gold);outline-offset:1px}
+.on-status{margin:0;color:var(--muted);font-size:14px;font-weight:700}
+.on-status.warn{color:var(--a)}
+.on-opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}
+.on-opt{background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:8px;align-content:start}
+.on-opt b{font-family:Cinzel,serif;color:var(--gold);font-size:17px}
+.on-opt span{color:var(--muted);font-size:14px}
+.code-row{display:flex;gap:8px}.code-row input{text-transform:uppercase;letter-spacing:.2em;font-weight:900;min-width:0}
+.on-wait{display:flex;gap:16px;align-items:center;justify-content:center;flex-wrap:wrap;padding:18px 0;text-align:center}
+.on-wait p{margin:4px 0;color:#d8cff0}
+.code-big{font:700 40px Cinzel,serif;letter-spacing:.18em;color:var(--gold);text-shadow:0 0 24px rgba(242,195,91,.4)}
+.spin{width:38px;height:38px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--gold);animation:spin 1s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.next-info{text-align:center;color:var(--muted);font-weight:700;margin:12px 0 0}
+@media (max-width:700px){.on-grid,.on-opts{grid-template-columns:minmax(0,1fr)}}
 </style>
 
 <div id="app">
@@ -271,7 +293,7 @@ kbd{font:700 11px Nunito,sans-serif;padding:1px 6px;border-radius:5px;background
           <div class="seg" id="segLevel"><button data-v="easy">Makkelijk</button><button data-v="normal" class="on">Normaal</button><button data-v="hard">Moeilijk</button></div>
           <label>Wedstrijd</label>
           <div class="seg" id="segBo"><button data-v="1">1 ronde</button><button data-v="3" class="on">Best of 3</button><button data-v="5">Best of 5</button></div>
-          <button class="btn big gold" id="btnStart">Start de draft</button>
+          <div class="row"><button class="btn big gold" id="btnStart">Tegen de AI</button><button class="btn big blue" id="btnOnline">Online spelen</button></div>
           <div class="row"><button class="btn ghost" id="btnHow">Hoe werkt het?</button><button class="btn ghost" id="btnCodex">Alle kaarten</button></div>
           <p class="record" id="record"></p>
         </div>
@@ -343,7 +365,7 @@ kbd{font:700 11px Nunito,sans-serif;padding:1px 6px;border-radius:5px;background
           <div class="abar" id="abar"></div>
         </div>
         <div>
-          <h3>AI abilities</h3>
+          <h3 id="aiAbsTitle">AI abilities</h3>
           <div class="ai-abs" id="aiAbs"></div>
         </div>
         <div class="bctl">
